@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Drawing;
-using System.Text;
 using System.Xml;
-using MySqlX.XDevAPI;
-using System.Net;
 using Torn5.Properties;
+using System.Windows.Forms;
 
 namespace Torn
 {
@@ -229,20 +227,20 @@ namespace Torn
 		{
 			string deployedVersion = "";
 
-            try
+			try
 			{
 
-                System.Net.WebClient wc = new System.Net.WebClient();
-                byte[] raw = wc.DownloadData("https://torn.lasersports.au/version/");
+				System.Net.WebClient wc = new System.Net.WebClient();
+				byte[] raw = wc.DownloadData("https://torn.lasersports.au/version/");
 
-                deployedVersion = System.Text.Encoding.UTF8.GetString(raw);
+				deployedVersion = System.Text.Encoding.UTF8.GetString(raw);
 			} catch
 			{
 				Console.WriteLine("Cannot fetch deployed version");
 			}
 
 			return deployedVersion;
-        }
+		}
 
 		public static bool IsNewerVersionAvailable()
 		{
@@ -260,13 +258,20 @@ namespace Torn
 			int deployedMinor = Int32.Parse(deployedArr[1]);
 			int deployedPatch = Int32.Parse(deployedArr[2]);
 
-            int currentMajor = Int32.Parse(currentArr[0]);
-            int currentMinor = Int32.Parse(currentArr[1]);
-            int currentPatch = Int32.Parse(currentArr[2]);
+			int currentMajor = Int32.Parse(currentArr[0]);
+			int currentMinor = Int32.Parse(currentArr[1]);
+			int currentPatch = Int32.Parse(currentArr[2]);
 
 			return deployedMajor > currentMajor ||
 				(deployedMajor == currentMajor && deployedMinor > currentMinor) ||
 				(deployedMajor == currentMajor && deployedMinor == currentMinor && deployedPatch > currentPatch);
-        }
+		}
+
+		// https://stackoverflow.com/questions/10795134/c-sharp-listview-column-text-size-is-not-the-same-on-each-computer/36974138#36974138
+		public static void ScaleListViewColumns(ListView listview, float ratio)
+		{
+			foreach (ColumnHeader column in listview.Columns)
+				column.Width = (int)Math.Round(column.Width * ratio);
+		}
 	}
 }

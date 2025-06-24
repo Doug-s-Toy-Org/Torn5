@@ -56,19 +56,23 @@
 			this.buttonAscension = new System.Windows.Forms.Button();
 			this.numericTeams = new System.Windows.Forms.NumericUpDown();
 			this.label1 = new System.Windows.Forms.Label();
+			this.panelBottom = new System.Windows.Forms.Panel();
+			this.panelTop = new System.Windows.Forms.Panel();
 			((System.ComponentModel.ISupportInitialize)(this.numericToMove)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericFreeRides)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeamsPerGame)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeamsToCut)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTracks)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeams)).BeginInit();
+			this.panelBottom.SuspendLayout();
+			this.panelTop.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// label27
 			// 
 			this.label27.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.label27.AutoSize = true;
-			this.label27.Location = new System.Drawing.Point(360, 653);
+			this.label27.Location = new System.Drawing.Point(360, 23);
 			this.label27.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
 			this.label27.Name = "label27";
 			this.label27.Size = new System.Drawing.Size(71, 13);
@@ -78,7 +82,7 @@
 			// buttonMoveRight
 			// 
 			this.buttonMoveRight.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonMoveRight.Location = new System.Drawing.Point(400, 669);
+			this.buttonMoveRight.Location = new System.Drawing.Point(400, 39);
 			this.buttonMoveRight.Name = "buttonMoveRight";
 			this.buttonMoveRight.Size = new System.Drawing.Size(23, 23);
 			this.buttonMoveRight.TabIndex = 53;
@@ -90,7 +94,7 @@
 			// buttonMoveLeft
 			// 
 			this.buttonMoveLeft.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonMoveLeft.Location = new System.Drawing.Point(367, 669);
+			this.buttonMoveLeft.Location = new System.Drawing.Point(367, 39);
 			this.buttonMoveLeft.Name = "buttonMoveLeft";
 			this.buttonMoveLeft.Size = new System.Drawing.Size(23, 23);
 			this.buttonMoveLeft.TabIndex = 52;
@@ -103,7 +107,7 @@
 			// 
 			this.label25.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.label25.AutoSize = true;
-			this.label25.Location = new System.Drawing.Point(21, 653);
+			this.label25.Location = new System.Drawing.Point(21, 23);
 			this.label25.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
 			this.label25.Name = "label25";
 			this.label25.Size = new System.Drawing.Size(74, 13);
@@ -113,7 +117,7 @@
 			// buttonDeleteGame
 			// 
 			this.buttonDeleteGame.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonDeleteGame.Location = new System.Drawing.Point(496, 669);
+			this.buttonDeleteGame.Location = new System.Drawing.Point(496, 39);
 			this.buttonDeleteGame.Name = "buttonDeleteGame";
 			this.buttonDeleteGame.Size = new System.Drawing.Size(77, 23);
 			this.buttonDeleteGame.TabIndex = 50;
@@ -125,7 +129,7 @@
 			// 
 			this.label26.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.label26.AutoSize = true;
-			this.label26.Location = new System.Drawing.Point(149, 653);
+			this.label26.Location = new System.Drawing.Point(149, 23);
 			this.label26.Name = "label26";
 			this.label26.Size = new System.Drawing.Size(174, 13);
 			this.label26.TabIndex = 49;
@@ -134,7 +138,7 @@
 			// numericToMove
 			// 
 			this.numericToMove.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.numericToMove.Location = new System.Drawing.Point(152, 673);
+			this.numericToMove.Location = new System.Drawing.Point(152, 43);
 			this.numericToMove.Name = "numericToMove";
 			this.numericToMove.Size = new System.Drawing.Size(50, 20);
 			this.numericToMove.TabIndex = 48;
@@ -147,7 +151,7 @@
 			// buttonDown
 			// 
 			this.buttonDown.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonDown.Location = new System.Drawing.Point(120, 673);
+			this.buttonDown.Location = new System.Drawing.Point(120, 43);
 			this.buttonDown.Name = "buttonDown";
 			this.buttonDown.Size = new System.Drawing.Size(23, 23);
 			this.buttonDown.TabIndex = 47;
@@ -158,7 +162,7 @@
 			// buttonUp
 			// 
 			this.buttonUp.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonUp.Location = new System.Drawing.Point(120, 648);
+			this.buttonUp.Location = new System.Drawing.Point(120, 18);
 			this.buttonUp.Name = "buttonUp";
 			this.buttonUp.Size = new System.Drawing.Size(23, 23);
 			this.buttonUp.TabIndex = 46;
@@ -169,7 +173,7 @@
 			// buttonRight
 			// 
 			this.buttonRight.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonRight.Location = new System.Drawing.Point(73, 669);
+			this.buttonRight.Location = new System.Drawing.Point(73, 39);
 			this.buttonRight.Name = "buttonRight";
 			this.buttonRight.Size = new System.Drawing.Size(23, 23);
 			this.buttonRight.TabIndex = 45;
@@ -182,7 +186,7 @@
 			// 
 			this.labelSelectedColumn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.labelSelectedColumn.AutoSize = true;
-			this.labelSelectedColumn.Location = new System.Drawing.Point(51, 676);
+			this.labelSelectedColumn.Location = new System.Drawing.Point(51, 46);
 			this.labelSelectedColumn.Name = "labelSelectedColumn";
 			this.labelSelectedColumn.Size = new System.Drawing.Size(16, 13);
 			this.labelSelectedColumn.TabIndex = 44;
@@ -191,7 +195,7 @@
 			// buttonLeft
 			// 
 			this.buttonLeft.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonLeft.Location = new System.Drawing.Point(20, 669);
+			this.buttonLeft.Location = new System.Drawing.Point(20, 39);
 			this.buttonLeft.Name = "buttonLeft";
 			this.buttonLeft.Size = new System.Drawing.Size(23, 23);
 			this.buttonLeft.TabIndex = 43;
@@ -202,25 +206,24 @@
 			// 
 			// printReportFinals
 			// 
-			this.printReportFinals.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.printReportFinals.DisplayReport = this.displayReportFinals;
-			this.printReportFinals.Location = new System.Drawing.Point(1156, 6);
+			this.printReportFinals.Dock = System.Windows.Forms.DockStyle.Right;
+			this.printReportFinals.FileName = null;
+			this.printReportFinals.Location = new System.Drawing.Point(1160, 0);
 			this.printReportFinals.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
 			this.printReportFinals.Name = "printReportFinals";
-			this.printReportFinals.Size = new System.Drawing.Size(64, 475);
+			this.printReportFinals.Size = new System.Drawing.Size(64, 701);
 			this.printReportFinals.TabIndex = 42;
 			// 
 			// displayReportFinals
 			// 
-			this.displayReportFinals.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
 			this.displayReportFinals.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-			this.displayReportFinals.Location = new System.Drawing.Point(7, 71);
+			this.displayReportFinals.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.displayReportFinals.Location = new System.Drawing.Point(0, 71);
 			this.displayReportFinals.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
 			this.displayReportFinals.Name = "displayReportFinals";
 			this.displayReportFinals.Report = null;
-			this.displayReportFinals.Size = new System.Drawing.Size(1143, 559);
+			this.displayReportFinals.Size = new System.Drawing.Size(1160, 560);
 			this.displayReportFinals.TabIndex = 41;
 			// 
 			// labelTeamsToSendUp
@@ -412,38 +415,56 @@
 			this.label1.TabIndex = 56;
 			this.label1.Text = "Teams:";
 			// 
+			// panelBottom
+			// 
+			this.panelBottom.Controls.Add(this.label27);
+			this.panelBottom.Controls.Add(this.buttonMoveRight);
+			this.panelBottom.Controls.Add(this.buttonMoveLeft);
+			this.panelBottom.Controls.Add(this.label25);
+			this.panelBottom.Controls.Add(this.buttonDeleteGame);
+			this.panelBottom.Controls.Add(this.label26);
+			this.panelBottom.Controls.Add(this.numericToMove);
+			this.panelBottom.Controls.Add(this.buttonDown);
+			this.panelBottom.Controls.Add(this.buttonUp);
+			this.panelBottom.Controls.Add(this.buttonRight);
+			this.panelBottom.Controls.Add(this.labelSelectedColumn);
+			this.panelBottom.Controls.Add(this.buttonLeft);
+			this.panelBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+			this.panelBottom.Location = new System.Drawing.Point(0, 631);
+			this.panelBottom.Name = "panelBottom";
+			this.panelBottom.Size = new System.Drawing.Size(1160, 70);
+			this.panelBottom.TabIndex = 58;
+			// 
+			// panelTop
+			// 
+			this.panelTop.Controls.Add(this.numericTeams);
+			this.panelTop.Controls.Add(this.label1);
+			this.panelTop.Controls.Add(this.labelTeamsToSendUp);
+			this.panelTop.Controls.Add(this.numericFreeRides);
+			this.panelTop.Controls.Add(this.label10);
+			this.panelTop.Controls.Add(this.buttonFormatD);
+			this.panelTop.Controls.Add(this.buttonTwoTrack);
+			this.panelTop.Controls.Add(this.numericTeamsPerGame);
+			this.panelTop.Controls.Add(this.label9);
+			this.panelTop.Controls.Add(this.numericTeamsToCut);
+			this.panelTop.Controls.Add(this.label8);
+			this.panelTop.Controls.Add(this.numericTracks);
+			this.panelTop.Controls.Add(this.label7);
+			this.panelTop.Controls.Add(this.buttonAscension);
+			this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
+			this.panelTop.Location = new System.Drawing.Point(0, 0);
+			this.panelTop.Name = "panelTop";
+			this.panelTop.Size = new System.Drawing.Size(1160, 71);
+			this.panelTop.TabIndex = 59;
+			// 
 			// FrameFinals
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.Controls.Add(this.numericTeams);
-			this.Controls.Add(this.label1);
-			this.Controls.Add(this.label27);
-			this.Controls.Add(this.buttonMoveRight);
-			this.Controls.Add(this.buttonMoveLeft);
-			this.Controls.Add(this.label25);
-			this.Controls.Add(this.buttonDeleteGame);
-			this.Controls.Add(this.label26);
-			this.Controls.Add(this.numericToMove);
-			this.Controls.Add(this.buttonDown);
-			this.Controls.Add(this.buttonUp);
-			this.Controls.Add(this.buttonRight);
-			this.Controls.Add(this.labelSelectedColumn);
-			this.Controls.Add(this.buttonLeft);
-			this.Controls.Add(this.printReportFinals);
 			this.Controls.Add(this.displayReportFinals);
-			this.Controls.Add(this.labelTeamsToSendUp);
-			this.Controls.Add(this.numericFreeRides);
-			this.Controls.Add(this.label10);
-			this.Controls.Add(this.buttonFormatD);
-			this.Controls.Add(this.buttonTwoTrack);
-			this.Controls.Add(this.numericTeamsPerGame);
-			this.Controls.Add(this.label9);
-			this.Controls.Add(this.numericTeamsToCut);
-			this.Controls.Add(this.label8);
-			this.Controls.Add(this.numericTracks);
-			this.Controls.Add(this.label7);
-			this.Controls.Add(this.buttonAscension);
+			this.Controls.Add(this.panelTop);
+			this.Controls.Add(this.panelBottom);
+			this.Controls.Add(this.printReportFinals);
 			this.Name = "FrameFinals";
 			this.Size = new System.Drawing.Size(1224, 701);
 			this.Enter += new System.EventHandler(this.RefreshFinals);
@@ -453,8 +474,11 @@
 			((System.ComponentModel.ISupportInitialize)(this.numericTeamsToCut)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTracks)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeams)).EndInit();
+			this.panelBottom.ResumeLayout(false);
+			this.panelBottom.PerformLayout();
+			this.panelTop.ResumeLayout(false);
+			this.panelTop.PerformLayout();
 			this.ResumeLayout(false);
-			this.PerformLayout();
 
         }
 
@@ -487,5 +511,7 @@
         private System.Windows.Forms.Button buttonAscension;
         private System.Windows.Forms.NumericUpDown numericTeams;
         private System.Windows.Forms.Label label1;
+		private System.Windows.Forms.Panel panelBottom;
+		private System.Windows.Forms.Panel panelTop;
 	}
 }

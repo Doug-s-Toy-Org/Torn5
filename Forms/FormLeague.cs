@@ -354,29 +354,42 @@ namespace Torn.UI
 		/// <summary>Ensure that there is an i'th victory points box, and set its value.</summary>
 		void SetVictoryBox(int i, double value = 0)
 		{
-			while (victory.Count <= i)
+			SuspendLayout();
+			var oldScale = AutoScaleDimensions;
+			try
 			{
-				var label = new Label
-				{
-					Text = "Points for " + (victory.Count + 1).Ordinate(),
-					Left = 32,
-					Top = 72 + victory.Count * 26,
-					Width = 79,
-					Parent = leaguePage
-				};
+				AutoScaleDimensions = new SizeF(6F, 13F);
 
-				var victoryBox = new NumericUpDown
+				while (victory.Count <= i)
 				{
-					Left = 112,
-					Top = 70 + victory.Count * 26,
-					Width = 60,
-					Parent = leaguePage,
-					Tag = i,
-					Value = 0
-				};
-				victoryBox.ValueChanged += VictoryPointsChanged;
-				victory.Add(victoryBox);
+					var label = new Label
+					{
+						Text = "Points for " + (victory.Count + 1).Ordinate(),
+						Left = 32,
+						Top = 72 + victory.Count * 26,
+						Width = 79,
+						Parent = leaguePage
+					};
+
+					var victoryBox = new NumericUpDown
+					{
+						Left = 112,
+						Top = 70 + victory.Count * 26,
+						Width = 60,
+						Parent = leaguePage,
+						Tag = i,
+						Value = 0
+					};
+					victoryBox.ValueChanged += VictoryPointsChanged;
+					victory.Add(victoryBox);
+				}
 			}
+			finally
+			{
+				AutoScaleDimensions = oldScale;
+				ResumeLayout();
+			}
+
 			victory.Last().Value = (decimal)value;
 		}
 
@@ -476,17 +489,29 @@ namespace Torn.UI
 		/// <summary>Ensure that there is an i'th grade editor.</summary>
 		void SetGradeBox(int i)
 		{
-			while (Grades.Count <= i)
+			SuspendLayout();
+			var oldScale = AutoScaleDimensions;
+			try
 			{
-				var gradeBox = new GradeEditor
-				{
-					Left = 9,
-					Top = 38 + Grades.Count * 26,
-					Parent = GradesPage
-				};
+				AutoScaleDimensions = new SizeF(6F, 13F);
 
-				gradeBox.ValueChanged += GradeValueChanged;
-				Grades.Add(gradeBox);
+				while (Grades.Count <= i)
+				{
+					var gradeBox = new GradeEditor
+					{
+						Left = 9,
+						Top = 38 + Grades.Count * 26,
+						Parent = GradesPage
+					};
+
+					gradeBox.ValueChanged += GradeValueChanged;
+					Grades.Add(gradeBox);
+				}
+			}
+			finally
+			{
+				AutoScaleDimensions = oldScale;
+				ResumeLayout();
 			}
 		}
 
@@ -536,17 +561,29 @@ namespace Torn.UI
 
 		void SetPointPercentBox(int i)
 		{
-			while (PointPercents.Count <= i)
+			SuspendLayout();
+			var oldScale = AutoScaleDimensions;
+			try
 			{
-				var pointPercent = new PointPercentEditor
-				{
-					Left = 20,
-					Top = 60 + PointPercents.Count * 26,
-					Parent = pointPercentBox
-				};
+				AutoScaleDimensions = new SizeF(6F, 13F);
 
-				pointPercent.ValueChanged += PointPercentChanged;
-				PointPercents.Add(pointPercent);
+				while (PointPercents.Count <= i)
+				{
+					var pointPercent = new PointPercentEditor
+					{
+						Left = 20,
+						Top = 60 + PointPercents.Count * 25,
+						Parent = pointPercentBox
+					};
+
+					pointPercent.ValueChanged += PointPercentChanged;
+					PointPercents.Add(pointPercent);
+				}
+			}
+			finally
+			{
+				AutoScaleDimensions = oldScale;
+				ResumeLayout();
 			}
 		}
 
@@ -636,6 +673,17 @@ namespace Torn.UI
 			League.HalfVps = halfVps.Checked;
 			if(halfVps.Checked)
 				zeroVps.Checked = false;
+		}
+		
+		float previousScale = 1;
+		protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+		{
+			base.ScaleControl(factor, specified);
+
+			float scale = factor.Width;
+			if (scale != previousScale)
+				Utility.ScaleListViewColumns(listViewScores, scale / previousScale);
+			previousScale = scale;
 		}
 	}
 }

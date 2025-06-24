@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using Torn.Report;
 using Zoom;
@@ -189,6 +188,17 @@ namespace Torn.UI
 					}
 					break;
 			}
+		}
+
+		float previousScale = 1;
+		protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+		{
+			base.ScaleControl(factor, specified);
+
+			float scale = factor.Width;
+			if (scale != previousScale)
+				Utility.ScaleListViewColumns(listViewReports, scale / previousScale);
+			previousScale = scale;
 		}
 	}
 }

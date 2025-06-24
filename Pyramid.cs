@@ -42,10 +42,12 @@ namespace Torn
 
 			var sb = new StringBuilder();
 
-			foreach (var round in Rounds)
+			for (int i = 0; i < Rounds.Count; i++)
 			{
-				sb.Append(round.Description());
-				sb.Append("\r\n\r\n\r\n");
+				sb.Append(Rounds[i].Description());
+
+				if (i < Rounds.Count - 1)
+					sb.Append("\r\n\r\n\r\n");
 			}
 			report.Description = sb.ToString();
 

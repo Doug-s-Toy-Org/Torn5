@@ -54,12 +54,12 @@ namespace Torn5.Controls
 
         Pyramid Pyramid = new Pyramid();
 
-        public FramePyramid()
-        {
-            InitializeComponent();
-        }
+		public FramePyramid()
+		{
+			InitializeComponent();
+		}
 
-        private void NumericPyramidFinalsGamesValueChanged(object sender, EventArgs e)
+		private void NumericPyramidFinalsGamesValueChanged(object sender, EventArgs e)
         {
             RefreshPyramidFixture();
         }

@@ -14,29 +14,41 @@ namespace Torn.UI
 		{
 			panelMiddle.Controls.Clear();
 
-			var teams = League.Teams.OrderBy(t => t.Name).ToList();
-			int longestName = teams.Max(t => TextRenderer.MeasureText(t.Name, Font).Width);
-
-			int maxHeight = (int)(Screen.PrimaryScreen.WorkingArea.Height * 0.8 / 23);  // Conservative maximum number of checkboxes we can fit vertically.
-			int columns = teams.Count / maxHeight + 1;
-			int boxesPerColumn = (int)Math.Ceiling(teams.Count * 1.0 / columns);
-
-			ClientSize = new Size(Math.Max(Math.Min(columns * (longestName + 40) + 20, (int)(Screen.PrimaryScreen.WorkingArea.Width * 0.9)), 280),
-									boxesPerColumn * 23 + 12 + panelTop.Height + panelBottom.Height);
-
-			for (int team = 0; team < teams.Count; team++)
+			SuspendLayout();
+			var oldScale = AutoScaleDimensions;
+			try
 			{
-				int column = team / boxesPerColumn;
-				var x = new CheckBox()
+				AutoScaleDimensions = new SizeF(9F, 20F);
+
+				var teams = League.Teams.OrderBy(t => t.Name).ToList();
+				int longestName = teams.Max(t => TextRenderer.MeasureText(t.Name, Font).Width);
+
+				int maxHeight = (int)(Screen.PrimaryScreen.WorkingArea.Height * 0.8 / 23);  // Conservative maximum number of checkboxes we can fit vertically.
+				int columns = teams.Count / maxHeight + 1;
+				int boxesPerColumn = (int)Math.Ceiling(teams.Count * 1.0 / columns);
+
+				ClientSize = new Size(Math.Max(Math.Min(columns * (longestName + 40) + 20, (int)(Screen.PrimaryScreen.WorkingArea.Width * 0.9)), 280),
+										boxesPerColumn * 23 + 12 + panelTop.Height + panelBottom.Height);
+
+				for (int team = 0; team < teams.Count; team++)
 				{
-					Top = (team % boxesPerColumn) * 23 + 6,
-					Left = column * (longestName + 40) + 16,
-					Width = longestName + 30,
-					Text = teams[team].Name,
-					Tag = teams[team].TeamId,
-					Checked = teams[team].Active,
-					Parent = panelMiddle
-				};
+					int column = team / boxesPerColumn;
+					var x = new CheckBox()
+					{
+						Top = (team % boxesPerColumn) * 23 + 6,
+						Left = column * (longestName + 40) + 16,
+						Width = longestName + 30,
+						Text = teams[team].Name,
+						Tag = teams[team].TeamId,
+						Checked = teams[team].Active,
+						Parent = panelMiddle
+					};
+				}
+			}
+			finally
+			{
+				AutoScaleDimensions = oldScale;
+				ResumeLayout();
 			}
 		}
 

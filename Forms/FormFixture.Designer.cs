@@ -339,6 +339,7 @@ namespace Torn.UI
 			this.fixtureTeamsList.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
 			this.fixtureTeamsList.Location = new System.Drawing.Point(9, 8);
 			this.fixtureTeamsList.Name = "fixtureTeamsList";
+			this.fixtureTeamsList.Padding = new System.Windows.Forms.Padding(9, 4, 0, 0);
 			this.fixtureTeamsList.Size = new System.Drawing.Size(272, 560);
 			this.fixtureTeamsList.TabIndex = 33;
 			// 
@@ -866,6 +867,7 @@ namespace Torn.UI
 			this.teamsList.Dock = System.Windows.Forms.DockStyle.Left;
 			this.teamsList.Location = new System.Drawing.Point(3, 3);
 			this.teamsList.Name = "teamsList";
+			this.teamsList.Padding = new System.Windows.Forms.Padding(9, 4, 0, 0);
 			this.teamsList.Size = new System.Drawing.Size(156, 732);
 			this.teamsList.TabIndex = 16;
 			// 

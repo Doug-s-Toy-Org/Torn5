@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -255,6 +254,8 @@ namespace Torn.UI
 			tabControl1.TabPages.Remove(tabGamesGrid);
 			tabControl1.TabPages.Remove(tabGraphic);
 
+			framePyramidRound1.SetSplit();
+
 			if (Holder.Fixture != null)
 			{
 				Holder.League.Load(Holder.League.FileName);
@@ -287,7 +288,7 @@ namespace Torn.UI
 				}
 
 				loading = true;
-				Console.WriteLine(leagueTeams.Count);
+				Console.WriteLine("Teams count: " + leagueTeams.Count);
 				SetTeamsBox(leagueTeams.Count);
 
 				for (int i = 0; i < leagueTeams?.Count; i++)
@@ -315,31 +316,39 @@ namespace Torn.UI
 
 		void SetTeamsBox(int i)
 		{
-			while (teamSelectors.Count < i)
+			SuspendLayout();
+			var oldScale = AutoScaleDimensions;
+			try
 			{
-				var teamBox = new CheckBox
-				{
-					Left = 9,
-					Top = 10 + teamSelectors.Count * 26,
-					Width = teamsList.Width - 28,  // Leave room for a vertical scrollbar, should the owning panel decide it needs one.
-					Parent = teamsList
-				};
+				AutoScaleDimensions = new SizeF(6F, 13F);
 
-				teamBox.CheckedChanged += TeamCheckedChanged;
-				teamSelectors.Add(teamBox);
+				while (teamSelectors.Count < i)
+				{
+					var teamBox = new CheckBox
+					{
+						Dock = DockStyle.Top,
+						Parent = teamsList
+					};
+
+					teamBox.CheckedChanged += TeamCheckedChanged;
+					teamSelectors.Add(teamBox);
+				}
+				while (fixtureTeamSelectors.Count < i)
+				{
+					var teamBox = new CheckBox
+					{
+						Dock = DockStyle.Top,
+						Parent = fixtureTeamsList
+					};
+
+					teamBox.CheckedChanged += FixtureTeamCheckedChanged;
+					fixtureTeamSelectors.Add(teamBox);
+				}
 			}
-			while (fixtureTeamSelectors.Count < i)
+			finally
 			{
-				var teamBox = new CheckBox
-				{
-					Left = 9,
-					Top = 10 + fixtureTeamSelectors.Count * 26,
-					Width = fixtureTeamsList.Width - 28,
-					Parent = fixtureTeamsList
-				};
-
-				teamBox.CheckedChanged += FixtureTeamCheckedChanged;
-				fixtureTeamSelectors.Add(teamBox);
+				AutoScaleDimensions = oldScale;
+				ResumeLayout();
 			}
 		}
 

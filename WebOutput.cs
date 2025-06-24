@@ -684,7 +684,7 @@ xhrScoreboard.send();
 
 				Directory.CreateDirectory(Path.Combine(path, "json"));
 
-				Console.WriteLine("Here");
+				Console.WriteLine("ExportGamesToJSON");
 
 				foreach (var game in games)
 				{
@@ -784,7 +784,7 @@ xhrScoreboard.send();
 					{
 						using (StreamWriter sw = File.CreateText(Path.Combine(path, holder.Key, "team" + leagueTeam.TeamId.ToString("D2", CultureInfo.InvariantCulture) + "." + holder.ReportTemplates.OutputFormat.ToExtension())))
 							sw.Write(ReportPages.TeamPage(holder.League, includeSecret, leagueTeam, holder.ReportTemplates.OutputFormat));
-						myProgress.Advance(1 / holder.League.Teams.Count, "Team " + leagueTeam.Name + " page exported.");
+						myProgress.Advance(1.0 / holder.League.Teams.Count, "Team " + leagueTeam.Name + " page exported.");
 					}
 					myProgress.Advance(0, "Team pages exported.");
 

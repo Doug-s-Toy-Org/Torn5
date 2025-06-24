@@ -61,7 +61,7 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=577,Y=49}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=523,Y=19}.
         /// </summary>
         internal static System.Drawing.Point contextMenuStripGames_TrayLocation {
             get {
@@ -71,7 +71,7 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=277,Y=18}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=142,Y=20}.
         /// </summary>
         internal static System.Drawing.Point folderBrowserDialog1_TrayLocation {
             get {
@@ -91,7 +91,7 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=437,Y=18}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=819,Y=15}.
         /// </summary>
         internal static System.Drawing.Point imageListLeagues_TrayLocation {
             get {
@@ -111,11 +111,111 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=443,Y=49}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=958,Y=17}.
         /// </summary>
         internal static System.Drawing.Point imageListPacks_TrayLocation {
             get {
                 object obj = ResourceManager.GetObject("imageListPacks.TrayLocation", resourceCulture);
+                return ((System.Drawing.Point)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Windows.Forms.ImageListStreamer.
+        /// </summary>
+        internal static System.Windows.Forms.ImageListStreamer imageListRibbon16_ImageStream {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon16.ImageStream", resourceCulture);
+                return ((System.Windows.Forms.ImageListStreamer)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=1081,Y=17}.
+        /// </summary>
+        internal static System.Drawing.Point imageListRibbon16_TrayLocation {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon16.TrayLocation", resourceCulture);
+                return ((System.Drawing.Point)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Windows.Forms.ImageListStreamer.
+        /// </summary>
+        internal static System.Windows.Forms.ImageListStreamer imageListRibbon24_ImageStream {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon24.ImageStream", resourceCulture);
+                return ((System.Windows.Forms.ImageListStreamer)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=1221,Y=17}.
+        /// </summary>
+        internal static System.Drawing.Point imageListRibbon24_TrayLocation {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon24.TrayLocation", resourceCulture);
+                return ((System.Drawing.Point)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Windows.Forms.ImageListStreamer.
+        /// </summary>
+        internal static System.Windows.Forms.ImageListStreamer imageListRibbon32_ImageStream {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon32.ImageStream", resourceCulture);
+                return ((System.Windows.Forms.ImageListStreamer)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=1365,Y=18}.
+        /// </summary>
+        internal static System.Drawing.Point imageListRibbon32_TrayLocation {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon32.TrayLocation", resourceCulture);
+                return ((System.Drawing.Point)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Windows.Forms.ImageListStreamer.
+        /// </summary>
+        internal static System.Windows.Forms.ImageListStreamer imageListRibbon48_ImageStream {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon48.ImageStream", resourceCulture);
+                return ((System.Windows.Forms.ImageListStreamer)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=1518,Y=19}.
+        /// </summary>
+        internal static System.Drawing.Point imageListRibbon48_TrayLocation {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon48.TrayLocation", resourceCulture);
+                return ((System.Drawing.Point)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Windows.Forms.ImageListStreamer.
+        /// </summary>
+        internal static System.Windows.Forms.ImageListStreamer imageListRibbon64_ImageStream {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon64.ImageStream", resourceCulture);
+                return ((System.Windows.Forms.ImageListStreamer)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=1660,Y=20}.
+        /// </summary>
+        internal static System.Drawing.Point imageListRibbon64_TrayLocation {
+            get {
+                object obj = ResourceManager.GetObject("imageListRibbon64.TrayLocation", resourceCulture);
                 return ((System.Drawing.Point)(obj));
             }
         }
@@ -131,7 +231,7 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=283,Y=50}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=423,Y=17}.
         /// </summary>
         internal static System.Drawing.Point printDialog_TrayLocation {
             get {
@@ -921,7 +1021,7 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=20,Y=48}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=302,Y=17}.
         /// </summary>
         internal static System.Drawing.Point saveFileDialog1_TrayLocation {
             get {
@@ -931,7 +1031,7 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=718,Y=15}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=702,Y=15}.
         /// </summary>
         internal static System.Drawing.Point timerGame_TrayLocation {
             get {

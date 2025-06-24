@@ -183,7 +183,7 @@ namespace Torn.UI
 				updater.ShowDialog();
 			}
 
-        }
+		}
 
 		void ConnectLaserGameServer()
 		{
@@ -208,6 +208,7 @@ namespace Torn.UI
 						laserGameServer = new TornTcpServer(laserforceGameLimit, laserforceGameFilter, hasLaserforceGameFilter, serverAddress, serverPort);
 						timeElapsed = laserGameServer.GameTimeElapsed();
 					break;
+					case SystemType.Json: laserGameServer = new JsonServer();  break;
 					case SystemType.Demo: laserGameServer = new DemoServer();  break;
 				}
 
@@ -528,7 +529,7 @@ namespace Torn.UI
 		}
 
 		private string ColorToTColor(Color color)
-        {
+		{
 			var r = color.R.ToString("X2");
 			var g = color.G.ToString("X2");
 			var b = color.B.ToString("X2");
@@ -537,7 +538,7 @@ namespace Torn.UI
 		}
 
 		private void UpdateScoreboard(ServerGame serverGame)
-        {
+		{
 			int TBOARD_SOCKET = 21570;
 
 			UdpClient udp = new UdpClient();
@@ -596,15 +597,15 @@ namespace Torn.UI
 		}
 
 		private void ButtonUpdateScoreboardClick(object sender, EventArgs e)
-        {
+		{
 			var item = listViewGames.SelectedItems[0];
 			if (item.Tag is ServerGame serverGame && serverGame.Game != null)
 			{
 				UpdateScoreboard(serverGame);
 			} else
-            {
+			{
 				MessageBox.Show("Please Commit Game First", "Cannot Display Scoreboard", MessageBoxButtons.OK);
-            }
+			}
 		}
 
 		private void ButtonPrintReportsClick(object sender, EventArgs e)
@@ -867,22 +868,22 @@ namespace Torn.UI
 			var root = doc.DocumentElement;
 			XmlNodeList gameNodes = root.SelectSingleNode("games").SelectNodes("game");
 			foreach (XmlNode gameNode in gameNodes)
-            {
+			{
 				XmlNode timeNode = gameNode.SelectSingleNode("ansigametime");
 				string time = timeNode.InnerText;
 				Console.WriteLine("Time: " + time);
 				if (timeNode.InnerText == gameTime)
-                {
+				{
 					if (gameNode.SelectSingleNode("title") == null)
-                    {
+					{
 						doc.AppendNode(gameNode, "title", description);
-                    } else
-                    {
+					} else
+					{
 						gameNode.SelectSingleNode("title").InnerText = description;
 
 					}
-                }
-            }
+				}
+			}
 			doc.Save(fileName);
 		}
 
@@ -1111,9 +1112,9 @@ namespace Torn.UI
 				if (laserGameServer != null && leagueGame == null)
 					laserGameServer.PopulateGame(game);
 				else
-                {
+				{
 					game.Players.Clear();
-                }
+				}
 
 				playersBox.LoadGame(activeHolder?.League, game);
 				formPlayer.CurrentLeague = activeHolder?.League;
@@ -1130,12 +1131,12 @@ namespace Torn.UI
 			string newKey = e.Label;
 
 			if (holder != null && !string.IsNullOrEmpty(newKey))
-		    {
+			{
 				//listViewLeagues.Items[e.Item].Tag = newKey;
 				holder.Key = newKey;
 				holder.League.Key = newKey;
 				holder.League.Save();
-		    }
+			}
 		}
 
 		void ListViewLeaguesItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
@@ -1167,7 +1168,7 @@ namespace Torn.UI
 				activeHolder = null;
 				var sb = new StringBuilder();
 				sb.Append(listViewLeagues.SelectedItems.Count.ToString(CultureInfo.CurrentCulture));
-				          sb.Append(" leagues selected:\n");
+				sb.Append(" leagues selected:\n");
 				foreach (ListViewItem item in listViewLeagues.SelectedItems)
 					sb.Append(item.SubItems[1].Text + ",\n");
 				sb.Length -= 2;
@@ -1324,7 +1325,7 @@ namespace Torn.UI
 		}
 
 		void RerenderGamesList (List<ServerGame> oldGames, List<ServerGame> serverGames, string filter = "")
-        {
+		{
 			var topItem = listViewGames.TopItem;
 			var focused = listViewGames.FocusedItem ?? (listViewGames.SelectedItems.Count > 0 ? listViewGames.SelectedItems[0] : null);
 
@@ -1374,12 +1375,12 @@ namespace Torn.UI
 			List<ServerGame> filteredGames = new List<ServerGame>();
 
 			if (filter != "")
-            {
+			{
 				filteredGames.AddRange(serverGames.Where(game => game.Description == null || game.Description.Contains(filter)));
 			} else
-            {
+			{
 				filteredGames.AddRange(serverGames);
-            }
+			}
 
 			listViewGames.BeginUpdate();
 			try
@@ -1504,9 +1505,9 @@ namespace Torn.UI
 			else if (!((ServerGame)e.Item.Tag).OnServer)
 				brush.Color = SystemColors.ControlLight;
 	
-            e.Graphics.FillRectangle(brush, e.Bounds);
-            e.DrawFocusRectangle();
-            e.DrawText();
+			e.Graphics.FillRectangle(brush, e.Bounds);
+			e.DrawFocusRectangle();
+			e.DrawText();
 		}
 
 		void ListViewGamesDrawSubItem(object sender, DrawListViewSubItemEventArgs e)
@@ -1516,16 +1517,16 @@ namespace Torn.UI
 			// Store the column text alignment, letting it default to Left if it has not been set to Center or Right.
 			switch (e.Header.TextAlign)
 			{
-			    case HorizontalAlignment.Center:
-			        flags = TextFormatFlags.HorizontalCenter;
-			        break;
-			    case HorizontalAlignment.Right:
-			        flags = TextFormatFlags.Right;
-			        break;
+				case HorizontalAlignment.Center:
+					flags = TextFormatFlags.HorizontalCenter;
+					break;
+				case HorizontalAlignment.Right:
+					flags = TextFormatFlags.Right;
+					break;
 			}
 			
 //			if ((e.ItemState & ListViewItemStates.Selected) == 0)
-//			    e.DrawBackground();
+//				e.DrawBackground();
 			// Draw normal text.
 			e.DrawText(flags);
 		}
@@ -1649,7 +1650,7 @@ namespace Torn.UI
 			List<ServerGame> serverGames = new List<ServerGame>();
 
 			foreach(ListViewItem item in listViewGames.SelectedItems)
-            {
+			{
 				if (item.Tag is ServerGame serverGame)
 				{
 					laserGameServer.PopulateGame(serverGame);
@@ -1681,14 +1682,71 @@ namespace Torn.UI
 			} else {
 				RerenderGamesList(serverGames, serverGames, gameFilter.Text);
 			}
-        }
+		}
 
-        private void labelStatus_Click(object sender, EventArgs e)
-        {
+		float previousScale = 1;
+		/// <summary>ScaleControl is called when form is loaded on a monitor whose scaling is not 100%, but is _not_ called when the form is moved to a monitor with different scale.</summary>
+		protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+		{
+			base.ScaleControl(factor, specified);
 
-        }
-    }
-    public static class Extensions
+			DoScaling(factor.Width);
+		}
+
+		/// <summary>dpiChanged is called when the form is moved to a monitor with different scale, but is _not_ called on form launch.</summary>
+		private void MainForm_DpiChanged(object sender, DpiChangedEventArgs e)
+		{
+			DoScaling(DeviceDpi / 96F);
+		}
+
+		private void DoScaling(float scale)
+		{
+			if (scale == previousScale)
+				return;
+
+			// Scale ListViews.
+			Utility.ScaleListViewColumns(listViewLeagues, scale / previousScale);
+			Utility.ScaleListViewColumns(listViewGames, scale / previousScale);
+
+			previousScale = scale;
+
+			// Scale RibbonButton images.
+			var imageLists = new Dictionary<int, ImageList>
+			{
+				{ 16, imageListRibbon16 },
+				{ 24, imageListRibbon24 },
+				{ 32, imageListRibbon32 },
+				{ 48, imageListRibbon48 },
+				{ 64, imageListRibbon64 }
+			};
+
+			int smallImageSize =
+				scale < 1.4 ? 16 :  // Scale is likely 100% or 125%
+				scale < 1.9 ? 24 :  // Scale is likely 150% or 175%
+				scale < 2.9 ? 32 :  // Scale is likely 200%, 225% or 250%
+				scale < 3.9 ? 48 :  // Scale is likely 300% or 350%
+				64;  // Scale is about 400% or higher.
+
+			int largeImageSize = Math.Min(smallImageSize * 2, 64);
+
+			var smallImages = imageLists[smallImageSize].Images;
+			var largeImages = imageLists[largeImageSize].Images;
+
+			foreach (var p in ribbonTab1.Panels)
+				foreach (var c in p.Items)
+					if (c is RibbonButton ribbonButton)
+					{
+						string key = (string)ribbonButton.Tag;
+
+						if (smallImages.ContainsKey(key))
+							ribbonButton.SmallImage = smallImages[key];
+
+						if (largeImages.ContainsKey(key))
+							ribbonButton.LargeImage = largeImages[key];
+					}
+		}
+	}
+	public static class Extensions
 	{
 		public static IEnumerable<string> Split(this string str, int n)
 		{

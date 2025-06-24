@@ -2,7 +2,6 @@
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
-using Torn;
 
 namespace Torn.UI
 {
@@ -102,9 +101,19 @@ namespace Torn.UI
 			buttonOK.Enabled = !string.IsNullOrEmpty(textId.Text);
 		}
 
-        private void textId_TextChanged(object sender, EventArgs e)
-        {
+		private void textId_TextChanged(object sender, EventArgs e)
+		{
 
-        }
-    }
+		}
+		float previousScale = 1;
+		protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+		{
+			base.ScaleControl(factor, specified);
+
+			float scale = factor.Width;
+			if (scale != previousScale)
+				Utility.ScaleListViewColumns(listViewPlayers, scale / previousScale);
+			previousScale = scale;
+		}
+	}
 }

@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Torn;
-using Torn.Report;
 
 namespace Torn5.Controls
 {
