@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
 using System.Linq;
-using MySql.Data;  // To install: https://dev.mysql.com/doc/visual-studio/en/visual-studio-install.html
 using MySql.Data.MySqlClient;
 
 namespace Torn

@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO.IsolatedStorage;
-using System.Xml.Serialization;
-/*
+﻿/*
 namespace Torn.UI
 {
 	/// <summary>

@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
-using System.Threading.Tasks;
 using Torn;
 
 namespace Torn5
@@ -45,7 +42,7 @@ namespace Torn5
                         if (server.Pending())
                         {
                             TcpClient client = server.AcceptTcpClient();
-                            Console.WriteLine("Connected!");
+                            Console.WriteLine("TCP Listener Connected!");
 
                             data = null;
 

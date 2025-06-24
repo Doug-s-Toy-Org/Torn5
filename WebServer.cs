@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Threading;
-using System.Linq;
-using System.Text;
- 
+
 namespace Torn
 {
 	/// <summary>
@@ -58,7 +56,7 @@ namespace Torn
 				{
 					while (_listener.IsListening)
 					{
-					    ThreadPool.QueueUserWorkItem((c) =>
+						ThreadPool.QueueUserWorkItem((c) =>
 						{
 							var ctx = c as HttpListenerContext;
 							try

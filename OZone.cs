@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Torn
 {
@@ -34,7 +33,7 @@ namespace Torn
 		}
 
 		private bool Connect()
-        {
+		{
 			if (connected) {
 				client.Close();
 			};
@@ -58,7 +57,7 @@ namespace Torn
 
 			string cleanedResult = result.Remove(0, 5);
 
-			Console.WriteLine(result);
+			Console.WriteLine("GetGames " + result);
 			Console.WriteLine(cleanedResult);
 
 			JObject root = JObject.Parse(cleanedResult);
@@ -84,7 +83,7 @@ namespace Torn
 						game.EndTime = DateTime.Parse(dateTimeStr,
 							System.Globalization.CultureInfo.InvariantCulture);
 					} catch
-                    {
+					{
 						string dateTimeStr = jgame["starttime"].ToString();
 						game.EndTime = DateTime.Parse(dateTimeStr,
 							System.Globalization.CultureInfo.InvariantCulture);
@@ -108,7 +107,7 @@ namespace Torn
 		}
 
 		string ReadFromOzone(TcpClient client, NetworkStream nwStream)
-        {
+		{
 			try
 			{
 				string str = "";
@@ -124,7 +123,7 @@ namespace Torn
 
 					str += current;
 					if(current.EndsWith("}"))
-                    {
+					{
 						Thread.Sleep(1);
 						var result = nwStream.DataAvailable;
 
@@ -279,7 +278,7 @@ namespace Torn
 				var playersDictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(playersStr);
 
 				foreach(var player in playersDictionary)
-                {
+				{
 					string id = player.Key.ToString();
 					string playerContent = player.Value.ToString();
 					JObject playerRoot = JObject.Parse(playerContent);
@@ -303,7 +302,7 @@ namespace Torn
 						string omid = playerRoot["omid"].ToString();
 						// If pack was not logged in use alias as identifier
 						if(omid == "-1")
-                        {
+						{
 							omid = playerRoot["alias"].ToString();
 
 						}
