@@ -7,7 +7,6 @@ using System.Text;
 using Zoom;
 using System.IO;
 using Newtonsoft.Json.Linq;
-using System.Text.Json;
 using Newtonsoft.Json;
 using Torn5;
 
@@ -219,7 +218,7 @@ namespace Torn.Report
 				foreach (var player in game.SortedAllPlayers())
 				{
 
-					Console.WriteLine(player.ToString());
+					Console.WriteLine("EverythingReport Player: " + player.ToString());
 					var playerRow = new ZRow();
 
 					Color color = player.Colour.ToColor();
@@ -519,6 +518,7 @@ namespace Torn.Report
 			bool hasHits = rt.FindSetting("showHits") >= 0;
 			bool isDecimal = rt.FindSetting("isDecimal") >= 0;
 			ZoomReport report = new ZoomReport("", "Rank,Team", "center,left");
+			report.Columns[0].Rotate = true;
 
 			DateTime thisgametime = DateTime.MinValue;
 			// Create columns.
@@ -538,14 +538,14 @@ namespace Torn.Report
 				report.AddColumn(column);
 
 				if(hasHits)
-                {
+				{
 					column = new ZColumn("Hits")
 					{
 						GroupHeading = game.Title,
 						Tag = game
 					};
 					report.AddColumn(column);
-                }
+				}
 
 				if (league.IsPoints(games) && !ignorePoints)
 				{
@@ -565,7 +565,7 @@ namespace Torn.Report
 			{
 				report.AddColumn(new ZColumn("Average"));
 				if(hasHits)
-                {
+				{
 					report.AddColumn(new ZColumn("Hits"));
 					hitsCol = report.Columns.Count() - 1;
 
@@ -994,7 +994,7 @@ namespace Torn.Report
 							}
 						}
 						else
-                        {
+						{
 							playersRow.Add(new ZCell());
 							playersRow.Add(new ZCell("", gameTeam.Colour.ToColor()));
 							playersRow.Add(new ZCell("", gameTeam.Colour.ToColor()));
@@ -1377,6 +1377,7 @@ namespace Torn.Report
 			var sameWidths = new List<ZColumn>();
 			report.SameWidths.Add(sameWidths);
 
+			report.Columns[0].Rotate = true;
 			for (int i = 3; i < report.Columns.Count; i++)
 				report.Columns[i].Rotate = true;
 
@@ -1699,7 +1700,7 @@ namespace Torn.Report
 				totals.Score = 0;
 			}
 
-			Console.WriteLine(totalTagRatio + " " + totalCount);
+			Console.WriteLine("OnePlayer: " + totalTagRatio + " " + totalCount);
 
 			FillDetails(totalRow, totals, default, (double)totalScore / totalCount, (double)totalTagRatio / totalGames);
 
@@ -2210,6 +2211,18 @@ namespace Torn.Report
 						!game.Teams.Any(t => t.Points != 0))
 						AddSanityCheckRow(report, league, game, null, "Game does not have victory points set.");
 				}
+
+				foreach (var team in league.Teams)
+					foreach (var player in team.Players)
+						if (!games.Any(g => g.AllPlayers().Any(p => p.PlayerId == player.Id  && p.TeamId == team.TeamId)))
+							report.Rows.Add(
+								new ZRow()
+								{
+									new ZCell(string.Empty),
+									new ZCell(team.Name),
+									new ZCell(string.Format("Player {0} is listed on this team but plays no games for it.", player.Name))
+								}
+						);
 			}
 
 			if (description)
@@ -2270,78 +2283,78 @@ namespace Torn.Report
 				}
 			}
 
-            return false;
+			return false;
 
 		}
 
-        public static bool logFileIsAfterDate(string file, DateTime? from)
-        {
-            if (from == null)
-            {
-                return true;
-            }
+		public static bool logFileIsAfterDate(string file, DateTime? from)
+		{
+			if (from == null)
+			{
+				return true;
+			}
 
-            string[] fileParts = file.Split('\\');
-            string fileName = fileParts[fileParts.Length - 1];
-            string dateTime = fileName.Replace("game", "").Replace(".json", "");
+			string[] fileParts = file.Split('\\');
+			string fileName = fileParts[fileParts.Length - 1];
+			string dateTime = fileName.Replace("game", "").Replace(".json", "");
 
-            string[] dateTimes = dateTime.Split('T');
-            string date = dateTimes[0];
-            string time = dateTimes[1];
+			string[] dateTimes = dateTime.Split('T');
+			string date = dateTimes[0];
+			string time = dateTimes[1];
 
-            string[] dates = date.Split('-');
-            string[] times = time.Split('_');
+			string[] dates = date.Split('-');
+			string[] times = time.Split('_');
 
-            int year = Int32.Parse(dates[0]);
-            int month = Int32.Parse(dates[1]);
-            int day = Int32.Parse(dates[2]);
+			int year = Int32.Parse(dates[0]);
+			int month = Int32.Parse(dates[1]);
+			int day = Int32.Parse(dates[2]);
 
-            int hour = Int32.Parse(times[0]);
-            int minute = Int32.Parse(times[1]);
+			int hour = Int32.Parse(times[0]);
+			int minute = Int32.Parse(times[1]);
 
-            if (year > from.Value.Year)
-                return true;
+			if (year > from.Value.Year)
+				return true;
 
-            if (year == from.Value.Year)
-            {
-                if (month > from.Value.Month)
-                    return true;
+			if (year == from.Value.Year)
+			{
+				if (month > from.Value.Month)
+					return true;
 
-                if (month == from.Value.Month)
-                {
-                    if (day > from.Value.Day)
-                        return true;
+				if (month == from.Value.Month)
+				{
+					if (day > from.Value.Day)
+						return true;
 
-                    if (day == from.Value.Day)
-                    {
-                        if (hour > from.Value.Hour)
-                            return true;
+					if (day == from.Value.Day)
+					{
+						if (hour > from.Value.Hour)
+							return true;
 
-                        if (hour == from.Value.Hour)
-                        {
-                            if (minute >= from.Value.Minute)
-                                return true;
-                        }
-                    }
-                }
-            }
+						if (hour == from.Value.Hour)
+						{
+							if (minute >= from.Value.Minute)
+								return true;
+						}
+					}
+				}
+			}
 
-            return false;
+			return false;
 
-        }
+		}
 
-        public static ZoomReport PackHitsReport(League league, bool includeSecret, ReportTemplate rt, string exportFolder, DateTime? from, DateTime? to)
-        {
-            ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", league.Title, rt),
-											   "Pack,Chest,Back,Phasor,L Shoulder,R Shoulder,Chest,Back,Phasor,L Shoulder,R Shoulder,Total Hits",
-											   "left,integer,right,integer,right,integer,right,integer,right,integer,right,integer",
-											   ",Percentage,Percentage,Percentage,Percentage,Percentage,Hits,Hits,Hits,Hits,Hits,");
+		public static ZoomReport PackHitsReport(League league, bool includeSecret, ReportTemplate rt, string exportFolder, DateTime? from, DateTime? to)
+		{
+			ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", league.Title, rt),
+												"Pack,Chest,Back,Phasor,L Shoulder,R Shoulder,Chest,Back,Phasor,L Shoulder,R Shoulder,Total Hits",
+												"left,integer,right,integer,right,integer,right,integer,right,integer,right,integer",
+												",Percentage,Percentage,Percentage,Percentage,Percentage,Hits,Hits,Hits,Hits,Hits,");
 
 			if (exportFolder == "" || exportFolder == null)
-            {
+			{
 				Console.WriteLine("Cannot find json exports");
 				return report;
-            }
+			}
 
 			string jsonPath = Path.Combine(exportFolder, "json");
 
@@ -2350,7 +2363,7 @@ namespace Torn.Report
 			List<PackHits> packs = new List<PackHits>();
 
 			foreach (var file in files)
-            {
+			{
 				if (logFileIsAfterDate(file, from) && logFileIsBeforeDate(file, to))
 				{
 
@@ -2410,8 +2423,8 @@ namespace Torn.Report
 			}
 
 			foreach(PackHits pack in packs)
-            {
-				Console.WriteLine(pack.name);
+			{
+				Console.WriteLine("PackHitsReport: " + pack.name);
 				ZRow row = report.AddRow(new ZRow());
 
 				decimal chest = Math.Round(pack.chest / pack.TotalHits() * 100,2);
@@ -2435,7 +2448,7 @@ namespace Torn.Report
 			}
 
 			return report;
-        }
+		}
 
 		/// <summary>List each player and their number of games, average score, tag ratio, etc.</summary>
 		public static ZoomReport SoloLadder(League league, bool includeSecret, ReportTemplate rt)
@@ -2578,19 +2591,21 @@ namespace Torn.Report
 				}
 			}
 
-			Console.WriteLine(report.Columns[9]);
+			Console.WriteLine("SoloLadder column 9: " + report.Columns[9]);
+
+			string orderBy = rt.Setting("OrderBy");
+			int index = 0;
+			if (orderBy == "tag ratio") index = report.Columns.FindIndex((c) => c.ToString() == "Tag Ratio");
+			else if (orderBy == "score ratio") index = report.Columns.FindIndex((c) => c.ToString() == "Score Ratio");
+			else if (orderBy == "TRxSR") index = report.Columns.FindIndex((c) => c.ToString() == "TR×SR");
+			else index = report.Columns.FindIndex((c) => c.ToString() == "Average Score");
 
 			report.Rows.Sort(delegate (ZRow x, ZRow y)
-			{
-				int index = 0;
-				if(rt.Setting("OrderBy") == "score") index = report.Columns.FindIndex((c) => c.ToString() == "Average Score");
-				if(rt.Setting("OrderBy") == "tag ratio") index = report.Columns.FindIndex((c) => c.ToString() == "Tag Ratio");
-				if (rt.Setting("OrderBy") == "score ratio") index = report.Columns.FindIndex((c) => c.ToString() == "Score Ratio");
-				if (rt.Setting("OrderBy") == "TRxSR") index = report.Columns.FindIndex((c) => c.ToString() == "TR×SR");
-				double? result = y[index].Number - x[index].Number;
-				return Math.Sign((double)result);
-			}
-							);
+				{
+					double? result = y[index].Number - x[index].Number;
+					return Math.Sign((double)result);
+				}
+			);
 
 			for (int i = 0; i < report.Rows.Count; i++)
 				report.Rows[i][0].Number = i + 1;
@@ -2618,94 +2633,94 @@ namespace Torn.Report
 			return report;
 		}
 
-        public static ZoomReport TermReport(League league, bool includeSecret, ReportTemplate rt)
-        {
-            ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
+		public static ZoomReport TermReport(League league, bool includeSecret, ReportTemplate rt)
+		{
+			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
-            ZoomReport report = new ZoomReport(ReportTitle("Term Report", league.Title, rt),
-                                               "Rank,Player,Team,Total,Red,Yellow,Verbals,Other,Games",
-                                               "center,left,left,integer,integer,integer,integer,integer,integer",
-                                               ",,,Penalties,Penalties,Penalties,Penalties,Penalties,")
-            {
-                MaxChartByColumn = true,
-                MultiColumnOK = true
-            };
-            int atLeastN = rt.SettingInt("AtLeastN") ?? 1;
+			ZoomReport report = new ZoomReport(ReportTitle("Term Report", league.Title, rt),
+												"Rank,Player,Team,Total,Red,Yellow,Verbals,Other,Games",
+												"center,left,left,integer,integer,integer,integer,integer,integer",
+												",,,Penalties,Penalties,Penalties,Penalties,Penalties,")
+			{
+				MaxChartByColumn = true,
+				MultiColumnOK = true
+			};
+			int atLeastN = rt.SettingInt("AtLeastN") ?? 1;
 
-            var playerTeams = league.BuildPlayerTeamList();
-            foreach (var pt in playerTeams)
-            {
-                var player = pt.Key;
-                var games = Games(league, includeSecret, rt).Where(x => x.Players().Exists(y => y.PlayerId == player.Id));
+			var playerTeams = league.BuildPlayerTeamList();
+			foreach (var pt in playerTeams)
+			{
+				var player = pt.Key;
+				var games = Games(league, includeSecret, rt).Where(x => x.Players().Exists(y => y.PlayerId == player.Id));
 
-                if (games.Count() >= atLeastN && player.Name != null)
-                {
-                    ZRow row = report.AddRow(new ZRow());
-                    row.Add(new ZCell(0, ChartType.None, "N0"));  // Temporary rank
-                    row.AddCell(new ZCell(player.Name)).Hyper = PlayerHyper(pt.Value[0], player);  // Player alias
+				if (games.Count() >= atLeastN && player.Name != null)
+				{
+					ZRow row = report.AddRow(new ZRow());
+					row.Add(new ZCell(0, ChartType.None, "N0"));  // Temporary rank
+					row.AddCell(new ZCell(player.Name)).Hyper = PlayerHyper(pt.Value[0], player);  // Player alias
 
-                    if (pt.Value.Count() == 1)
-                        row.Add(TeamCell(pt.Value.First()));
-                    else
-                        row.Add(new ZCell(string.Join(", ", pt.Value.Select(x => x.Name))));  // Team(s) played for
+					if (pt.Value.Count() == 1)
+						row.Add(TeamCell(pt.Value.First()));
+					else
+						row.Add(new ZCell(string.Join(", ", pt.Value.Select(x => x.Name))));  // Team(s) played for
 
-                    var played = League.Played(games, player, includeSecret);
+					var played = League.Played(games, player, includeSecret);
 
-                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Totals"));
-                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Red)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Red"));
-                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Yellow)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Yellow"));
-                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Verbal)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Verbal"));
-                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Other)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Other"));
+					row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Totals"));
+					row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Red)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Red"));
+					row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Yellow)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Yellow"));
+					row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Verbal)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Verbal"));
+					row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Other)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Other"));
 
-                    row.Add(new ZCell(played.Count(), ChartType.None, "N0", default, "Games"));  // Games
+					row.Add(new ZCell(played.Count(), ChartType.None, "N0", default, "Games"));  // Games
 
-                }
-            }
+				}
+			}
 
-            report.Rows.Sort(delegate (ZRow x, ZRow y)
-            {
-                int index = 0;
-                index = report.Columns.FindIndex((c) => c.ToString() == "Total");
+			report.Rows.Sort(delegate (ZRow x, ZRow y)
+			{
+				int index = 0;
+				index = report.Columns.FindIndex((c) => c.ToString() == "Total");
 
-                double? result = y[index].Number - x[index].Number;
+				double? result = y[index].Number - x[index].Number;
 				if(result == 0)
 				{
-                    index = report.Columns.FindIndex((c) => c.ToString() == "Red");
+					index = report.Columns.FindIndex((c) => c.ToString() == "Red");
 					result = y[index].Number - x[index].Number;
-                }
-                if (result == 0)
-                {
-                    index = report.Columns.FindIndex((c) => c.ToString() == "Yellow");
-                    result = y[index].Number - x[index].Number;
-                }
+				}
+				if (result == 0)
+				{
+					index = report.Columns.FindIndex((c) => c.ToString() == "Yellow");
+					result = y[index].Number - x[index].Number;
+				}
 
-                return Math.Sign((double)result);
-            });
+				return Math.Sign((double)result);
+			});
 
 			report.Rows.RemoveAll(r =>
 			{
-                int index = 0;
-                index = report.Columns.FindIndex((c) => c.ToString() == "Total");
+				int index = 0;
+				index = report.Columns.FindIndex((c) => c.ToString() == "Total");
 				double value = (double)r[index].Number;
 				return value == 0;
-            });
+			});
 
-            for (int i = 0; i < report.Rows.Count; i++)
-                report.Rows[i][0].Number = i + 1;
+			for (int i = 0; i < report.Rows.Count; i++)
+				report.Rows[i][0].Number = i + 1;
 
-            int? topN = rt.SettingInt("ShowTopN");
+			int? topN = rt.SettingInt("ShowTopN");
 
-            if (topN != null)
-                for (int i = report.Rows.Count - 1; i >= topN; i--)
-                    report.Rows.RemoveAt(i);
+			if (topN != null)
+				for (int i = report.Rows.Count - 1; i >= topN; i--)
+					report.Rows.RemoveAt(i);
 
 			report.RemoveZeroColumns();
 
-            return report;
-        }
+			return report;
+		}
 
-        /// <summary>List each team and their number of games, average score, victory points, etc.</summary>
-        public static ZoomReport TeamLadder(League league, bool includeSecret, ReportTemplate rt)
+		/// <summary>List each team and their number of games, average score, victory points, etc.</summary>
+		public static ZoomReport TeamLadder(League league, bool includeSecret, ReportTemplate rt)
 		{
 			bool isDecimal = rt.FindSetting("isDecimal") >= 0;
 			bool showZeroed = rt.FindSetting("showZeroed") >= 0;
@@ -3207,7 +3222,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			else if (gamePlayer.HitsOn == 0)
 				row.Add(new ZCell("infinite", color));
 			else
-			    row.Add(new ZCell((double)gamePlayer.HitsBy / gamePlayer.HitsOn * gamePlayer.Score / averageScore, ChartType.Bar, "N2", color));
+				row.Add(new ZCell((double)gamePlayer.HitsBy / gamePlayer.HitsOn * gamePlayer.Score / averageScore, ChartType.Bar, "N2", color));
 
 			row.Add(BlankZero(gamePlayer.BaseDestroys, ChartType.Bar, color));
 			row.Add(BlankZero(gamePlayer.BaseDenies, ChartType.Bar, color));
@@ -3465,7 +3480,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			report.Rows.Add(
 				new ZRow()
 				{
-					new ZCell(game.LongTitle()) { Hyper = GameHyper(game) },
+					new ZCell(game?.LongTitle()) { Hyper = GameHyper(game) },
 					team == null ? new ZCell(string.Empty) : new ZCell(league.LeagueTeam(team).Name, team.Colour.ToColor()),
 					new ZCell(message)
 				}
@@ -3741,30 +3756,30 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			{
 				case ReportType.GameGrid: case ReportType.GameGridCondensed:
 				report.Rows.Sort(delegate(ZRow x, ZRow y)
-			                 {
-			                 	double? result = 0;
-								 
-								 if (league.IsPoints(games) && !ignorePoints)
-								 {
-									 if (x.Count <= pointsCol || x[pointsCol].Number == null)
+								{
+								double? result = 0;
+								
+								if (league.IsPoints(games) && !ignorePoints)
+								{
+									if (x.Count <= pointsCol || x[pointsCol].Number == null)
 										return 1;
-			                 		if (y.Count <= pointsCol || y[pointsCol].Number == null)
+									if (y.Count <= pointsCol || y[pointsCol].Number == null)
 										return -1;
 
-									 result = y[pointsCol].Number - x[pointsCol].Number;
-			                 	}
-			                 	 if (result == 0)
-			                 	{
-									 if (x.Count <= averageCol || x[averageCol].Number == null)
+									result = y[pointsCol].Number - x[pointsCol].Number;
+								}
+								if (result == 0)
+								{
+									if (x.Count <= averageCol || x[averageCol].Number == null)
 										return 1;
-			                 		if (y.Count <= averageCol || y[averageCol].Number == null)
+									if (y.Count <= averageCol || y[averageCol].Number == null)
 										return -1;
 
-									 result = y[averageCol].Number - x[averageCol].Number;
-			                 	}
-								 if (result == 0 && hitsCol > 0)
-								 {
-									 if (x.Count <= hitsCol || x[hitsCol].Number == null)
+									result = y[averageCol].Number - x[averageCol].Number;
+								}
+								if (result == 0 && hitsCol > 0)
+								{
+									if (x.Count <= hitsCol || x[hitsCol].Number == null)
 										return 1;
 									if (y.Count <= hitsCol || y[hitsCol].Number == null)
 										return -1;
@@ -3772,8 +3787,8 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 									result = y[hitsCol].Number - x[hitsCol].Number;
 								}
 								return Math.Sign(result ?? 0);
-			                 }
-			                );
+								}
+							);
 					break;
 				case ReportType.Ascension:
 					report.AddColumn(new ZColumn("Last game index"));
@@ -4069,7 +4084,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			if (PyramidSet.IsSupersetOf(xySet))  // These teams' last games are in the same round.
 				return Math.Sign((double)(y[lasty].Number - x[lastx].Number));  // Compare their last scores.
 			else
-			    return lasty - lastx;  // Whoever survived longest ranks highest.
+				return lasty - lastx;  // Whoever survived longest ranks highest.
 		}
 
 		// Mark alternate rounds in slightly different background colours.
@@ -4098,7 +4113,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 						col += step;  // Move j out to the end of this round (or repechage).
 					}
 					else
-				    	col++;
+						col++;
 				}
 			}
 		}
@@ -4116,8 +4131,8 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 					foreach (ZRow row in report.Rows)
 						if (row[col].Number != null && row[col + step].Number != null)
 						{
-					        found = true;
-					        break;
+							found = true;
+							break;
 						}
 
 					if (!found)
