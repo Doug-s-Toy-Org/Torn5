@@ -254,6 +254,7 @@ namespace Torn.UI
 			tabControl1.TabPages.Remove(tabGamesGrid);
 			tabControl1.TabPages.Remove(tabGraphic);
 
+			Height = Math.Min(Height, Screen.GetWorkingArea(this).Height);
 			framePyramidRound1.SetSplit();
 
 			if (Holder.Fixture != null)

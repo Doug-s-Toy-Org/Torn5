@@ -37,5 +37,10 @@ namespace Torn.UI
 				Cursor.Current = Cursors.Default;
 			}
 		}
+
+		private void FormAdhoc_Shown(object sender, EventArgs e)
+		{
+			Height = Math.Min(Height, Screen.GetWorkingArea(this).Height);
+		}
 	}
 }

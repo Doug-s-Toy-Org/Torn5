@@ -273,14 +273,14 @@ namespace Torn.UI
 			descriptionGroup.Enabled = withDescription.Checked;
 		}
 
-        private void button1_Click(object sender, EventArgs e)
-        {
+		private void button1_Click(object sender, EventArgs e)
+		{
 			secretClicked++;
 			if(secretClicked == 5)
-            {
+			{
 				listBoxReportType.Items.Add("Packs");
 				listBoxReportType.Items.Add("Pack Hits");
 			}
 		}
-    }
+	}
 }
