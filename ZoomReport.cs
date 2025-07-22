@@ -1510,8 +1510,8 @@ namespace Zoom
 			if (!pure)
 			{
 				// Add '-' and '+' zoom button text.
-				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Black\">&#160;+&#160;</text>\n" +
-							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Black\">&#160;-&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Navy\">&#160;+&#160;</text>\n" +
+							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Navy\">&#160;&#8722;&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
 			}
 
 			SvgText(s, 1, 1, 1, width - 2, rowHeight * 2, Colors.TitleFontColor, ZAlignment.Center, Title, null, TitleHyper, pure);  // Paint title "row" text.
@@ -1520,8 +1520,8 @@ namespace Zoom
 			if (!pure)
 			{
 				// Add '-' and '+' zoom buttons (with transparent text, so the text added above appears behind the report title text).
-				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill-opacity=\"9\" onclick=\"this.parentNode.setAttribute('width', Math.min(this.parentNode.getAttribute('width') * 1.42, document.documentElement.clientWidth - 2))\">&#160;+&#160;</text>\n" +
-							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill-opacity=\"9\" onclick=\"this.parentNode.setAttribute('width', this.parentNode.getAttribute('width') / 1.42)\">&#160;-&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill-opacity=\"0\" onclick=\"this.parentNode.setAttribute('width', Math.min(this.parentNode.getAttribute('width') * 1.42, document.documentElement.clientWidth - 2))\">&#160;+&#160;</text>\n" +
+							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill-opacity=\"0\" onclick=\"this.parentNode.setAttribute('width', this.parentNode.getAttribute('width') / 1.42)\">&#160;&#8722;&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
 			}
 		}
 
