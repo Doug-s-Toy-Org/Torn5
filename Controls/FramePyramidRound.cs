@@ -41,7 +41,7 @@ namespace Torn5.Controls
 			RefreshGames();
 		}
 
-		/// <summary>If holder.League.AllGames has changed, rebuild listViewGames entries.</summary>
+		/// <summary>If holder.League.Games() has changed, rebuild listViewGames entries.</summary>
 		private void RefreshGames()
 		{
 			if (holder == null)
@@ -55,7 +55,7 @@ namespace Torn5.Controls
 				PreviousLeague = holder.League;
 
 				// Add or update items in the list view, one for each game.
-				foreach (Game leagueGame in holder.League.AllGames)
+				foreach (Game leagueGame in holder.League.Games())
 				{
 					string key = leagueGame.Time.ToString("o");  // "o" is ISO 8601 yyyy-MM-ddTHH:mm:ss.fffffffK
 					ListViewItem[] matches = listViewGames.Items.Find(key, false);
@@ -161,9 +161,9 @@ namespace Torn5.Controls
 				takes[(int)pg.Priority] += pg.TeamsToTake == null ? pg.Game.Teams.Count : (int)pg.TeamsToTake;
 			}
 
-			numericTeamsFromLastRound.Value = Math.Min(Math.Min(takes[(int)Priority.Round], Holder.League.Teams.Count), numericTeamsFromLastRound.Maximum);
-			numericTeamsFromLastRepechage.Value = Math.Min(Math.Min(takes[(int)Priority.Repechage], Holder.League.Teams.Count), numericTeamsFromLastRepechage.Maximum);
-			numericTeamsFromPlanB.Value = Math.Min(Math.Min(takes[(int)Priority.PlanB], Holder.League.Teams.Count), numericTeamsFromPlanB.Maximum);
+			numericTeamsFromLastRound.Value = Math.Min(Math.Min(takes[(int)Priority.Round], Holder.League.TeamCount()), numericTeamsFromLastRound.Maximum);
+			numericTeamsFromLastRepechage.Value = Math.Min(Math.Min(takes[(int)Priority.Repechage], Holder.League.TeamCount()), numericTeamsFromLastRepechage.Maximum);
+			numericTeamsFromPlanB.Value = Math.Min(Math.Min(takes[(int)Priority.PlanB], Holder.League.TeamCount()), numericTeamsFromPlanB.Maximum);
 		}
 
 		private void ListViewGamesDoubleClick(object sender, EventArgs e)

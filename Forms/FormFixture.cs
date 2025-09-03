@@ -26,7 +26,7 @@ namespace Torn.UI
 				holder = value;
 
 				if (frameFinals1 != null)
-					frameFinals1.Games = holder.League.AllGames;
+					frameFinals1.Games = holder.League.Games();
 				if (framePyramid1 != null)
 					framePyramid1.Holder = holder;
 				if (framePyramidRound1 != null)
@@ -243,8 +243,8 @@ namespace Torn.UI
 				Holder.ReportTemplates.FirstOrDefault() ??
 				new ReportTemplate() { ReportType = ReportType.TeamLadder };
 
-			List<Game> games = Holder.League.Games(true).Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue)).ToList();
-			return games != null && games.Any() ? Reports.Ladder(Holder.League, games, rt).Select(tle => tle.Team).ToList() : null;
+			List<Game> games = Holder.League.Games().Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue)).ToList();
+			return games.Any() ? Reports.Ladder(Holder.League, games, rt).Select(tle => tle.Team).ToList() : null;
 		}
 
 		void FormFixtureShown(object sender, EventArgs e)

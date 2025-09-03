@@ -32,7 +32,7 @@ namespace Torn.UI
 			League.Load(League.FileName);
 			Text = "Torn -- " + League.Title;
 
-			BuildTree();
+			BuildTree(League.Teams());
 
 			totalScore.Checked = League.VictoryPoints.Count == 0;
 			victoryPoints.Checked = League.VictoryPoints.Any();
@@ -85,11 +85,11 @@ namespace Torn.UI
 			redTermValue.Value = League.RedTermValue;
 		}
 
-		private void BuildTree()
+		private void BuildTree(IEnumerable<LeagueTeam> teams)
 		{
 			treeView1.Nodes.Clear();
 
-			foreach (var team in League.Teams)
+			foreach (var team in teams)
 			{
 				var teamNode = new TreeNode(team.Name)
 				{
@@ -206,8 +206,9 @@ namespace Torn.UI
 
 		private void ButtonSortTeamsClick(object sender, EventArgs e)
 		{
-			League.Teams.Sort();
-			BuildTree();
+			var teams = League.Teams();
+			teams.Sort();
+			BuildTree(teams);
 		}
 
 		/// <summary>Import team names from clipboard; one team name per line of text.</summary>
@@ -219,7 +220,7 @@ namespace Torn.UI
 
 			string[] teams = clip.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 			foreach (var name in teams)
-				if (!string.IsNullOrEmpty(name) && !League.Teams.Any(t => t.Name == name))
+				if (!string.IsNullOrEmpty(name) && !League.Teams().Any(t => t.Name == name))
 					AddTeam(name);
 		}
 
@@ -252,7 +253,7 @@ namespace Torn.UI
 			    MessageBox.Show("Are you sure you want to delete team " + team.Name + "?",
 			                    "Delete Team?", MessageBoxButtons.YesNo) == DialogResult.Yes)
 			{
-				League.Teams.Remove(team);
+				League.ForgetTeam(team);
 				treeView1.Nodes.Remove(treeView1.SelectedNode);
 			}
 		}
@@ -450,29 +451,18 @@ namespace Torn.UI
 			manualTeamCapLabel.Enabled = !automaticHandicapEnabled.Checked;
 		}
 
+		/// <summary>If a player appears on several teams, update their grade in all those places, not just the one the user actually selected in the treeview.</summary>
 		private void UpdatePlayerGrade(LeaguePlayer leaguePlayer)
 		{
-			foreach (LeagueTeam team in League.Teams.ToList())
-			{
-				int teamIndex = League.Teams.IndexOf(team);
-				foreach (LeaguePlayer player in team.Players.ToList())
-				{
-					int playerIndex = team.Players.IndexOf(player);
-					if (player.Id == leaguePlayer.Id)
-					{
-						League.Teams[teamIndex].Players[playerIndex] = leaguePlayer;
-					}
-				}
-			}
+			foreach (LeagueTeam team in League.Teams())
+				foreach (LeaguePlayer player in team.Players.Where(p => p.Id == leaguePlayer.Id).ToList())
+					team.Players[team.Players.IndexOf(player)] = leaguePlayer;
 		}
 
 		private void manualTeamCap_ValueChanged(object sender, EventArgs e)
 		{
 			if (treeView1.SelectedNode.Tag is LeagueTeam leagueTeam)
-			{
-				int index = League.Teams.FindIndex(t => t.TeamId == leagueTeam.TeamId);
-				League.Teams[index].Handicap = new Handicap(Decimal.ToDouble(manualTeamCap.Value), League.HandicapStyle);
-			}
+				League.LeagueTeam(leagueTeam.TeamId).Handicap = new Handicap(Decimal.ToDouble(manualTeamCap.Value), League.HandicapStyle);
 		}
 
 		private void playerGradeBox_SelectedIndexChanged(object sender, EventArgs e)

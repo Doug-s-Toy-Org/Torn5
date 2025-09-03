@@ -22,20 +22,15 @@ namespace TornWeb
 			var team = new LeagueTeam() { Name = "Team A" };
 			league.AddTeam(team);
 
-			league.Players.Add(new LeaguePlayer() { Name = "One", Id = "001", Comment = "one" } );
-			team.Players.Add(league.Players[0]);
-			league.Players.Add(new LeaguePlayer() { Name = "<&>' \"", Id = "002", Comment = "two" } );
-			team.Players.Add(league.Players[1]);
-			league.Players.Add(new LeaguePlayer() { Name = "Three", Id = "003" } );
-			team.Players.Add(league.Players[2]);
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "One", Id = "001", Comment = "one" } ));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "<&>' \"", Id = "002", Comment = "two" } ));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "Three", Id = "003" } ));
 
 			team = new LeagueTeam() { Name = "Team B" };
 			league.AddTeam(team);
 
-			league.Players.Add(new LeaguePlayer() { Name = "Four", Id = "004", Comment = "one" } );
-			team.Players.Add(league.Players[3]);
-			league.Players.Add(new LeaguePlayer() { Name = "One", Id = "001" } );
-			team.Players.Add(league.Players[4]);
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "Four", Id = "004", Comment = "one" } ));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "One", Id = "001" } ));
 
 			team = new LeagueTeam() { Name = "Team C" };
 			league.AddTeam(team);
@@ -43,7 +38,7 @@ namespace TornWeb
 			return league;			
 		}
 
-		void AddGame(League league)
+		Game AddGame(League league)
 		{
 			var serverGame = new ServerGame();
 			serverGame.League = league;
@@ -65,10 +60,11 @@ namespace TornWeb
 			teamData.Players.Add(new ServerPlayer() { PlayerId = "004" } );
 			teamData.Players.Add(new ServerPlayer() { PlayerId = "nonexistent" } );
 			teamDatas.Add(teamData);
-			
-			league.CommitGame(serverGame, teamDatas, GroupPlayersBy.Alias);
-			league.AllGames[0].Teams[0].Colour = Colour.Red;
-			league.AllGames[0].Teams[1].Colour = Colour.Green;
+
+			var addedGame = league.CommitGame(serverGame, teamDatas, GroupPlayersBy.Alias);
+			addedGame.Teams[0].Colour = Colour.Red;
+			addedGame.Teams[1].Colour = Colour.Green;
+			return addedGame;
 		}
 
 		void AddTeam(Game game)
@@ -90,12 +86,13 @@ namespace TornWeb
 			var league2 = new League();
 			league2.Load("testleague.Torn");
 
-			Assert.That(3 == league2.Teams.Count, "Number of teams");
-			Assert.That("Team A" == league2.Teams[0].Name, "name of team 1");
-			Assert.That(3 == league2.Teams[0].Players.Count, "Number of players on team A");
-			Assert.That(2 == league2.Teams[1].Players.Count, "Number of players on team B");
-			Assert.That(0 == league2.Teams[2].Players.Count, "Number of players on team C");
-			Assert.That("<&>' \"" == league2.Teams[0].Players[1].Name, "Special character in player name");
+			Assert.That(3 == league2.TeamCount(), "Number of teams");
+			Assert.That(league2.AnyTeams(), "Any teams");
+			Assert.That("Team A" == league2.Teams()[0].Name, "name of team 1");
+			Assert.That(3 == league2.Teams()[0].Players.Count, "Number of players on team A");
+			Assert.That(2 == league2.Teams()[1].Players.Count, "Number of players on team B");
+			Assert.That(0 == league2.Teams()[2].Players.Count, "Number of players on team C");
+			Assert.That("<&>' \"" == league2.Teams()[0].Players[1].Name, "Special character in player name");
 		}
 
 		[Test]
@@ -103,23 +100,24 @@ namespace TornWeb
 		{
 			var league = CreateLeague();
 			var clone = league.Clone();
-			
-			clone.Teams[0].Name = "Team A changed";
 
-			Assert.That(3 == clone.Teams.Count, "Number of teams");
-			Assert.That("Team A" == league.Teams[0].Name, "name of team 1");
-			Assert.That("Team A changed" == clone.Teams[0].Name, "name of team 1");
+			var clonedTeam = clone.LeagueTeam("Team A");
+			clonedTeam.Name = "Team A changed";
 
-			league.Teams[0].Name = "Team A also changed";
+			Assert.That(3 == clone.TeamCount(), "Number of teams");
+			Assert.That("Team A" == league.Teams()[0].Name, "name of team 1");
+			Assert.That("Team A changed" == clone.Teams()[0].Name, "name of team 1");
 
-			Assert.That("Team A also changed" == league.Teams[0].Name, "name of team 1");
-			Assert.That("Team A changed" == clone.Teams[0].Name, "name of team 1");
+			league.Teams()[0].Name = "Team A also changed";
 
-			clone.Teams[0].Players.Add(new LeaguePlayer() { Name = "Four", Id = "004" } );
-			clone.Teams[0].Players.Add(new LeaguePlayer() { Name = "Five", Id = "005" } );
+			Assert.That("Team A also changed" == league.Teams()[0].Name, "name of team 1");
+			Assert.That("Team A changed" == clonedTeam.Name, "name of team 1");
 
-			Assert.That(3 == league.Teams[0].Players.Count, "Number of players on team A");
-			Assert.That(5 == clone.Teams[0].Players.Count, "Number of players on team A");
+			clonedTeam.Players.Add(new LeaguePlayer() { Name = "Four", Id = "004" } );
+			clonedTeam.Players.Add(new LeaguePlayer() { Name = "Five", Id = "005" } );
+
+			Assert.That(3 == league.Teams()[0].Players.Count, "Number of players on team A");
+			Assert.That(5 == clonedTeam.Players.Count, "Number of players on cloned team A");
 		}
 
 		[Test]
@@ -128,13 +126,12 @@ namespace TornWeb
 			var league = CreateLeague();
 			AddGame(league);
 
-			Assert.That(1 == league.AllGames.Count, "game count");
-//			Assert.That(1 == league.Teams[0].AllPlayed.Count, "team 0 game count");
-//			Assert.That(1 == league.Teams[1].AllPlayed.Count, "team 1 game count");
-//			Assert.That(0 == league.Teams[2].AllPlayed.Count, "team 2 game count");
-			Assert.That(1 == league.Played(league.Teams[0]).Count, "team 0 game count");
-			Assert.That(1 == league.Played(league.Teams[1]).Count, "team 1 game count");
-			Assert.That(0 == league.Played(league.Teams[2]).Count, "team 2 game count");
+			Assert.That(1 == league.GameCount(), "game count");
+			Assert.That(league.AnyGames(), "any games");
+			Assert.That(1 == league.Played(league.Teams()[0]).Count, "team 0 game count");
+			Assert.That(1 == league.Played(league.Teams()[1]).Count, "team 1 game count");
+			Assert.That(0 == league.Played(league.Teams()[2]).Count, "team 2 game count");
+			Assert.That(league.MostRecentGame() == new DateTime(2018, 1, 1, 12, 0, 0), "most recent game");
 		}
 
 		[Test]
@@ -204,7 +201,7 @@ namespace TornWeb
 		{
 			var league = CreateLeague();
 			var fixture = new Fixture();
-			fixture.Teams.Populate(league.Teams);
+			fixture.Teams.Populate(league.Teams());
 
 			Assert.That(3 == fixture.Teams.Count, "fixture teams = 3");
 			Assert.That("Team B" == fixture.Teams[1].Name, "fixture Team B");
@@ -215,11 +212,12 @@ namespace TornWeb
 			Assert.That(1 == fixture.Games.Count, "fixture games = 1");
 			Assert.That(new DateTime(2018, 1, 1, 12, 0, 0) == fixture.Games[0].Time, "fixture game time");
 			Assert.That(2 == fixture.Games[0].Teams.Count, "fixture game team count");
-			Assert.That(Colour.Green == fixture.Games[0].Teams[fixture.Teams[0]], "fixture game team colour");
-			Assert.That(Colour.Red == fixture.Games[0].Teams[fixture.Teams[1]], "fixture game team colour");
+			Assert.That(Colour.Red == fixture.Games[0].Teams[fixture.Teams[0]], "fixture game team colour");
+			Assert.That(Colour.Green == fixture.Games[0].Teams[fixture.Teams[1]], "fixture game team colour");
 			
 			fixture.Games.Clear();
-			Assert.That(fixture.BestMatch(league.AllGames[0]) is null, "match game null");
+			var firstGame = league.Games()[0];
+			Assert.That(fixture.BestMatch(firstGame) is null, "match game null");
 			
 			var lines = new string[] { "row", "b..", "y.p" };
 			fixture.Games.Parse(lines, fixture.Teams, null, null);
@@ -239,12 +237,11 @@ namespace TornWeb
 			Assert.That("Y.P" == grid[2]);
 			
 			AddGame(league);
-			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(league.AllGames[0])), "match game 1");
-			fixture.Games.Parse("8:00\t2\t1\t3", fixture.Teams, '\t');
-			Assert.That(fixture.Games[3], Is.SameAs(fixture.BestMatch(league.AllGames[0])), "match game 4");
-			league.AllGames[0].Teams[0].Colour = Colour.Green;
-			league.AllGames[0].Teams[1].Colour = Colour.Red;
-			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(league.AllGames[0])), "match game 1 again");
+			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(firstGame)), "match game 1");
+			fixture.Games.Parse("8:00\t2\t1\t3", fixture.Teams);
+			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(firstGame)), "match game 1 again");
+			fixture.Games.Parse("8:00\t1\t2\t\t3", fixture.Teams);
+			Assert.That(fixture.Games[4], Is.SameAs(fixture.BestMatch(firstGame)), "match game 4");
 		}
 
 		[Test]
@@ -256,23 +253,25 @@ namespace TornWeb
 			league.VictoryPoints.Add(2.0);
 
 			AddGame(league);
-			AddTeam(league.AllGames[0]);
-			AddTeam(league.AllGames[0]);
-			AddTeam(league.AllGames[0]);
+			var firstGame = league.Games()[0];
 
-			league.AllGames[0].Teams[0].Score = 2000;
+			AddTeam(firstGame);
+			AddTeam(firstGame);
+			AddTeam(firstGame);
+
+			firstGame.Teams[0].Score = 2000;
 			
-			Assert.That(6.0 == league.CalculatePoints(league.AllGames[0].Teams[0], GroupPlayersBy.Alias), "2000 - 1st");
-			Assert.That(0.0 == league.CalculatePoints(league.AllGames[0].Teams[1], GroupPlayersBy.Alias), "0 - 5th");
-			Assert.That(2.0 == league.CalculatePoints(league.AllGames[0].Teams[2], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th A");
-			Assert.That(2.0 == league.CalculatePoints(league.AllGames[0].Teams[3], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th B");
-			Assert.That(2.0 == league.CalculatePoints(league.AllGames[0].Teams[4], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th C");
+			Assert.That(6.0 == league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Alias), "2000 - 1st");
+			Assert.That(0.0 == league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Alias), "0 - 5th");
+			Assert.That(2.0 == league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th A");
+			Assert.That(2.0 == league.CalculatePoints(firstGame.Teams[3], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th B");
+			Assert.That(2.0 == league.CalculatePoints(firstGame.Teams[4], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th C");
 
-			Assert.That(6.0 == league.CalculatePoints(league.AllGames[0].Teams[0], GroupPlayersBy.Lotr), "2000 - 1st");
-			Assert.That(6.0 == league.CalculatePoints(league.AllGames[0].Teams[1], GroupPlayersBy.Lotr), "0 - 1st");
-			Assert.That(4.0 == league.CalculatePoints(league.AllGames[0].Teams[2], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd A");
-			Assert.That(4.0 == league.CalculatePoints(league.AllGames[0].Teams[3], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd B");
-			Assert.That(4.0 == league.CalculatePoints(league.AllGames[0].Teams[4], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd C");
+			Assert.That(6.0 == league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Lotr), "2000 - 1st");
+			Assert.That(6.0 == league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Lotr), "0 - 1st");
+			Assert.That(4.0 == league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd A");
+			Assert.That(4.0 == league.CalculatePoints(firstGame.Teams[3], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd B");
+			Assert.That(4.0 == league.CalculatePoints(firstGame.Teams[4], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd C");
 		}
 
 		LaserGameServer stubServer;
@@ -284,7 +283,7 @@ namespace TornWeb
 			var webOutput = new WebOutput(8080);
 			stubServer = new StubServer();
 
-			// webOutput.Games = stubServer.GetGames;
+			webOutput.GetGames = stubServer.GetGames;
 			webOutput.PopulateGame = stubServer.PopulateGame;
 			webOutput.Players = stubServer.GetPlayers;
 			webOutput.Leagues = new Holders();

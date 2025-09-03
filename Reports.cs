@@ -200,7 +200,7 @@ namespace Torn.Report
 		/// <summary>Every player in every game. Useful for data export.</summary>
 		public static ZoomReport EverythingReport(League league, string title, DateTime? from, DateTime? to, bool description)
 		{
-			var report = new ZoomReport(string.IsNullOrEmpty(title) ? league.Title + " Everything Report" : title + FromTo(league.AllGames, from, to),
+			var report = new ZoomReport(string.IsNullOrEmpty(title) ? league.Title + " Everything Report" : title + FromTo(league.Games(), from, to),
 											   "Player,Pack,Team,Rank,Score,Tags +,Tags -,Tag Ratio,Score Ratio,TR\u00D7SR,Destroys,Denies,Denied,Yellow,Red",
 											   "left,left,left,integer,integer,integer,integer,float,float,float,integer,integer,integer,integer,integer,integer",
 											   ",,,,,Tags,Tags,Ratio,Ratio,Ratio,Base,Base,Base,Penalties,Penalties")
@@ -210,7 +210,7 @@ namespace Torn.Report
 				NumberStyle = ZNumberStyle.Plain
 			};
 
-			foreach (var game in league.AllGames.FindAll(x => x.Time.CompareTo(from ?? DateTime.MinValue) >= 0 &&
+			foreach (var game in league.Games().FindAll(x => x.Time.CompareTo(from ?? DateTime.MinValue) >= 0 &&
 														 x.Time.CompareTo(to ?? DateTime.MaxValue) <= 0))
 			{
 				var gameTotal = new GamePlayer();
@@ -580,7 +580,8 @@ namespace Torn.Report
 					report.AddColumn(new ZColumn("Dropped", ZAlignment.Integer));
 			}
 
-			foreach (LeagueTeam leagueTeam in league.Teams)
+			// Add a row for each team, with a cell for each game.
+			foreach (LeagueTeam leagueTeam in league.Teams())
 			{
 				List<double> scoresList = new List<double>();
 				List<double> pointsList = new List<double>();
@@ -654,7 +655,7 @@ namespace Torn.Report
 			{
 				// select max(count(team_id)) from (select game_id, team_id from games join teams where game.title = title)
 				int maxCount = 0;
-				foreach (var team in league.Teams)
+				foreach (var team in league.Teams())
 					maxCount = Math.Max(maxCount, games.FindAll(x => x.Title == gameTitle && x.Teams.Exists(y => league.LeagueTeam(y) == team)).Count);
 
 				if (gameTitle != null)
@@ -690,7 +691,8 @@ namespace Torn.Report
 					report.AddColumn(new ZColumn("Dropped", ZAlignment.Integer));
 			}
 
-			foreach (LeagueTeam leagueTeam in league.Teams)
+			// Add a row for each team.
+			foreach (LeagueTeam leagueTeam in league.Teams())
 			{
 				var scoresList = new List<double>();
 				var pointsList = new List<double>();
@@ -718,7 +720,7 @@ namespace Torn.Report
 							);
 							row.Add(new ZCell(gameTeam.Score, ChartType.Bar, "N0", gameTeam.Colour.ToColor()));
 							row.Add(new ZCell(league.IsPoints() ? gameTeam.Points : game.Teams.IndexOf(gameTeam) + 1, ChartType.None, "",
-											  gameTeam.Colour.ToColor()));
+												gameTeam.Colour.ToColor()));
 							scoresList.Add(gameTeam.Score);
 							pointsList.Add(gameTeam.Points);
 							col += 3;
@@ -1099,7 +1101,7 @@ namespace Torn.Report
 			// Populate gameGroups.
 			foreach (var date in dates)
 			{
-				var dayGames = league.AllGames.Where(g => g.Time.Date == date);
+				var dayGames = games.Where(g => g.Time.Date == date);
 				if (dayGames.Any())
 				{
 					var lastGame = dayGames.First();
@@ -1173,8 +1175,8 @@ namespace Torn.Report
 			var groups = games.Select(g => g.Title).Distinct().ToList();
 			var groupGames = new List<Game>();
 
-			foreach (var team in league.Teams)
-				report.AddRow(new ZRow()).Add(new ZCell(report.Rows.Count));  // Rank
+			for (int i = 0; i < league.TeamCount(); i++)
+				report.AddRow(new ZRow()).Add(new ZCell(i + 1));  // Rank
 
 			List<TeamLadderEntry> previousLadder = null;
 			string previousGroupName = "";
@@ -1228,7 +1230,7 @@ namespace Torn.Report
 						row.Add(new ZCell());  // Blank spacer
 
 						var placings = new List<string>();
-						var teamId = league.Teams.Find(t => t.Name == teamCell.Text).TeamId;
+						var teamId = league.LeagueTeam(teamCell.Text).TeamId;
 						foreach (var game in thisGroupGames)
 						{
 							int rank = game.Teams.FindIndex(t => t.TeamId == teamId);
@@ -1902,7 +1904,7 @@ namespace Torn.Report
 			var solos = new List<string>();
 
 			foreach (var league in leagues)
-				foreach (var player in league.Players)
+				foreach (var player in league.Players())
 					if (player.Id != null && !solos.Contains(player.Id))
 						solos.Add(player.Id);
 
@@ -1916,7 +1918,7 @@ namespace Torn.Report
 				double gameAverageSum = 0;
 				foreach (var league in leagues)
 				{
-					var player = league.Players.Find(p => p.Id == solo);
+					var player = league.LeaguePlayer(solo);
 					var played = league.Played(player);
 
 					if (player != null && played.Any())
@@ -1943,7 +1945,7 @@ namespace Torn.Report
 			var gameColors = new Dictionary<Game, Color>();
 			foreach (var league in leagues)
 			{
-				var games2 = league.AllGames.Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue));
+				var games2 = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue));
 				games.AddRange(games2);
 				foreach (var game in games2)
 					gameColors.Add(game, leagueColors[league]);
@@ -2185,7 +2187,7 @@ namespace Torn.Report
 
 			foreach (var league in leagues)
 			{
-				var games = league.AllGames.Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue));
+				var games = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue));
 				double averageTeamPlayers = games.Average(g => g.Teams.Average(t => t.Players.Count));
 				double playersLoggedOn = games.Average(g => g.Teams.Average(t => t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1)));
 				int gamesWithPoints = games.Count(g => g.Teams.Any(t => t.Points != 0));
@@ -2212,9 +2214,9 @@ namespace Torn.Report
 						AddSanityCheckRow(report, league, game, null, "Game does not have victory points set.");
 				}
 
-				foreach (var team in league.Teams)
+				foreach (var team in league.Teams())
 					foreach (var player in team.Players)
-						if (!games.Any(g => g.AllPlayers().Any(p => p.PlayerId == player.Id  && p.TeamId == team.TeamId)))
+						if (!games.Any(g => g.AllPlayers().Any(p => p.PlayerId == player.Id && p.TeamId == team.TeamId)))
 							report.Rows.Add(
 								new ZRow()
 								{
@@ -3040,8 +3042,7 @@ namespace Torn.Report
 		{
 			ZoomReport report = new ZoomReport(ReportTitle("Teams vs Teams", league.Title, rt), "Team", "left");
 			
-			List<LeagueTeam> teams = new List<LeagueTeam>();
-			teams.AddRange(league.Teams);
+			List<LeagueTeam> teams = league.Teams();
 			teams.Sort(delegate(LeagueTeam x, LeagueTeam y)
 			           {
 			           	double result = league.AveragePoints(y, includeSecret) - league.AveragePoints(x, includeSecret);
@@ -3108,7 +3109,7 @@ namespace Torn.Report
 			var games = new List<Game>();
 
 			foreach (var league in leagues)
-				games.AddRange(league.AllGames.Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue) && g.ServerGame != null));
+				games.AddRange(league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue) && g.ServerGame != null));
 
 			var packsUsed = games.Select(g => g.ServerGame).SelectMany(sg => sg.Events.Select(e => e.ServerPlayerId)).Distinct().OrderBy(id => String.Format("{0,3}", id));
 
@@ -3597,7 +3598,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			bool ratio = rt.Setting("OrderBy") == "score ratio";
 			var ladder = new List<TeamLadderEntry>();
 
-			foreach (LeagueTeam team in league.Teams)  // Create a ladder entry for each League team.
+			foreach (LeagueTeam team in league.Teams())  // Create a ladder entry for each League team.
 			{
 				var playedByThisTeam = league.Played(games, team);
 				if (playedByThisTeam.Any())
@@ -3674,9 +3675,9 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				return " from " + (from == null ? "(none)" : ((DateTime)from).ToShortDateString()) +
 				       " to " + (to == null ? "(none)" : ((DateTime)to).ToShortDateString());
 
-			DateTime first = from == null ? DateTime.MinValue : (DateTime)from;
+			DateTime first = from ?? DateTime.MinValue;
 			first = games.First().Time > first ? games.First().Time : first;
-			DateTime last = to == null ? DateTime.MaxValue : (DateTime)to;
+			DateTime last = to ?? DateTime.MaxValue;
 			last = games.Last().Time < last ? games.Last().Time : last;
 
 			if (first.Date == last.Date)  // This report is for games on a single day.

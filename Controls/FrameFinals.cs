@@ -22,8 +22,8 @@ namespace Torn5.Controls
 			}
 		}
 
-		Games games;
-		public Games Games
+		List<Game> games;
+		public List<Game> Games
 		{
 			get { return games; }
 

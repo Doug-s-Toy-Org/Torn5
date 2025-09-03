@@ -437,7 +437,8 @@ namespace Torn5
 		public List<List<int>> GetLeagueGrid(League league)
 		{
 			List<List<int>> grid = new List<List<int>>();
-			foreach (Game game in league.AllGames)
+
+			foreach (Game game in league.Games())
 			{
 				List<int> row = new List<int>();
 				foreach (GameTeam team in game.Teams)

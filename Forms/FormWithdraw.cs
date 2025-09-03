@@ -20,7 +20,7 @@ namespace Torn.UI
 			{
 				AutoScaleDimensions = new SizeF(9F, 20F);
 
-				var teams = League.Teams.OrderBy(t => t.Name).ToList();
+				var teams = League.Teams().OrderBy(t => t.Name).ToList();
 				int longestName = teams.Max(t => TextRenderer.MeasureText(t.Name, Font).Width);
 
 				int maxHeight = (int)(Screen.PrimaryScreen.WorkingArea.Height * 0.8 / 23);  // Conservative maximum number of checkboxes we can fit vertically.
@@ -63,7 +63,7 @@ namespace Torn.UI
 			{
 				if (control is CheckBox checkBox && checkBox.Tag is int tag)
 				{
-					var team = League.Teams.Find(t => t.TeamId == tag);
+					var team = League.LeagueTeam(tag);
 					if (team != null)
 						team.Active = checkBox.Checked;
 				}

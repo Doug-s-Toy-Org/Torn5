@@ -29,14 +29,15 @@ namespace Torn.UI
 		public FormReports(Holder holder): this()
 		{
 			Holder = holder;
-			if (Holder.League.AllGames.Any())
+			var games = Holder.League.Games();
+			if (games.Any())
 			{
-				formReport.From = Holder.League.AllGames.First().Time.Date;
-				formReport.To = Holder.League.AllGames.Last().Time.Date;
+				formReport.From = games.First().Time.Date;
+				formReport.To = games.Last().Time.Date;
 				formReport.League = Holder.League;
 			}
 			RefreshListView();
-			
+
 			switch (Holder.ReportTemplates.OutputFormat) {
 				case OutputFormat.Svg:       radioSvg.Checked = true;    break;
 				case OutputFormat.HtmlTable: radioTables.Checked = true; break;

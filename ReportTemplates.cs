@@ -189,13 +189,13 @@ namespace Torn.Report
 		void SetAttribute(XmlDocument doc, XmlNode node, string key, string value)
 		{
 			if (node.Attributes[key] != null)
-                node.Attributes[key].Value = value;
-            else
-            {
+				node.Attributes[key].Value = value;
+			else
+			{
 				XmlAttribute attr = doc.CreateAttribute(key);
 				attr.Value = value;
 				node.Attributes.Append(attr);
-            }
+			}
 		}
 
 		public void ToXml(XmlDocument doc, XmlNode node)
@@ -293,18 +293,19 @@ namespace Torn.Report
 		public void AddDefaults(League league)
 		{
 			string title = league.Title.ToLower();
-			double gameCount = league.Games(true).Count;
-			double teamsPerGame = gameCount > 0 ? league.Games(true).Average(g => g.Teams.Count) : 0;
+			var games = league.Games();
+			double gameCount = games.Count;
+			double teamsPerGame = gameCount > 0 ? games.Average(g => g.Teams.Count) : 0;
 
 			if (title.Contains("solo") || title.Contains("double") || title.Contains("triple") || title.Contains("tripple") || title.Contains("trippple") || title.Contains("lotr") || title.Contains("lord of the ring"))
 			{
 				Add(new ReportTemplate(ReportType.Pyramid, new string[] { "ChartType=bar", "description" }));
 				Add(new ReportTemplate(ReportType.PyramidCondensed, new string[] { "ChartType=bar", "description" }));
 
-				if (league.AllGames.Count > 0 && league.Games(true).Max(g => g.Teams.Count) < league.Teams.Count)  // If there's no game with all teams, then add a GameGrid which the user can adjust the From date on to show finals.
+				if (gameCount > 0 && games.Max(g => g.Teams.Count) < league.TeamCount())  // If there's no game with all teams, then add a GameGrid which the user can adjust the From date on to show finals.
 				{
 					Add(new ReportTemplate(ReportType.GameGrid, new string[] { "ChartType=bar", "description", "Group=Final" }));
-					this.Last().From = league.Games(true).Last().Time.Date;
+					this.Last().From = games.Last().Time.Date;
 				}
 			}
 			else
@@ -312,7 +313,7 @@ namespace Torn.Report
 				if (teamsPerGame <= 5 && (gameCount == 0 || gameCount >= 10))
 				{
 					Add(new ReportTemplate(ReportType.TeamLadder, new string[] { "ChartType=bar with rug", "description" }));
-					if (league.Games(true).Select(g => g.Title).Distinct().Count() > 1)  // If the user has used game group descriptions, 
+					if (games.Select(g => g.Title).Distinct().Count() > 1)  // If the user has used game group descriptions, 
 						this.Last().ReportType = ReportType.MultiLadder;  // use a MultiLadder instead of a TeamLadder.
 					else
 						this.Last().From = league.Games(false).Last().Time.Date;  // Exclude games from the last day, on the basis that they're likely semifinals / grand finals.
@@ -320,18 +321,18 @@ namespace Torn.Report
 
 				Add(new ReportTemplate(ReportType.TeamsVsTeams, new string[] { "ChartType=bar with rug", "description" }));
 
-				int coloursUsed = league.Games(true).SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct().Count();
+				int coloursUsed = games.SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct().Count();
 				if (gameCount == 0 || coloursUsed > 1)
 					Add(new ReportTemplate(ReportType.ColourPerformance, new string[] { "ChartType=bar with rug", "description" }));
 
-				if (teamsPerGame < league.Teams.Count - 1)  // Unless nearly every team is in nearly every game, add an Ascension for the user to set From and To dates on later.
+				if (teamsPerGame < league.TeamCount() - 1)  // Unless nearly every team is in nearly every game, add an Ascension for the user to set From and To dates on later.
 				{
 					Add(new ReportTemplate(ReportType.Ascension, new string[] { "ChartType=bar with rug", "description", "Group=Ascension" }));
 					this.Last().From = league.Games(false).Last().Time.Date;
 				}
 
 				Add(new ReportTemplate(ReportType.GameGrid, new string[] { "ChartType=bar", "description", "Group=Final" }));  // Add a GameGrid which the user can adjust the From date on to show finals.
-				this.Last().From = league.Games(true).Last().Time.Date;
+				this.Last().From = games.Last().Time.Date;
 
 				if (teamsPerGame <= 5)
 					Add(new ReportTemplate(ReportType.GameByGame, new string[] { "ChartType=bar", "description" }));
@@ -382,8 +383,8 @@ namespace Torn.Report
 	{
 		public Holder MostRecent()
 		{
-			//DateTime mostRecent = this.Max(x => x.League.AllGames.MostRecent());
-			//return this.Find(x => x.League.AllGames.MostRecent() == mostRecent);
+			//DateTime mostRecent = this.Max(x => x.League.MostRecentGame());
+			//return this.Find(x => x.League.MostRecentGame() == mostRecent);
 
 			if (this.Count() == 0)
 				return null;
@@ -391,14 +392,14 @@ namespace Torn.Report
 			DateTime? mostRecent = DateTime.MinValue;
 			Holder Result = this[0];
 			foreach (Holder holder in this)
-			{
-				DateTime? thisRecent = holder.League.AllGames.MostRecent();
-				if (mostRecent < thisRecent)
 				{
-					mostRecent = thisRecent;
-					Result = holder;
+					DateTime? thisRecent = holder.League.MostRecentGame();
+					if (mostRecent < thisRecent)
+					{
+						mostRecent = thisRecent;
+						Result = holder;
+					}
 				}
-			}
 
 			return Result;
 		}
@@ -415,7 +416,6 @@ namespace Torn.Report
 
 		//[NonSerialized]
 		public League League { get; set; }
-		public FileSystemWatcher Watcher { get; set; }
 		public ReportTemplates ReportTemplates { get; private set; }
 		public Fixture Fixture { get; private set; }
 
@@ -431,7 +431,7 @@ namespace Torn.Report
 			FileName = fileName;
 			League = league;
 
-			Fixture.Teams.Populate(League.Teams);
+			Fixture.Teams.Populate(League.Teams());
 		}
 
 		public override string ToString()

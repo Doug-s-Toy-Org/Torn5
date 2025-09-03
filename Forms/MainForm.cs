@@ -277,7 +277,7 @@ namespace Torn.UI
 			leagues.Add(holder);
 
 			item.Tag = holder;
-			item.SubItems.AddRange(new string[] { league.Title, league.AllGames.Count.ToString(CultureInfo.CurrentCulture), league.Teams.Count.ToString(CultureInfo.CurrentCulture), fileName });
+			item.SubItems.AddRange(new string[] { league.Title, league.GameCount().ToString(CultureInfo.CurrentCulture), league.TeamCount().ToString(CultureInfo.CurrentCulture), fileName });
 			listViewLeagues.Items.Add(item);
 			listViewLeagues.FocusedItem = item;
 
@@ -469,7 +469,7 @@ namespace Torn.UI
 				FormPlayer = formPlayer
 			};
 
-			if (form.League.Teams.Count == 0)
+			if (!form.League.AnyTeams())
 				foreach (var ft in activeHolder.Fixture.Teams)
 					form.League.AddTeam(ft.Clone(form.League));
 
@@ -546,15 +546,14 @@ namespace Torn.UI
 
 			string fontColour = "$02000000"; //black
 
-			League league = serverGame.League;
-			Game game = league.AllGames.Find(g => g.Time == serverGame.Time);
-
 			string message = "DISPLAYREPORTS";
+
+			League league = serverGame.League;
+			Game game = league.Game(serverGame);
 
 			foreach (GameTeam team in game.Teams)
 			{
-				LeagueTeam leagueTeam = league.Teams.Find(t => t.TeamId == team.TeamId);
-				Console.WriteLine(leagueTeam?.Handicap);
+				LeagueTeam leagueTeam = league.LeagueTeam(team.TeamId);
 				Handicap cap = league.IsAutoHandicap ? new Handicap(league.CalulateTeamCap(team), HandicapStyle.Percent) : leagueTeam?.Handicap;
 
 				string teamColour = ColorToTColor(team.Colour.ToColor());
@@ -566,7 +565,7 @@ namespace Torn.UI
 
 				foreach (GamePlayer player in team.Players)
 				{
-					LeaguePlayer leaguePlayer = league.Players.Find(p => p.Id == player.PlayerId);
+					LeaguePlayer leaguePlayer = league.LeaguePlayer(player.PlayerId);
 					string alias = leaguePlayer?.Name != null ? leaguePlayer.Name : player.Pack;
 					alias = alias.Replace("\"", "''");
 					decimal tagRatio = hasTR ? (Convert.ToDecimal(player.HitsBy) / Convert.ToDecimal(player.HitsOn)) : 0;
@@ -643,22 +642,22 @@ namespace Torn.UI
 					adhocReportTemplate.Settings.Add("Description");
 				}
 
+				var games = holder.League.Games(true);
 				if (new FormReport
 				{
 					Text = "Report on " + (SelectedLeagues().Count == 1 ? holder.League.Title : SelectedLeagues().Count.ToString() + " leagues"),
-					From = (holder.League.AllGames.FirstOrDefault()?.Time ?? DateTime.Now).Date,
-					To = (holder.League.AllGames.LastOrDefault()?.Time ?? DateTime.Now).Date,
+					From = (games.FirstOrDefault()?.Time ?? DateTime.Now).Date,
+					To = (games.LastOrDefault()?.Time ?? DateTime.Now).Date,
 					ReportTemplate = adhocReportTemplate,
 					League = SelectedLeagues().FirstOrDefault()?.League,
 					Icon = (Icon)this.Icon.Clone()
-
-			}.ShowDialog() == DialogResult.OK)
+				}.ShowDialog() == DialogResult.OK)
 				{
 					Cursor.Current = Cursors.WaitCursor;
 					try
 					{
 						GetExportFolder();
-						new FormAdhoc 
+						new FormAdhoc
 						{
 							Report = (ZoomReport)ReportPages.Report(SelectedLeagues().Select(h => h.League).ToList(), IncludeSecret(), adhocReportTemplate, exportFolder),
 							Icon = (Icon)this.Icon.Clone()
@@ -701,10 +700,10 @@ namespace Torn.UI
 			foreach (ListViewItem item in listViewGames.SelectedItems)
 				if (item.Tag is ServerGame serverGame && serverGame.Game != null)
 				{
-					var holders = leagues.FindAll(h => h.League.AllGames.Any(g => g.Time == serverGame.Time));
+					var holders = leagues.FindAll(h => h.League.Game(serverGame) != null);
 					foreach (Holder holder in holders)
 					{
-						holder.League.AllGames.RemoveAll(g => g.Time == serverGame.Time);
+						holder.League.ForgetGame(serverGame.Time);
 						item.SubItems[1].Text = null;
 						item.SubItems[2].Text = serverGame.Description;
 
@@ -1105,21 +1104,22 @@ namespace Torn.UI
 
 			if (listViewGames.SelectedItems.Count == 1)
 			{
-				ServerGame game = ((ServerGame)listViewGames.SelectedItems[0].Tag);
+				ServerGame serverGame = (ServerGame)listViewGames.SelectedItems[0].Tag;
 
-				Game leagueGame = activeHolder?.League.AllGames.Find(g => g.Time == game.Time);
-
-				if (laserGameServer != null && leagueGame == null)
-					laserGameServer.PopulateGame(game);
-				else
+				if (activeHolder != null)
 				{
-					game.Players.Clear();
+					Game leagueGame = activeHolder.League.Game(serverGame);
+
+					if (laserGameServer != null && leagueGame == null)
+						laserGameServer.PopulateGame(serverGame);
+					else
+						serverGame.Players.Clear();
 				}
 
-				playersBox.LoadGame(activeHolder?.League, game);
+				playersBox.LoadGame(activeHolder?.League, serverGame);
 				formPlayer.CurrentLeague = activeHolder?.League;
 
-				TransferPlayers(game);
+				TransferPlayers(serverGame);
 			}
 			else
 				playersBox.Clear();
@@ -1159,8 +1159,8 @@ namespace Torn.UI
 				activeHolder = (Holder)e.Item.Tag;
 				labelLeagueDetails.Text = "Title: " + activeHolder.League.Title + "\nKey: " + activeHolder.League.Key + 
 					"\nFile name: " + activeHolder.FileName +
-					"\nGames: " + activeHolder.League.AllGames.Count.ToString(CultureInfo.CurrentCulture) + 
-					"\nTeams: " + activeHolder.League.Teams.Count.ToString(CultureInfo.CurrentCulture);
+					"\nGames: " + activeHolder.League.GameCount().ToString(CultureInfo.CurrentCulture) + 
+					"\nTeams: " + activeHolder.League.TeamCount().ToString(CultureInfo.CurrentCulture);
 				SetRowColumnCount(activeHolder.League.GridHigh, activeHolder.League.GridWide);
 			}
 			else
@@ -1241,7 +1241,7 @@ namespace Torn.UI
 			webOutput.MostRecentHolder = leagues.MostRecent();
 
 			if (webOutput.MostRecentHolder != null)
-				webOutput.MostRecentGame = webOutput.MostRecentHolder.League.AllGames.LastOrDefault();
+				webOutput.MostRecentGame = webOutput.MostRecentHolder.League.Games().LastOrDefault();
 
 			if (laserGameServer == null)
 				labelTime.Text = "No lasergame server";
@@ -1360,7 +1360,7 @@ namespace Torn.UI
 
 			// Create fake "server" games to represent league games, where a server game doesn't already exist (because Acacia has forgotten it).
 			foreach (Holder holder in leagues)
-				foreach (Game leagueGame in holder.League.AllGames)
+				foreach (Game leagueGame in holder.League.Games())
 					if (serverGames.Find(x => x.Time == leagueGame.Time) == null)
 						serverGames.Add(new ServerGame
 						{
@@ -1446,7 +1446,7 @@ namespace Torn.UI
 
 		bool PopulateGameIfIdle(League league, ServerGame serverGame, ServerGame oldGame)
 		{
-			Game leagueGame = league.AllGames.Find(x => x.Time == serverGame.Time);
+			Game leagueGame = league.Game(serverGame);
 			if (leagueGame == null)
 				return false;
 
@@ -1491,8 +1491,7 @@ namespace Torn.UI
 		bool FillEvents(League league)
 		{
 			bool any = false;
-			var games = league.AllGames.ToList();  // Have to clone this by calling ToList. Without this, it sometimes complains that the collection has been modified partway through the foreach, and I don't know why.
-			foreach (Game game in games)
+			foreach (Game game in league.Games())
 				any |= game.PopulateEvents();
 			return any;
 		}
@@ -1577,7 +1576,8 @@ namespace Torn.UI
 				if (xtemplates != null)
 					holder.ReportTemplates.FromXml(xtemplates);
 
-				holder.Fixture.Teams.Populate(holder.League.Teams);
+				holder.Fixture.Teams.Populate(holder.League.Teams());
+
 				var xfixtures = xleague.SelectSingleNode("fixtures");
 				if (xfixtures != null)
 					holder.Fixture.Games.Parse(xfixtures.InnerText, holder.Fixture.Teams, '\t');  // TODO: change to .FromXml(doc, xfixtures);

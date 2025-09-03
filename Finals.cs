@@ -9,7 +9,7 @@ namespace Torn
 	public class Finals
 	{
 		public ZoomReport Report { get; set; }
-		public Games Games { get; set; }
+		public List<Game> Games { get; set; }
 		public int NumTeams { get; set; }
 		public int TeamsPerGame { get; set; }
 		/// <summary>Number of losing teams from each game that get sent down to the next lower track, or from the bottom track get eliminated.</summary>
@@ -262,7 +262,7 @@ namespace Torn
 			Report.Description = "You may wish to rearrange games to avoid back-to-backs where teams play twice in a row.";
 		}
 
-		public static ZoomReport Ascension(List<LeagueTeam> teams, Games games, int numTeams, int teamsPerGame, int teamsToCut, int tracks, int freeRides)
+		public static ZoomReport Ascension(List<LeagueTeam> teams, List<Game> games, int numTeams, int teamsPerGame, int teamsToCut, int tracks, int freeRides)
 		{
 			var f = new Finals
 			{

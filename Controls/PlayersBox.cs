@@ -39,12 +39,13 @@ namespace Torn.UI
 				foreach (var player in serverGame.Players)
 				{
 					league?.Load(league?.FileName);
-					LeaguePlayer leaguePlayer = league?.Players?.Find(p => p.Id == player.PlayerId);
+					LeaguePlayer leaguePlayer = league?.LeaguePlayer(player.PlayerId);
 					GamePlayer gamePlayer = league?.Games(false)?.Find(g => g.Time == serverGame.Time)?.Players()?.Find(p => p.PlayerId == player.PlayerId);
 					if(gamePlayer != null && gamePlayer.Grade != null)
-                    {
+					{
 						player.Grade = gamePlayer.Grade;
-                    } else if (leaguePlayer != null && leaguePlayer.Grade != null)
+					}
+					else if (leaguePlayer != null && leaguePlayer.Grade != null)
 					{
 						player.Grade = leaguePlayer.Grade;
 					}
@@ -58,13 +59,13 @@ namespace Torn.UI
 
 					bool isNewPlayer = league != null && leaguePlayer == null;
 
-					bool isChangedAlias = league != null && !isNewPlayer && league.Players.Find(p => p.Name == player.Alias) == null;
+					bool isChangedAlias = league != null && !isNewPlayer && league.Players().Find(p => p.Name == player.Alias) == null;
 
 					string tooltip = "";
 
 					ListViewItem item = new ListViewItem(player.Pack, (int)player.Colour);
 					if ((player.Grade == null && league != null && league.IsAutoHandicap) )
-                    {
+					{
 						item.BackColor = Color.FromName("yellow");
 						tooltip += "No grade found on player.";
 					}
@@ -74,10 +75,10 @@ namespace Torn.UI
 						tooltip += "Player does not exist in league yet.\n";
 					}
 					if(isChangedAlias && gamePlayer == null)
-                    {
+					{
 						item.BackColor = Color.FromName("orange");
 						tooltip += "Player Alias does not match saved alias for player.\n" + "Server: " + player.Alias + " League: " + leaguePlayer.Name;
-                    }
+					}
 
 					item.ToolTipText = tooltip;
 

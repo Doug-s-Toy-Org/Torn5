@@ -61,10 +61,10 @@ namespace Torn.UI
                 {
                     League.Load(League.FileName);
                 }
-                bool isPoints = League?.IsPoints() ?? false;
-                var points = GameTeam.Points;
-                ListView.Columns[1].Text = (isPoints ? "(" + points + ") " : "") + (leagueTeam == null ? "Players" : (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + leagueTeam.Name);
-            }
+				bool isPoints = League?.IsPoints() ?? false;
+				var points = GameTeam.Points;
+				ListView.Columns[1].Text = (isPoints ? "(" + points + ") " : "") + (leagueTeam == null ? "Players" : (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + leagueTeam.Name);
+			}
 		}
 
 		Handicap handicap;
@@ -111,7 +111,7 @@ namespace Torn.UI
 		}
 
 		LeagueTeam GetLeagueTeamFromFile()
-        {
+		{
 			League.Load(League.FileName);
 			List<string> playerIds = new List<string>();
 			foreach (ServerPlayer player in Players())
@@ -153,23 +153,23 @@ namespace Torn.UI
 			}
 
 			if(League != null)
-            {
+			{
 				if (League.IsAutoHandicap)
 				{
 					ListView.Columns[3].Text = League.CalulateTeamCap(tempTeam).ToString() + "%";
 				} else
-                {
+				{
 					LeagueTeam leagueTeam = GetLeagueTeamFromFile();
 					if (leagueTeam != null && leagueTeam.Handicap != null)
-                    {
+					{
 						ListView.Columns[3].Text = leagueTeam.Handicap.ToString();
 					}
 				}
 				score = League.CalculateScore(tempTeam);
 			} else
-            {
+			{
 				score = 0;
-            }
+			}
 
 			ListView.Columns[2].Text = Score.ToString(CultureInfo.InvariantCulture) +
 				(GameTeam.Adjustment == 0 ? "" : "*");
@@ -221,8 +221,10 @@ namespace Torn.UI
 				menuGradePlayer.DropDownItems.Add(item);
 			}
 
-			if (League.Teams.Count < 49)
-				foreach (var team in League.Teams)
+			var teams = League.Teams();
+
+			if (teams.Count < 49)
+				foreach (var team in teams)
 				{
 					var item = new ToolStripMenuItem(team.Name)
 					{
@@ -233,17 +235,17 @@ namespace Torn.UI
 				}
 			else  // There are so many teams that a flat list will be large and hard to visually scan. Create intermediate items.
 			{
-				if (League.Teams.Count < 73)  // 72 is geometric mean of 8 squared and 9 squared -- less than this and 8 or so bins make sense.
+				if (teams.Count < 73)  // 72 is geometric mean of 8 squared and 9 squared -- less than this and 8 or so bins make sense.
 					foreach (string s in new string[9] { "ABC", "DEF", "GHI", "JKL", "MNO", "PQRS", "TUV", "WXYZ", "Other" })
 						menuIdentifyTeam.DropDownItems.Add(new ToolStripMenuItem(s));
-				else if (League.Teams.Count < 338)  // 338 is geometric mean of 13 squared and 26 squared -- more than this, and 26 bins makes sense. Less than this and 13 bins makes sense.
+				else if (teams.Count < 338)  // 338 is geometric mean of 13 squared and 26 squared -- more than this, and 26 bins makes sense. Less than this and 13 bins makes sense.
 					foreach (string s in new string[14] { "AB", "CD", "EF", "GH", "IJ", "KL", "MN", "OP", "QR", "ST", "UV", "WX", "YZ", "Other" })
 						menuIdentifyTeam.DropDownItems.Add(new ToolStripMenuItem(s));
 				else
 					foreach (string s in new string[27] { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Other" })
 						menuIdentifyTeam.DropDownItems.Add(new ToolStripMenuItem(s));
 
-				foreach (var team in League.Teams)
+				foreach (var team in teams)
 				{
 					var item = new ToolStripMenuItem(team.Name)
 					{
@@ -287,20 +289,18 @@ namespace Torn.UI
 			LeagueTeam leagueTeam = GetLeagueTeamFromFile();
 
 			if (leagueTeam != null)
-            {
+			{
 				Handicap.Value = InputDialog.GetDouble("Handicap", "Set team handicap (" + League.HandicapStyle.ToString() + ")" , Handicap.Value ?? 100);
 
-				int index = League.Teams.IndexOf(leagueTeam);
-
-				League.Teams[index].Handicap = new Handicap(Handicap.Value, League.HandicapStyle);
+				leagueTeam.Handicap = new Handicap(Handicap.Value, League.HandicapStyle);
 
 				League.Save();
 				Recalculate(false);
 			} else
-            {
+			{
 				MessageBoxButtons buttons = MessageBoxButtons.OK;
 				MessageBox.Show("Please Identify Team before adding Handicap", "Cannot Apply Handicap", buttons);
-            }
+			}
 		}
 
 		private void MenuIdentifyTeamClick(object sender, EventArgs e)
@@ -310,15 +310,14 @@ namespace Torn.UI
 		}
 
 		private void MenuGradePlayerClick(object sender, EventArgs e)
-        {
+		{
 			LeagueTeam leagueTeam = GetLeagueTeamFromFile();
 			if (leagueTeam != null)
 			{
 				ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
-				int teamIndex = League.Teams.IndexOf(leagueTeam);
 
-				int playerIndex = leagueTeam.Players.FindIndex(p => p.Id == player.PlayerId);
-				if (playerIndex < 0)
+				var leaguePlayer = League.LeaguePlayer(player.PlayerId);
+				if (leaguePlayer != null)
 				{
 					MessageBoxButtons buttons = MessageBoxButtons.OK;
 					MessageBox.Show("Please Commit Team with new player before grading player", "Cannot Apply Grade", buttons);
@@ -327,7 +326,7 @@ namespace Torn.UI
 				Grade grade = (Grade)((ToolStripMenuItem)sender).Tag;
 				ListView.SelectedItems[0].SubItems[3].Text = grade.Name;
 
-				League.Teams[teamIndex].Players[playerIndex].Grade = grade.Name;
+				leaguePlayer.Grade = grade.Name;
 				League.Save();
 
 				if (GameTeam.Players.Count() == 0)
@@ -340,7 +339,7 @@ namespace Torn.UI
 				GameTeam.Players[index].Grade = grade.Name;
 				Recalculate(false);
 			} else
-            {
+			{
 				MessageBoxButtons buttons = MessageBoxButtons.OK;
 				MessageBox.Show("Please Identify Team before grading players", "Cannot Apply Grade", buttons);
 			}
@@ -350,11 +349,11 @@ namespace Torn.UI
 
 		void MenuNameTeamClick(object sender, EventArgs e)
 		{
-			int index = League.Teams.FindIndex(leagueTeam => leagueTeam.Name == LeagueTeam.Name);
+			var leagueTeam = League.LeagueTeam(LeagueTeam.Name);
 			LeagueTeam.Name = InputDialog.GetInput("Name: ", "Set a team name", LeagueTeam.Name);
 			ListView.Columns[1].Text = LeagueTeam == null ? "Players" : LeagueTeam.Name;
 
-			League.Teams[index].Name = LeagueTeam.Name;
+			leagueTeam.Name = LeagueTeam.Name;
 
 			League.Save();
 			League.Load(League.FileName);
@@ -372,7 +371,7 @@ namespace Torn.UI
 			LeagueTeam = new LeagueTeam();
 			foreach (var serverPlayer in Players())
 			{
-				var leaguePlayer = League.LeaguePlayer(serverPlayer) ?? League.Players.Find(p => p.Id == serverPlayer.PlayerId);
+				var leaguePlayer = League.LeaguePlayer(serverPlayer) ?? League.LeaguePlayer(serverPlayer.PlayerId);
 				if (leaguePlayer == null)
 				{
 					leaguePlayer = new LeaguePlayer
@@ -380,7 +379,7 @@ namespace Torn.UI
 						Name = serverPlayer.Alias,
 						Id = serverPlayer.PlayerId
 					};
-					League.Players.Add(leaguePlayer);
+					League.AddPlayer(leaguePlayer);
 				}
 				LeagueTeam.Players.Add(leaguePlayer);
 			}
@@ -396,7 +395,7 @@ namespace Torn.UI
 		{
 			foreach (var serverPlayer in Players())
 			{
-				var leaguePlayer = League.LeaguePlayer(serverPlayer) ?? League.Players.Find(p => p.Id == serverPlayer.PlayerId);
+				var leaguePlayer = League.LeaguePlayer(serverPlayer);
 				if (leaguePlayer == null)
 				{
 					leaguePlayer = new LeaguePlayer
@@ -404,7 +403,7 @@ namespace Torn.UI
 						Name = serverPlayer.Alias,
 						Id = serverPlayer.PlayerId
 					};
-					League.Players.Add(leaguePlayer);
+					League.AddPlayer(leaguePlayer);
 				}
 				if (!LeagueTeam.Players.Contains(leaguePlayer))
 					LeagueTeam.Players.Add(leaguePlayer);
@@ -455,47 +454,47 @@ namespace Torn.UI
 			Recalculate(false);
 		}
 
-        private void changeAliasToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+		private void changeAliasToolStripMenuItem_Click(object sender, EventArgs e)
+		{
 			ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
-			int playerIndex = League.Players.FindIndex(p => p.Id == player.PlayerId);
-			if (playerIndex >= 0)
+			var leaguePlayer = League.LeaguePlayer(player.PlayerId);
+			if (leaguePlayer != null)
 			{
-				string alias = InputDialog.GetInput("Rename Player", "Update players alias in league", player.Alias);
-				League.Players[playerIndex].Name = alias;
+				string alias = InputDialog.GetInput("Rename Player", "Update player's alias in league", player.Alias);
+				leaguePlayer.Name = alias;
 				League.Save();
 
-				bool isChangedAlias = League.Players.Find(p => p.Name == player.Alias) == null;
+				bool isChangedAlias = !League.Players().Any(p => p.Name == player.Alias);
 
 				ListView.SelectedItems[0].BackColor = isChangedAlias ? Color.FromName("orange") : Color.FromName("white");
-				ListView.SelectedItems[0].ToolTipText = isChangedAlias ? "Player Alias does not match saved alias for player.\n" + "Server: " + player.Alias + " League: " + League.Players[playerIndex].Name : "";
+				ListView.SelectedItems[0].ToolTipText = isChangedAlias ? "Player Alias does not match saved alias for player.\n" + "Server: " + player.Alias + " League: " + leaguePlayer.Name : "";
 
 				ListView.SelectedItems[0].SubItems[1].Text = alias;
 			} else
-            {
+			{
 				MessageBox.Show("Could not find player in league");
-            }
+			}
 		}
 
-        private void manageTermsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+		private void manageTermsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
 			ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
 			using (var form = new FormManageTerms { Player = player, League = League })
-            {
+			{
 				var result = form.ShowDialog();
 				if(result == DialogResult.OK)
-                {
+				{
 					ListView.SelectedItems[0].Tag = form.Player;
 					ListView.SelectedItems[0].SubItems[2].Text = League.ZeroElimed && form.Player.IsEliminated && form.Player.Score > 0 ? "0" : form.Player.Score.ToString();
 					ListView.SelectedItems[0].SubItems[1].Text = form.Player.GetFormattedAlias();
 					Recalculate(false);
 				}
-            }
+			}
 
 		}
 
-        private void eliminatePlayerToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+		private void eliminatePlayerToolStripMenuItem_Click(object sender, EventArgs e)
+		{
 			ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
 			player.SetIsEliminated(true);
 			player.Score = League.ZeroElimed && player.Score > 0 ? 0 : player.Score;
@@ -504,8 +503,8 @@ namespace Torn.UI
 			Recalculate(false);
 		}
 
-        private void manageTeamTerms_Click(object sender, EventArgs e)
-        {
+		private void manageTeamTerms_Click(object sender, EventArgs e)
+		{
 			using (var form = new FormManageTerms { Team = GameTeam, League = League })
 			{
 				var result = form.ShowDialog();
@@ -532,9 +531,9 @@ namespace Torn.UI
 			}
 			ListView.Columns[1].Text = (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + (leagueTeam?.Name ?? "Players");
 		}
-    }
+	}
 
-    class SortByScore : IComparer
+	class SortByScore : IComparer
 	{
 		int IComparer.Compare(object x, object y)
 		{

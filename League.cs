@@ -10,7 +10,6 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
-using Newtonsoft.Json.Linq;
 
 namespace Torn
 {
@@ -115,7 +114,7 @@ namespace Torn
 	{
 		public static HandicapStyle ToHandicapStyle(string s)
 		{
-		    var dict = new Dictionary<string, HandicapStyle> { 
+			var dict = new Dictionary<string, HandicapStyle> { 
 				{ "%", HandicapStyle.Percent }, { "+", HandicapStyle.Plus }, { "-", HandicapStyle.Minus }, { ".", HandicapStyle.None }, { "None", HandicapStyle.None }
 			};
 
@@ -215,9 +214,9 @@ namespace Torn
 		/// <summary>Represents player handicap +/-/%.</summary>
 		public Handicap Handicap { get; set; }
 		/// <summary>User-defined. Often used for player grade.</summary>
-		public string Comment { get; set; }  // 
+		public string Comment { get; set; }
 
-		public string Grade { get; set;  }
+		public string Grade { get; set; }
 	
 		public LeaguePlayer Clone()
 		{
@@ -368,7 +367,7 @@ namespace Torn
 			double score = 0;
 			foreach(GamePlayer player in players)
 			{
-				Console.WriteLine(player.PlayerId + " " + player.ZeroedScore + " " + player.Score);
+				Console.WriteLine("ZeroedScore " + player.PlayerId + " " + player.ZeroedScore + " " + player.Score);
 				if(player.ZeroedScore != null && player.ZeroedScore != 0)
 				{
 					score += (double)player.ZeroedScore;
@@ -409,15 +408,15 @@ namespace Torn
 		public static Comparison<GameTeam> CompareTime = (gameTeam1, gameTeam2) => gameTeam1.Time.CompareTo(gameTeam2.Time);
 
 		public int GetHitsBy()
-        {
+		{
 			int hitsBy = 0;
 			foreach(GamePlayer player in players)
-            {
+			{
 				hitsBy += player.HitsBy;
 				hitsBy -= player.BaseDestroys;
-            }
+			}
 			return hitsBy;
-        }
+		}
 
 		public override string ToString()
 		{
@@ -585,7 +584,7 @@ namespace Torn
 
 		public GameTeam GameTeam(League league)
 		{
-			foreach (var game in league.AllGames)
+			foreach (var game in league.Games())
 				foreach (var gameTeam in game.Teams)
 					if (gameTeam.Players.Contains(this))
 						return gameTeam;
@@ -741,14 +740,6 @@ namespace Torn
 		}
 	}
 
-	public class Games: List<Game>
-	{
-		public DateTime? MostRecent()
-		{
-			return this.Any() ? this.Select(x => x.Time).Max() : (DateTime?)null;
-		}
-	}
-
 	/// <summary>Used during game Commit, to hold a TeamBox's GameTeam and ServerPlayers.</summary>
 	public class GameTeamData
 	{
@@ -798,27 +789,16 @@ namespace Torn
 		}
 	}
 
-	/// <summary>Load and manage a .Torn league file, containing league teams and games.</summary>
+	/// <summary>Load, manage and save a .Torn league file, containing league teams, games and players.</summary>
+	/// Note that external callers only get a _copy_ of Teams, Games or Players lists, though they do still contain the same objects.
+	/// This is to prevent "System.InvalidOperationException: Collection was modified; enumeration operation may not execute"
+	/// errors: one thread is halfway through enumerating, and another thread modifies the collection.
 	public class League
 	{
 		public string Key { get; set; }
 		public string Title { get; set; }
 
-		/// <summary>Watch our .Torn file. If another process writes it, reload.</summary>
-		FileSystemWatcher Watcher { get; set; }
-
-		string fileName;
-		public string FileName
-		{
-			get { return fileName; }
-			set
-			{
-				fileName = value;
-				Watcher.Path = new FileInfo(fileName).Directory.FullName;
-				Watcher.Filter = Path.GetFileName(fileName);
-				Watcher.EnableRaisingEvents = true;
-			}
-		}
+		public string FileName { get; set; }
 
 		public int GridHigh { get; set; }
 		public int GridWide { get; set; }
@@ -826,15 +806,12 @@ namespace Torn
 		int sortMode, sortByRank, autoUpdate, updateTeams, elimMultiplier;
 		public HandicapStyle HandicapStyle { get; set; }
 
-		List<LeagueTeam> teams;
-		public List<LeagueTeam> Teams { get { return teams; } }
-
-		List<LeaguePlayer> players;
-		public List<LeaguePlayer> Players { get { return players; } }
-
-		public Games AllGames { get; private set; }
+		private readonly List<LeagueTeam> teams;
+		private readonly List<Game> games;
+		private readonly List<LeaguePlayer> players;
 
 		Collection<double> victoryPoints;
+
 		public Collection<double> VictoryPoints { get { return victoryPoints; } }
 
 		public bool HitsTieBreak { get; set; }
@@ -1024,15 +1001,10 @@ namespace Torn
 		public League()
 		{
 			teams = new List<LeagueTeam>();
+			games = new List<Game>();
 			players = new List<LeaguePlayer>();
-			AllGames = new Games();
-			victoryPoints = new Collection<double>();
 
-			Watcher = new FileSystemWatcher
-			{
-				NotifyFilter = NotifyFilters.LastWrite
-			};
-			Watcher.Changed += new FileSystemEventHandler(OnFileChanged);
+			victoryPoints = new Collection<double>();
 
 			GridHigh = 3;
 			GridWide = 1;
@@ -1056,20 +1028,19 @@ namespace Torn
 			Title = Path.GetFileNameWithoutExtension(fileName).Replace('_', ' ');
 		}
 
-		public void AddTeam(LeagueTeam leagueTeam)
-		{
-			if (leagueTeam.TeamId <= 0)
-				leagueTeam.TeamId = NextTeamId();
-
-			Teams.Add(leagueTeam);
-		}
-
 		void Clear()
 		{
 			Title = "";
-			teams.Clear();
-			players.Clear();
-			AllGames.Clear();
+
+			lock (teams)
+				teams.Clear();
+
+			lock (games)
+				games.Clear();
+
+			lock (players)
+				players.Clear();
+
 			victoryPoints.Clear();
 			VictoryPointsHighScore = 0;
 		}
@@ -1080,13 +1051,11 @@ namespace Torn
 			League clone = new League
 			{
 				Title = Title,
-				fileName = fileName,
+				FileName = FileName,
 
 				GridHigh = GridHigh,
 				GridWide = GridWide,
 				GridPlayers = GridPlayers,
-
-				players = Players.Select(item => (LeaguePlayer)item.Clone()).ToList(),
 
 				victoryPoints = new Collection<double>(VictoryPoints.Select(item => item).ToList()),
 				VictoryPointsHighScore = VictoryPointsHighScore,
@@ -1098,9 +1067,49 @@ namespace Torn
 				ExtraGBonus = ExtraGBonus
 			};
 
-			clone.teams = Teams.Select(item => (LeagueTeam)item.Clone(clone)).ToList();
-			clone.AllGames.AddRange(AllGames);
+			lock (players)
+				clone.players.AddRange(players.Select(item => (LeaguePlayer)item.Clone()).ToList());  // Gotta clone players before teams, so that each team clone can add them.
+
+			lock (teams)
+				clone.teams.AddRange(teams.Select(item => (LeagueTeam)item.Clone(clone)));
+
+			lock (games)
+				clone.games.AddRange(games);
+
 			return clone;
+		}
+
+		public List<LeagueTeam> Teams()
+		{
+			lock (teams)
+				return teams.ToList();
+		}
+
+		public void AddTeam(LeagueTeam leagueTeam)
+		{
+			if (leagueTeam.TeamId <= 0)
+				leagueTeam.TeamId = NextTeamId();
+
+			lock (teams)
+				teams.Add(leagueTeam);
+		}
+
+		public bool AnyTeams()
+		{
+			lock (teams)
+				return teams.Any();
+		}
+
+		public int TeamCount()
+		{
+			lock (teams)
+				return teams.Count;
+		}
+
+		public void ForgetTeam(LeagueTeam team)
+		{
+			lock (teams)
+				teams.Remove(team);
 		}
 
 		string LinkTeamToGame(GameTeamData teamData, ServerGame serverGame)
@@ -1132,20 +1141,23 @@ namespace Torn
 			{
 				List<LeaguePlayer> leaguePlayers = new List<LeaguePlayer>();
 				foreach(ServerPlayer player in teamData.Players)
-                {
+				{
 					LeaguePlayer leaguePlayer = new LeaguePlayer
 					{
 						Name = player.Alias,
 						Id = player.PlayerId
 					};
 					leaguePlayers.Add(leaguePlayer);
-                }
+				}
+
 				leagueTeam = new LeagueTeam
 				{
 					TeamId = NextTeamId(),
 					Players = leaguePlayers
 				};
-				Teams.Add(leagueTeam);
+
+				lock (teams)
+					teams.Add(leagueTeam);
 			}
 			
 			gameTeam.TeamId = leagueTeam.TeamId;
@@ -1177,7 +1189,7 @@ namespace Torn
 				if (gamePlayer is ServerPlayer serverPlayer)
 					leaguePlayer.Name = serverPlayer.Alias;
 				leaguePlayer.Id = gamePlayer.PlayerId;
-				Players.Add(leaguePlayer);
+				AddPlayer(leaguePlayer);
 			}
 
 			if (!LeagueTeam(gameTeam).Players.Contains(leaguePlayer))
@@ -1186,9 +1198,9 @@ namespace Torn
 			return leaguePlayer == null ? "null" : leaguePlayer.Name;
 		}
 
-		public string CommitGame(ServerGame serverGame, List<GameTeamData> teamDatas, GroupPlayersBy groupPlayersBy)
+		public Game CommitGame(ServerGame serverGame, List<GameTeamData> teamDatas, GroupPlayersBy groupPlayersBy)
 		{
-			Load(FileName);
+			//Load(FileName);
 			var debug = new StringBuilder();
 			if (serverGame.Game == null)
 			{
@@ -1220,7 +1232,7 @@ namespace Torn
 				debug.Length -= 2; debug.Append(".\n");
 
 				teamData.GameTeam.Players.ForEach((player) => {
-					LeaguePlayer leaguePlayer = Players.Find((p) => p.Id == player.PlayerId);
+					LeaguePlayer leaguePlayer = LeaguePlayer(player);
 					player.Grade = leaguePlayer.Grade;
 				});
 
@@ -1232,12 +1244,13 @@ namespace Torn
 			for (int i = 0; i < players.Count; i++)
 				players[i].Rank = (uint)i + 1;
 
-			if (!AllGames.Contains(game))
-			{
-				AllGames.RemoveAll(g => g.Time == game.Time);
-				AllGames.Add(game);
-				AllGames.Sort();
-			}
+			lock (games)
+				if (!games.Contains(game))
+				{
+					games.RemoveAll(g => g.Time == game.Time);
+					games.Add(game);
+					games.Sort();
+				}
 
 			game.Teams.Sort();
 			game.Reported = false;
@@ -1247,19 +1260,53 @@ namespace Torn
 				teamData.GameTeam.Points = CalculatePoints(teamData.GameTeam, groupPlayersBy);
 
 			Save();
-			return debug.ToString();
+			return game;
 		}
 
-		public Games Games(bool includeSecret)
+		#region Games
+		/// <summary>Return a new list of games, never the games list directly, so that callers can safely hold onto and iterate the returned list without fear of it changing in another thread.</summary>
+		public List<Game> Games()
 		{
-			if (includeSecret) 
-				return AllGames;
-
-			var publicGames = new Games();
-			publicGames.AddRange(AllGames.Where(g => !g.Secret).ToList());
-			return publicGames;
+			lock (games)
+				return games.ToList();
 		}
-		
+
+		/// <summary>Return games in this league, but only return games marked secret if asked for them.
+		/// Always return a new list of games, never the games list directly, so that callers can safely hold onto and iterate the returned list without fear of it changing in another thread.</summary>
+		public List<Game> Games(bool includeSecret)
+		{
+			lock (games)
+				if (includeSecret)
+					return games.ToList();
+				else
+					return games.Where(g => !g.Secret).ToList();
+		}
+
+		public bool AnyGames()
+		{
+			lock (games)
+				return games.Any();
+		}
+
+		public int GameCount()
+		{
+			lock (games)
+				return games.Count;
+		}
+
+		public void ForgetGame(DateTime dateTime)
+		{
+			lock (games)
+				games.RemoveAll(g => g.Time == dateTime);
+		}
+
+		public DateTime? MostRecentGame()
+		{
+			lock (games)
+				return games.Any() ? games.Max(x => x.Time) : (DateTime?)null;
+		}
+		#endregion
+
 		public List<LeagueTeam> GuessTeams(ServerGame game)
 		{
 			List<LeagueTeam> result = new List<LeagueTeam>();
@@ -1267,9 +1314,9 @@ namespace Torn
 			if (game.Players == null)
 				return result;
 
-			var teams = game.Players.Select(x => x.ServerTeamId).Distinct();
+			var serverTeams = game.Players.Select(x => x.ServerTeamId).Distinct();
 
-			foreach (int teamId in teams)
+			foreach (int teamId in serverTeams)
 				result.Add(GuessTeam(game.Players.FindAll(x => x.ServerTeamId == teamId).Select(y => y.PlayerId).ToList()));
 
 			return result.Where(x => x != null).ToList();
@@ -1277,23 +1324,25 @@ namespace Torn
 
 		public LeagueTeam GuessTeam(List<string> ids)
 		{
-			if (!teams.Any() || !ids.Any())
-				return null;
+			lock (teams)
+				if (!teams.Any() || !ids.Any())
+					return null;
 
 			LeagueTeam bestTeam = null;
 			double bestScore = 0;
 
-			foreach (LeagueTeam team in teams)
-				if (team.Players.Any())
-				{
-					double thisScore = 1.0 * team.Players.FindAll(p => ids.Contains(p.Id)).Count / team.Players.Count;
-
-					if (bestScore < thisScore)
+			lock (teams)
+				foreach (LeagueTeam team in teams)
+					if (team.Players.Any())
 					{
-						bestScore = thisScore;
-						bestTeam = team;
+						double thisScore = 1.0 * team.Players.FindAll(p => ids.Contains(p.Id)).Count / team.Players.Count;
+
+						if (bestScore < thisScore)
+						{
+							bestScore = thisScore;
+							bestTeam = team;
+						}
 					}
-				}
 
 			return bestTeam;
 		}
@@ -1301,28 +1350,20 @@ namespace Torn
 		/// <summary>True if any game in this league has victory points.</summary>
 		public bool IsPoints()
 		{
-			return IsPoints(AllGames);
+			return IsPoints(games);
 		}
 
 		/// <summary>True if any game in the list has victory points.</summary>
 		public bool IsPoints(List<Game> games)
 		{
-			foreach (Game game in games)
-				if (game.IsPoints())
-					return true;
-
-			return false;
+			lock (games)
+				return games.Any(g => g.IsPoints());
 		}
 
 		int NextTeamId()
 		{
-			return teams.Any() ? teams.Max(x => x.TeamId) + 1 : 1;
-		}
-
-		void OnFileChanged(object sender, FileSystemEventArgs e)
-		{
-			System.Threading.Thread.Sleep(1000);
-			Load(fileName);
+			lock (teams)
+				return teams.Any() ? teams.Max(x => x.TeamId) + 1 : 1;
 		}
 
 		/// <summary>Load a .Torn file from disk.</summary>
@@ -1409,7 +1450,8 @@ namespace Torn
 					pointPercents.Add(pointPercent);
 				}
 				PointPercents = pointPercents;
-			} else
+			}
+			else
 			{
 				PointPercents = WA_LEAGUE_POINTS;
 
@@ -1437,12 +1479,11 @@ namespace Torn
 						LeaguePlayer leaguePlayer;
 						string id = xplayer.GetString("buttonid");;
 						
-						leaguePlayer = players.Find(x => x.Id == id);
+						leaguePlayer = LeaguePlayer(id);
 						if (leaguePlayer == null)
 						{
-							leaguePlayer = new LeaguePlayer();
-							players.Add(leaguePlayer);
-							leaguePlayer.Id = id;
+							leaguePlayer = new LeaguePlayer() { Id = id };
+							AddPlayer(leaguePlayer);
 						}
 
 						leaguePlayer.Name = xplayer.GetString("name");
@@ -1455,7 +1496,8 @@ namespace Torn
 					}
 				}
 
-				teams.Add(leagueTeam);
+				lock (teams)
+					teams.Add(leagueTeam);
 			}
 
 			XmlNodeList xgames = root.SelectSingleNode("games").SelectNodes("game");
@@ -1561,11 +1603,14 @@ namespace Torn
 
 					game.UnallocatedPlayers.Add(gamePlayer);
 				}
-				
-				AllGames.Add(game);
+
+				lock (games)
+					games.Add(game);
 			}
 
-			AllGames.Sort();
+			lock (games)
+				games.Sort();
+
 			LinkThings();
 
 			FileName = fileName;
@@ -1577,27 +1622,28 @@ namespace Torn
 		/// </summary>
 		void LinkThings()
 		{
-			for(int i = 0; i < AllGames.Count; i++)
-			{
-				var game = AllGames[i];
-				foreach (GameTeam gameTeam in game.Teams) 
+			lock (games)
+				for(int i = 0; i < games.Count; i++)
 				{
-					// Connect each game team back to their league team.
-					var leagueTeam = teams.Find(x => x.TeamId == gameTeam.TeamId);
-					if (leagueTeam != null)
+					var game = games[i];
+					foreach (GameTeam gameTeam in game.Teams) 
 					{
-						// Connect each game player to their game team.
-						gameTeam.Players.Clear();
-						var players = game.UnallocatedPlayers.ToList();  // Make a copy of UnallocatedPlayers. We can't remove from the collection we're foreach'ing over.
-						foreach (GamePlayer gamePlayer in players)
-							if (gamePlayer.TeamId == gameTeam.TeamId)
-							{
-								gameTeam.Players.Add(gamePlayer);
-								game.UnallocatedPlayers.Remove(gamePlayer);
-							}
+						// Connect each game team back to their league team.
+						var leagueTeam = LeagueTeam(gameTeam.TeamId);
+						if (leagueTeam != null)
+						{
+							// Connect each game player to their game team.
+							gameTeam.Players.Clear();
+							var players = game.UnallocatedPlayers.ToList();  // Make a copy of UnallocatedPlayers. We can't remove from the collection we're foreach'ing over.
+							foreach (GamePlayer gamePlayer in players)
+								if (gamePlayer.TeamId == gameTeam.TeamId)
+								{
+									gameTeam.Players.Add(gamePlayer);
+									game.UnallocatedPlayers.Remove(gamePlayer);
+								}
+						}
 					}
 				}
-			}
 		}
 
 		/// <summary>Save a .Torn file to disk.</summary>
@@ -1641,7 +1687,7 @@ namespace Torn
 			bodyNode.AppendChild(gradesNode);
 
 			foreach (Grade grade in Grades)
-            {
+			{
 				XmlNode gradeNode = doc.CreateElement("grade");
 				gradesNode.AppendChild(gradeNode);
 
@@ -1674,152 +1720,143 @@ namespace Torn
 			XmlNode leagueTeamsNode = doc.CreateElement("leaguelist");
 			bodyNode.AppendChild(leagueTeamsNode);
 
-			foreach (var team in teams)
-			{
-				XmlNode teamNode = doc.CreateElement("team");
-				leagueTeamsNode.AppendChild(teamNode);
-
-				doc.AppendNode(teamNode, "teamname", team.Name);
-				doc.AppendNode(teamNode, "teamid", team.TeamId);
-				if (team.Handicap != null && !team.Handicap.IsZero())
-					doc.AppendNode(teamNode, "handicap", team.Handicap.ToString());
-				if (!string.IsNullOrEmpty(team.Comment)) doc.AppendNode(teamNode, "comment", team.Comment);
-
-				XmlNode playersNode = doc.CreateElement("players");
-				teamNode.AppendChild(playersNode);
-
-				foreach (var player in team.Players)
+			lock (teams)
+				foreach (var team in teams)
 				{
-					XmlNode playerNode = doc.CreateElement("player");
-					playersNode.AppendChild(playerNode);
+					XmlNode teamNode = doc.CreateElement("team");
+					leagueTeamsNode.AppendChild(teamNode);
 
-					doc.AppendNode(playerNode, "name", player.Name);
-					doc.AppendNode(playerNode, "buttonid", player.Id);
-					if (player.Handicap != null && !player.Handicap.IsZero())
-						doc.AppendNode(playerNode, "handicap", player.Handicap.ToString());
-					if (!string.IsNullOrEmpty(player.Comment)) doc.AppendNode(playerNode, "comment", player.Comment);
-					if (!string.IsNullOrEmpty(player.Grade)) doc.AppendNode(playerNode, "grade", player.Grade);
+					doc.AppendNode(teamNode, "teamname", team.Name);
+					doc.AppendNode(teamNode, "teamid", team.TeamId);
+					if (team.Handicap != null && !team.Handicap.IsZero())
+						doc.AppendNode(teamNode, "handicap", team.Handicap.ToString());
+					if (!string.IsNullOrEmpty(team.Comment)) doc.AppendNode(teamNode, "comment", team.Comment);
+
+					XmlNode playersNode = doc.CreateElement("players");
+					teamNode.AppendChild(playersNode);
+
+					foreach (var player in team.Players)
+					{
+						XmlNode playerNode = doc.CreateElement("player");
+						playersNode.AppendChild(playerNode);
+
+						doc.AppendNode(playerNode, "name", player.Name);
+						doc.AppendNode(playerNode, "buttonid", player.Id);
+						if (player.Handicap != null && !player.Handicap.IsZero())
+							doc.AppendNode(playerNode, "handicap", player.Handicap.ToString());
+						if (!string.IsNullOrEmpty(player.Comment)) doc.AppendNode(playerNode, "comment", player.Comment);
+						if (!string.IsNullOrEmpty(player.Grade)) doc.AppendNode(playerNode, "grade", player.Grade);
+					}
 				}
-			}
 
 			XmlNode gamesNode = doc.CreateElement("games");
 			bodyNode.AppendChild(gamesNode);
 
-
-			foreach (var game in AllGames)
-			{
-				XmlNode gameNode = doc.CreateElement("game");
-				gamesNode.AppendChild(gameNode);
-
-				doc.AppendNode(gameNode, "title", game.Title);
-				doc.AppendNode(gameNode, "ansigametime", game.Time.ToString("yyyy/MM/dd HH:mm:ss"));
-				doc.AppendNode(gameNode, "hits", game.Hits);
-				if (game.Secret)
-					doc.AppendNode(gameNode, "secret", "y");
-				if (game.Reported)
-					doc.AppendNode(gameNode, "reported", "y");
-
-				XmlNode teamsNode = doc.CreateElement("teams");
-				gameNode.AppendChild(teamsNode);
-
-				foreach (var team in game.Teams)
+			lock (games)
+				foreach (var game in games)
 				{
-					XmlNode teamNode = doc.CreateElement("team");
-					teamsNode.AppendChild(teamNode);
+					XmlNode gameNode = doc.CreateElement("game");
+					gamesNode.AppendChild(gameNode);
 
-					doc.AppendNode(teamNode, "teamid", team.TeamId ?? -1);
-					doc.AppendNode(teamNode, "colour", team.Colour.ToString());
-					doc.AppendNonZero(teamNode, "score", team.Score);
-					doc.AppendNonZero(teamNode, "points", team.Points);
-					doc.AppendNonZero(teamNode, "adjustment", team.Adjustment);
-					doc.AppendNonZero(teamNode, "victorypointsadjustment", team.PointsAdjustment);
+					doc.AppendNode(gameNode, "title", game.Title);
+					doc.AppendNode(gameNode, "ansigametime", game.Time.ToString("yyyy/MM/dd HH:mm:ss"));
+					doc.AppendNode(gameNode, "hits", game.Hits);
+					if (game.Secret)
+						doc.AppendNode(gameNode, "secret", "y");
+					if (game.Reported)
+						doc.AppendNode(gameNode, "reported", "y");
 
-					if (team.TermRecords != null)
+					XmlNode teamsNode = doc.CreateElement("teams");
+					gameNode.AppendChild(teamsNode);
+
+					foreach (var team in game.Teams)
 					{
-						XmlNode termsNode = doc.CreateElement("terms");
-						teamNode.AppendChild(termsNode);
+						XmlNode teamNode = doc.CreateElement("team");
+						teamsNode.AppendChild(teamNode);
 
-						foreach (TermRecord termRecord in team.TermRecords)
+						doc.AppendNode(teamNode, "teamid", team.TeamId ?? -1);
+						doc.AppendNode(teamNode, "colour", team.Colour.ToString());
+						doc.AppendNonZero(teamNode, "score", team.Score);
+						doc.AppendNonZero(teamNode, "points", team.Points);
+						doc.AppendNonZero(teamNode, "adjustment", team.Adjustment);
+						doc.AppendNonZero(teamNode, "victorypointsadjustment", team.PointsAdjustment);
+
+						if (team.TermRecords != null)
 						{
-							XmlNode termNode = doc.CreateElement("term");
-							termsNode.AppendChild(termNode);
+							XmlNode termsNode = doc.CreateElement("terms");
+							teamNode.AppendChild(termsNode);
 
-							doc.AppendNode(termNode, "type", termRecord.Type.ToString());
-							doc.AppendNode(termNode, "time", termRecord.Time.ToString());
-							doc.AppendNode(termNode, "value", termRecord.Value);
-							doc.AppendNode(termNode, "reason", termRecord.Reason);
+							foreach (TermRecord termRecord in team.TermRecords)
+							{
+								XmlNode termNode = doc.CreateElement("term");
+								termsNode.AppendChild(termNode);
+
+								doc.AppendNode(termNode, "type", termRecord.Type.ToString());
+								doc.AppendNode(termNode, "time", termRecord.Time.ToString());
+								doc.AppendNode(termNode, "value", termRecord.Value);
+								doc.AppendNode(termNode, "reason", termRecord.Reason);
+							}
 						}
 					}
 
-				}
+					XmlNode playersNode = doc.CreateElement("players");
+					gameNode.AppendChild(playersNode);
 
-				XmlNode playersNode = doc.CreateElement("players");
-				gameNode.AppendChild(playersNode);
-
-				foreach (var player in game.Players())
-				{
-					XmlNode playerNode = doc.CreateElement("player");
-					playersNode.AppendChild(playerNode);
-
-					doc.AppendNode(playerNode, "teamid", player.TeamId ?? -1);
-					doc.AppendNode(playerNode, "playerid", player.PlayerId);
-					doc.AppendNode(playerNode, "qrcode", player.QRCode);
-					doc.AppendNode(playerNode, "grade", player.Grade);
-					doc.AppendNode(playerNode, "pack", player.Pack);
-					doc.AppendNode(playerNode, "score", (int)(ZeroElimed && player.IsEliminated && player.Score > 0 ? 0 : player.Score));
-					if (ZeroElimed && player.IsEliminated)
+					foreach (var player in game.Players())
 					{
-						doc.AppendNode(playerNode, "zeroedScore", (int)player.ZeroedScore);
-					}
-					doc.AppendNode(playerNode, "rank", (int)player.Rank);
-					doc.AppendNonZero(playerNode, "hitsby", player.HitsBy);
-					doc.AppendNonZero(playerNode, "hitson", player.HitsOn);
-					doc.AppendNonZero(playerNode, "basehits", player.BaseHits);
-					doc.AppendNonZero(playerNode, "basedestroys", player.BaseDestroys);
-					doc.AppendNonZero(playerNode, "basedenies", player.BaseDenies);
-					doc.AppendNonZero(playerNode, "basedenied", player.BaseDenied);
-					doc.AppendNonZero(playerNode, "yellowcards", player.YellowCards);
-					doc.AppendNonZero(playerNode, "redcards", player.RedCards);
-					doc.AppendNonZero(playerNode, "elim", player.IsEliminated ? 1 : 0);
+						XmlNode playerNode = doc.CreateElement("player");
+						playersNode.AppendChild(playerNode);
 
-					doc.AppendNode(playerNode, "colour", ((int)player.Colour) - 1);
-
-					if (player.TermRecords != null)
-					{
-						XmlNode termsNode = doc.CreateElement("terms");
-						playerNode.AppendChild(termsNode);
-
-						foreach (TermRecord termRecord in player.TermRecords)
+						doc.AppendNode(playerNode, "teamid", player.TeamId ?? -1);
+						doc.AppendNode(playerNode, "playerid", player.PlayerId);
+						doc.AppendNode(playerNode, "qrcode", player.QRCode);
+						doc.AppendNode(playerNode, "grade", player.Grade);
+						doc.AppendNode(playerNode, "pack", player.Pack);
+						doc.AppendNode(playerNode, "score", (int)(ZeroElimed && player.IsEliminated && player.Score > 0 ? 0 : player.Score));
+						if (ZeroElimed && player.IsEliminated)
 						{
-							XmlNode termNode = doc.CreateElement("term");
-							termsNode.AppendChild(termNode);
+							doc.AppendNode(playerNode, "zeroedScore", (int)player.ZeroedScore);
+						}
+						doc.AppendNode(playerNode, "rank", (int)player.Rank);
+						doc.AppendNonZero(playerNode, "hitsby", player.HitsBy);
+						doc.AppendNonZero(playerNode, "hitson", player.HitsOn);
+						doc.AppendNonZero(playerNode, "basehits", player.BaseHits);
+						doc.AppendNonZero(playerNode, "basedestroys", player.BaseDestroys);
+						doc.AppendNonZero(playerNode, "basedenies", player.BaseDenies);
+						doc.AppendNonZero(playerNode, "basedenied", player.BaseDenied);
+						doc.AppendNonZero(playerNode, "yellowcards", player.YellowCards);
+						doc.AppendNonZero(playerNode, "redcards", player.RedCards);
+						doc.AppendNonZero(playerNode, "elim", player.IsEliminated ? 1 : 0);
 
-							doc.AppendNode(termNode, "type", termRecord.Type.ToString());
-							doc.AppendNode(termNode, "time", termRecord.Time.ToString());
-							doc.AppendNode(termNode, "value", termRecord.Value);
-							doc.AppendNode(termNode, "reason", termRecord.Reason);
+						doc.AppendNode(playerNode, "colour", ((int)player.Colour) - 1);
+
+						if (player.TermRecords != null)
+						{
+							XmlNode termsNode = doc.CreateElement("terms");
+							playerNode.AppendChild(termsNode);
+
+							foreach (TermRecord termRecord in player.TermRecords)
+							{
+								XmlNode termNode = doc.CreateElement("term");
+								termsNode.AppendChild(termNode);
+
+								doc.AppendNode(termNode, "type", termRecord.Type.ToString());
+								doc.AppendNode(termNode, "time", termRecord.Time.ToString());
+								doc.AppendNode(termNode, "value", termRecord.Value);
+								doc.AppendNode(termNode, "reason", termRecord.Reason);
+							}
 						}
 					}
 				}
-			}
 
 			if (!string.IsNullOrEmpty(fileName))
 				FileName = fileName;
 
-			Watcher.EnableRaisingEvents = false;
-			try
-			{
-				if (File.Exists(this.fileName + "5Backup"))
-					File.Delete(this.fileName + "5Backup");  // Delete old backup file, if any.
-				if (File.Exists(this.fileName))
-					File.Move(this.fileName, this.fileName + "5Backup");  // Rename the old league file before we save over it, by changing its extension to ".Torn5Backup".
-				doc.Save(this.fileName);
-			}
-			finally
-			{
-				if (!string.IsNullOrEmpty(Watcher.Path))
-					Watcher.EnableRaisingEvents = true;
-			}
+			if (File.Exists(this.FileName + "5Backup"))
+				File.Delete(this.FileName + "5Backup");  // Delete old backup file, if any.
+			if (File.Exists(this.FileName))
+				File.Move(this.FileName, this.FileName + "5Backup");  // Rename the old league file before we save over it, by changing its extension to ".Torn5Backup".
+			doc.Save(this.FileName);
 		}
 
 		public override string ToString()
@@ -1829,27 +1866,31 @@ namespace Torn
 
 		public Game Game(GamePlayer gamePlayer)
 		{
-			return AllGames.Find(g => g.AllPlayers().Contains(gamePlayer));
+			lock (games)
+				return games.Find(g => g.AllPlayers().Contains(gamePlayer));
 		}
 
 		public Game Game(GameTeam gameTeam)
 		{
-			return AllGames.Find(g => g.Time == gameTeam.Time);
+			lock (games)
+				return games.Find(g => g.Time == gameTeam.Time);
 		}
 
 		public Game Game(ServerGame serverGame)
 		{
-			return AllGames.Find(g => g.Time == serverGame.Time);
+			lock (games)
+				return games.Find(g => g.Time == serverGame.Time);
 		}
 
 		public GameTeam GameTeamFromPlayer(GamePlayer gamePlayer)
 		{
-			foreach (var game in AllGames)
-			{
-				GameTeam gameTeam = game.Teams.Find(gt => gt.Players.Contains(gamePlayer));
-				if (gameTeam != null)
-					return gameTeam;
-			}
+			lock (games)
+				foreach (var game in games)
+				{
+					GameTeam gameTeam = game.Teams.Find(gt => gt.Players.Contains(gamePlayer));
+					if (gameTeam != null)
+						return gameTeam;
+				}
 
 			return null;
 		}
@@ -1857,12 +1898,13 @@ namespace Torn
 		public List<GameTeam> Played(LeagueTeam leagueTeam, bool includeSecret = true)
 		{
 			var played = new List<GameTeam>();
-			foreach (var game in AllGames)
-			{
-				GameTeam gameTeam = includeSecret || !game.Secret ? game.Teams.Find(gt => gt.TeamId == leagueTeam.TeamId) : null;
-				if (gameTeam != null)
-					played.Add(gameTeam);
-			}
+			lock (games)
+				foreach (var game in games)
+				{
+					GameTeam gameTeam = includeSecret || !game.Secret ? game.Teams.Find(gt => gt.TeamId == leagueTeam.TeamId) : null;
+					if (gameTeam != null)
+						played.Add(gameTeam);
+				}
 
 			return played;
 		}
@@ -1882,7 +1924,8 @@ namespace Torn
 
 		public List<GamePlayer> Played(LeaguePlayer leaguePlayer, bool includeSecret = true)
 		{
-			return Played(AllGames, leaguePlayer, includeSecret);
+			lock (games)
+				return Played(games, leaguePlayer, includeSecret);
 		}
 
 		public static List<GamePlayer> Played(IEnumerable<Game> games, LeaguePlayer leaguePlayer, bool includeSecret)
@@ -1902,15 +1945,36 @@ namespace Torn
 			return played;
 		}
 
-		public LeaguePlayer LeaguePlayer(GamePlayer gamePlayer)
+		#region LeaguePlayer
+		/// <summary>Return a new list of players, never the players list directly, so that callers can safely hold onto and iterate the returned list without fear of it changing in another thread.</summary>
+		public List<LeaguePlayer> Players()
 		{
-			return players.Find(p => p.Id == gamePlayer.PlayerId);
+			lock (players)
+				return players.ToList();
 		}
 
+		/// <summary>Add a player to the league's list of players. Don't call league.Players.Add() 'cos then you're only adding to _your_ copy, not to the league.</summary>
+		public LeaguePlayer AddPlayer(LeaguePlayer player)
+		{
+			lock (players)
+				players.Add(player);
+
+			return player;
+		}
+
+		/// <summary>Return the LeaguePlayer that matches this GamePlayer's ID.</summary>
+		public LeaguePlayer LeaguePlayer(GamePlayer gamePlayer)
+		{
+			return LeaguePlayer(gamePlayer.PlayerId);
+		}
+
+		/// <summary>Return the LeaguePlayer that matches this ID.</summary>
 		public LeaguePlayer LeaguePlayer(string id)
 		{
-			return players.Find(p => p.Id == id);
+			lock (players)
+				return players.Find(p => p.Id == id);
 		}
+		#endregion
 
 		/// <summary>Return a player's Name.</summary>
 		public string Alias(GamePlayer gamePlayer)
@@ -1918,18 +1982,11 @@ namespace Torn
 			return LeaguePlayer(gamePlayer)?.Name;
 		}
 
-		/// <summary>Return the LeagueTeam with the matching TeamId, if any.</summary>
+		#region LeagueTeam
+		/// <summary>Return the LeagueTeam with the matching TeamId.</summary>
 		public LeagueTeam LeagueTeam(GameTeam gameTeam)
 		{
-			var result = gameTeam == null ? null : teams.Find(team => team.TeamId == gameTeam.TeamId);
-			if (result != null)
-				return result;
-
-			foreach (var team in teams)
-				if (team.TeamId == gameTeam.TeamId)
-					return team;
-
-			return null;
+			return LeagueTeam(gameTeam?.TeamId);
 		}
 
 		public LeagueTeam LeagueTeam(GamePlayer gamePlayer)
@@ -1939,14 +1996,21 @@ namespace Torn
 
 		public LeagueTeam LeagueTeam(LeaguePlayer leaguePlayer)
 		{
-			return teams.Find(t => t.Players.Contains(leaguePlayer));
+			lock (teams)
+				return teams.Find(t => t.Players.Contains(leaguePlayer));
 		}
 
-		public LeagueTeam LeagueTeam(int teamId)
+		public LeagueTeam LeagueTeam(int? teamId)
 		{
-			return teams.Find(t => t.TeamId == teamId);
+			lock (teams)
+				return teams.Find(t => t.TeamId == teamId);
 		}
-
+		public LeagueTeam LeagueTeam(string teamName)
+		{
+			lock (teams)
+				return teams.Find(t => t.Name == teamName);
+		}
+		#endregion
 
 		class TeamPlayerCount
 		{
@@ -1966,9 +2030,10 @@ namespace Torn
 		public List<KeyValuePair<LeaguePlayer, List<LeagueTeam>>> BuildPlayerTeamList()
 		{
 			var tpcList = new List<TeamPlayerCount>();
-			foreach (var leagueTeam in teams)
-				foreach (var leaguePlayer in leagueTeam.Players)
-					tpcList.Add(new TeamPlayerCount(leagueTeam, leaguePlayer, Played(leagueTeam).Sum(gt => gt.Players.Count(gp => gp.PlayerId == leaguePlayer.Id))));
+			lock (teams)
+				foreach (var leagueTeam in teams)
+					foreach (var leaguePlayer in leagueTeam.Players)
+						tpcList.Add(new TeamPlayerCount(leagueTeam, leaguePlayer, Played(leagueTeam).Sum(gt => gt.Players.Count(gp => gp.PlayerId == leaguePlayer.Id))));
 
 			tpcList.Sort((x, y) => y.Count - x.Count);
 
@@ -2032,21 +2097,24 @@ namespace Torn
 
 		public List<LeagueTeam> GetTeamLadder()
 		{
-			return teams.OrderByDescending(x => TotalPoints(x, false)).ThenByDescending(x => AverageScore(x,false)).ToList();
+			lock (teams)
+				return teams.OrderByDescending(x => TotalPoints(x, false)).ThenByDescending(x => AverageScore(x,false)).ToList();
 		}
 
 		public List<LeagueTeam> GetTeamLadderScaled()
 		{
-			return teams.OrderByDescending(x => AveragePoints(x, false)).ThenByDescending(x => AverageScore(x, false)).ToList();
+			lock (teams)
+				return teams.OrderByDescending(x => AveragePoints(x, false)).ThenByDescending(x => AverageScore(x, false)).ToList();
 		}
 
 		public double CalculateScore(GameTeam gameTeam)
 		{
 			if(IsAutoHandicap)
-            {
+			{
 				return CalculateAutoCappedScore(gameTeam);
-            } else
-            {
+			}
+			else
+			{
 				double score = 0;
 				foreach (var player in gameTeam.Players)
 					score += (ZeroElimed && (player?.IsEliminated ?? false) && player.Score > 0) ? 0 : player.Score;
@@ -2064,11 +2132,11 @@ namespace Torn
 
 				LeagueTeam leagueTeam = LeagueTeam(gameTeam);
 				return leagueTeam != null && leagueTeam.Handicap != null ? new Handicap(leagueTeam.Handicap.Value, HandicapStyle).Apply(score) : score;
-			}			
+			}
 		}
 
 		public int CalulateTeamCap(GameTeam gameTeam)
-        {
+		{
 
 			decimal totalPoints = 0;
 			int bonusCount = 0;
@@ -2106,7 +2174,7 @@ namespace Torn
 		}
 
 		public double CalculateAutoCappedScore(GameTeam gameTeam)
-        {
+		{
 			double score = 0;
 
 			foreach (var player in gameTeam.Players)
@@ -2264,15 +2332,16 @@ namespace Torn
 		}
 
 		public int CompareTo(ServerGame compareGame)
-	    {
+		{
 			return compareGame == null ? 1 : this.Time.CompareTo(compareGame.Time);
-	    }
+		}
 
 		public override string ToString()
 		{
 			return Time.ToString("yyyy/MM/dd HH:mm") + ": " + (OnServer ? "on server " : "") + Events.Count.ToString();
 		}
 	}
+
 	/// <summary>Used to publish a ServerGame without its players or events.</summary>
 	public class JsonGame: ServerGame
 	{

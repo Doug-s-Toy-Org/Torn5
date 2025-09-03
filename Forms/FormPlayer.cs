@@ -61,7 +61,7 @@ namespace Torn.UI
 			}
 			else if (e == null || e.KeyCode != Keys.ShiftKey)
 			{
-				var players = LaserGameServer.GetPlayers(search, CurrentLeague?.Players);
+				var players = LaserGameServer.GetPlayers(search, CurrentLeague?.Players());
 
 				listViewPlayers.Items.Clear();
 				foreach (var player in players)

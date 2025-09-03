@@ -435,7 +435,7 @@ xhrScoreboard.send();
 			else if (lastPart.StartsWith("games", StringComparison.OrdinalIgnoreCase))
 			{
 				DateTime dt = DateTime.ParseExact(lastPart.Substring(5, 8), "yyyyMMdd", CultureInfo.InvariantCulture);
-				Game game = holder.League.AllGames.Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
+				Game game = holder.League.Games().Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
 				if (game == null)
 					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid game: <br>{0}</body></html>", rawUrl);
 				else
@@ -444,7 +444,7 @@ xhrScoreboard.send();
 			else if (lastPart.StartsWith("game2", StringComparison.OrdinalIgnoreCase))
 			{
 				DateTime dt = DateTime.ParseExact(lastPart.Substring(4, 12), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
-				Game game = holder.League.AllGames.Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
+				Game game = holder.League.Games().Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
 				if (game == null)
 					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid game: <br>{0}</body></html>", rawUrl);
 				else
@@ -454,7 +454,7 @@ xhrScoreboard.send();
 			{
 				if (int.TryParse(lastPart.Substring(4, 2), out int teamId))
 				{
-					LeagueTeam leagueTeam = holder.League.Teams.Find(x => x.TeamId == teamId);
+					LeagueTeam leagueTeam = holder.League.LeagueTeam(teamId);
 					if (leagueTeam == null)
 						return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid team number: <br>{0}</body></html>", rawUrl);
 					else
@@ -608,10 +608,10 @@ xhrScoreboard.send();
 			if (Leagues != null)
 			{
 				MostRecentHolder = Leagues.MostRecent();
-				if (MostRecentHolder == null || MostRecentHolder.League.AllGames.Count() == 0)
+				if (MostRecentHolder == null || !MostRecentHolder.League.AnyGames())
 					return;
 
-				MostRecentGame = MostRecentHolder.League.AllGames.Last();
+				MostRecentGame = MostRecentHolder.League.Games().Last();
 
 				FixtureGame fg = MostRecentHolder.Fixture.BestMatch(MostRecentGame);
 				if (fg == null)
@@ -721,31 +721,31 @@ xhrScoreboard.send();
 					gameJSON.Add(new JProperty("Events", eventsJSON));
 
 					string jsonPath = Path.Combine(path, "json\\game" + game.Time.ToString("yyyy-MM-ddTHH_mm_ss") + ".json");
-                    if (File.Exists(jsonPath))
+					if (File.Exists(jsonPath))
 					{
 						string jsonLines = File.ReadAllText(jsonPath);
 						JArray loggedEvents = new JArray();
 
 						try
-                        {
-                            loggedEvents = JsonSerializer.Deserialize<JObject>(jsonLines).Value<JArray>("Events");
-                        }
+						{
+							loggedEvents = JsonSerializer.Deserialize<JObject>(jsonLines).Value<JArray>("Events");
+						}
 						catch (JsonException)
 						{
 							Console.WriteLine("JSON file at path ({0}) does not contain JSON data, event data ignored", jsonPath);
 						}
 
 						if (eventsJSON.Count > loggedEvents.Count)
-                        {
-                            using (StreamWriter sw = File.CreateText(jsonPath))
-                                sw.Write(gameJSON.ToString());
-                        }
+						{
+							using (StreamWriter sw = File.CreateText(jsonPath))
+								sw.Write(gameJSON.ToString());
+						}
 					}
 					else
-                    {
-                        using (StreamWriter sw = File.CreateText(jsonPath))
-                            sw.Write(gameJSON.ToString());
-                    }
+					{
+						using (StreamWriter sw = File.CreateText(jsonPath))
+							sw.Write(gameJSON.ToString());
+					}
 
 					myProgress.Increment("Game" + game.Time.ToString("yyyy-MM-ddTHH-mm-ss") + " exported.");
 				}
@@ -780,12 +780,13 @@ xhrScoreboard.send();
 						sw.Write(ReportPages.OverviewPage(holder, includeSecret, holder.ReportTemplates.OutputFormat));
 					myProgress.Increment(holder.League.Title + " Overview page exported.");
 
-					foreach (LeagueTeam leagueTeam in holder.League.Teams)
+					foreach (LeagueTeam leagueTeam in holder.League.Teams())
 					{
 						using (StreamWriter sw = File.CreateText(Path.Combine(path, holder.Key, "team" + leagueTeam.TeamId.ToString("D2", CultureInfo.InvariantCulture) + "." + holder.ReportTemplates.OutputFormat.ToExtension())))
 							sw.Write(ReportPages.TeamPage(holder.League, includeSecret, leagueTeam, holder.ReportTemplates.OutputFormat));
-						myProgress.Advance(1.0 / holder.League.Teams.Count, "Team " + leagueTeam.Name + " page exported.");
+						myProgress.Advance(1.0 / holder.League.TeamCount(), "Team " + leagueTeam.Name + " page exported.");
 					}
+
 					myProgress.Advance(0, "Team pages exported.");
 
 					ExportGames(holder, path, myProgress);
@@ -797,7 +798,7 @@ xhrScoreboard.send();
 		/// <summary>Generate game reports for every game in a league.</summary>
 		static void ExportGames(Holder holder, string path, Progress progress)
 		{
-			var dates = holder.League.AllGames.Select(g => g.Time.Date).Distinct().ToList();
+			var dates = holder.League.Games().Select(g => g.Time.Date).Distinct().ToList();
 			foreach (var date in dates)
 			{
 				ExportDay(holder, path, date);
@@ -813,13 +814,12 @@ xhrScoreboard.send();
 			string fileName = Path.Combine(path, holder.Key, "games" + day.ToString("yyyyMMdd", CultureInfo.InvariantCulture) +
 																		"." + holder.ReportTemplates.OutputFormat.ToExtension());
 
-			var dayGames = league.AllGames.Where(g => g.Time.Date == day);
+			var dayGames = league.Games().Where(g => g.Time.Date == day);
 			if (dayGames.Any(g => !g.Reported) || !File.Exists(fileName))  // Some of the games for this day are not marked as reported, or the file we're going to report to doesn't exist. So let's report.
 			{
 				ZoomReports reports = new ZoomReports(league.Title + " games on " + day.ToShortDateString());
 				reports.Colors.BackgroundColor = Color.Empty;
 				reports.Colors.OddColor = Color.Empty;
-				league.AllGames.Sort();
 				bool anyDetailed = false;
 
 				var rt = new ReportTemplate() { From = day, To = day.AddSeconds(86399) };
@@ -937,9 +937,9 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 				url += '/';
 
 			if(uploadDir == null)
-            {
+			{
 				uploadDir = "";
-            }
+			}
 
 			Cursor.Current = Cursors.WaitCursor;
 			try
@@ -1019,12 +1019,12 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 			{
 				var round1Games = new List<Game>();
 				foreach (var league in leagues)
-					round1Games.AddRange(league.AllGames.Where(g => g.Title == "Round Robin" || g.Title == "Round 1" ||
+					round1Games.AddRange(league.Games().Where(g => g.Title == "Round Robin" || g.Title == "Round 1" ||
 					                                         g.Title == "Rep 1" || g.Title == "Repechage 1" || g.Title == "Repêchage 1"));
 				
 				if (round1Games.Count == 0)
 					foreach (var league in leagues)
-						round1Games.AddRange(league.AllGames);
+						round1Games.AddRange(league.Games());
 
 				using (StreamWriter sw = File.CreateText(Path.Combine(path, "packreport." + outputFormat.ToExtension())))
 					sw.Write(new ZoomReports

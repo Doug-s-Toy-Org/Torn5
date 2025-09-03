@@ -58,7 +58,7 @@ namespace Torn.UI
 
 			if (League != null)
 			{
-				var titles = League.AllGames.Select(g => g.Title ?? "").Distinct();
+				var titles = League.Games().Select(g => g.Title ?? "").Distinct();
 				if (titles.Any())
 				{
 					descriptionGroup.Items.Clear();
