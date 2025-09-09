@@ -72,6 +72,12 @@ namespace Torn5.Controls
 				displayReportPyramid.Report = Pyramid.Report(Holder.League.Title, (int)numericPyramidFinalsGames.Value, Pyramid.Rounds.Last().TeamsOut);
 				textDescription.Text = displayReportPyramid.Report.Description;
 			}
+
+			int games = 0;
+			for (int i = 0; i < Pyramid.Rounds.Count; i++)
+				games += Pyramid.Rounds[i].RoundGames + Pyramid.Rounds[i].RepechageGames;
+
+			labelTotalGames.Text = (games + (int)numericPyramidFinalsGames.Value).ToString();
 		}
 
 		private void ButtonIdealiseClick(object sender, EventArgs e)
@@ -119,8 +125,8 @@ namespace Torn5.Controls
 				Pyramid.Rounds[i + 1].TeamsIn = Pyramid.Rounds[i].TeamsOut;
 
 			labelPyramidFinalsTeams.Text = Pyramid.Rounds[i].TeamsOut.ToString();
-			RefreshPyramidFixture();
 
+			RefreshPyramidFixture();
 		}
 	}
 }
