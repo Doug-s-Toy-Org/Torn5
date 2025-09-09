@@ -50,6 +50,7 @@ namespace Torn5.Controls
 			{
 				gamesPerTeam = value;
 				labelTeamsPerGame.Text = (teamsIn * GamesPerTeam / numericGames.Value).ToString();
+				ValueChangedInternal();
 			}
 		}
 
@@ -107,6 +108,11 @@ namespace Torn5.Controls
 				{
 					labelTeamsPerGame.BackColor = ZReportColors.Mix(SystemColors.Control, Color.Orange, 0.5);
 					toolTip1.SetToolTip(labelTeamsPerGame, "Teams Per Game is not a whole number. Try adjusting previous Games and/or Advance numbers to get this to a whole number.");
+				}
+				else if (ratio < 0.8)
+				{
+					labelTeamsPerGame.BackColor = ZReportColors.Mix(SystemColors.Control, Color.Orange, ratio);
+					toolTip1.SetToolTip(labelTeamsPerGame, "Too few teams per game. Try decreasing number of Games.");
 				}
 				else
 				{
