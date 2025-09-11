@@ -27,6 +27,7 @@ namespace Torn5.Controls
 		public int RepechageAdvance { get => checkBoxRepechage.Checked ? fixtureRepechage.Advance : 0; set => fixtureRepechage.Advance = value; }
 		public bool HasRepechage { get => checkBoxRepechage.Checked; set => checkBoxRepechage.Checked = value; }
 		public int RoundGamesPerTeam { get => fixtureRound.GamesPerTeam; set => fixtureRound.GamesPerTeam = value; }
+		public int DesiredTeamsPerGame { get => fixtureRound.DesiredTeamsPerGame; set { fixtureRound.DesiredTeamsPerGame = value; fixtureRepechage.DesiredTeamsPerGame = value; } }
 
 		public PyramidHalfFixture FixtureRound { get => fixtureRound; }
 		public PyramidHalfFixture FixtureRepechage { get => fixtureRepechage; }
@@ -39,10 +40,10 @@ namespace Torn5.Controls
 			InitializeComponent();
 		}
 
-		public void Idealise(int desiredTeamsPerGame, double advanceRatePerPartRound)
+		public void Idealise(double advanceRatePerPartRound)
 		{
-			fixtureRound.Idealise(desiredTeamsPerGame, advanceRatePerPartRound);
-			fixtureRepechage.Idealise(desiredTeamsPerGame, advanceRatePerPartRound);
+			fixtureRound.Idealise(advanceRatePerPartRound);
+			fixtureRepechage.Idealise(advanceRatePerPartRound);
 		}
 
 		public string Description()

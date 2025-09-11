@@ -128,5 +128,11 @@ namespace Torn5.Controls
 
 			RefreshPyramidFixture();
 		}
+
+		private void NumericPyramidDesiredTeamsPerGameValueChanged(object sender, EventArgs e)
+		{
+			for (int i = 0; i < Pyramid.Rounds.Count - 1; i++)
+				Pyramid.Rounds[i].DesiredTeamsPerGame = (int)numericPyramidDesiredTeamsPerGame.Value;
+		}
 	}
 }

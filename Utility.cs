@@ -223,6 +223,14 @@ namespace Torn
 			return s + "s";
 		}
 
+		public static string CountPluralise(this string s, int i)
+		{
+			if (i == 1)
+				return "1 " + s;
+			else
+				return i.ToString() + " " + Pluralise(s);
+		}
+
 		public static string GetDeployedVersion()
 		{
 			string deployedVersion = "";

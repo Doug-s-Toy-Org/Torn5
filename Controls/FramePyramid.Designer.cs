@@ -213,6 +213,7 @@
             0,
             0,
             0});
+			this.numericPyramidDesiredTeamsPerGame.ValueChanged += new System.EventHandler(this.NumericPyramidDesiredTeamsPerGameValueChanged);
 			// 
 			// label21
 			// 

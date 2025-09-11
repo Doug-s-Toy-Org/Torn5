@@ -43,6 +43,9 @@ namespace Torn5.Controls
 		public int Games { get => (int)numericGames.Value; set { if (value > 0) numericGames.Value = value; ValueChangedInternal(); } }
 		public int Advance { get => (int)numericAdvance.Value; set { numericAdvance.Value = value; ValueChangedInternal(); } }
 
+		int desiredTeamsPerGame = -1;
+		public int DesiredTeamsPerGame { get => desiredTeamsPerGame; set { desiredTeamsPerGame = value; ValueChangedInternal(); } }
+
 		int gamesPerTeam = 1;
 		public int GamesPerTeam
 		{
@@ -63,14 +66,10 @@ namespace Torn5.Controls
 			InitializeComponent();
 		}
 
-		int _desiredTeamsPerGame = -1;
 		double _advanceRatePerPartRound = -1;
-
-		public void Idealise(int desiredTeamsPerGame, double advanceRatePerPartRound)
+		public void Idealise(double advanceRatePerPartRound)
 		{
-			_desiredTeamsPerGame = desiredTeamsPerGame;
 			_advanceRatePerPartRound = advanceRatePerPartRound;
-
 			Games = (int)Math.Ceiling(1.0 * TeamsIn * GamesPerTeam / desiredTeamsPerGame);
 			Advance = (int)Math.Round(1.0 * TeamsIn * advanceRatePerPartRound);
 		}
@@ -95,9 +94,9 @@ namespace Torn5.Controls
 			if (teamsIn > 0)
 				labelAdvancePercent.Text = String.Format("{0:0.00%}", numericAdvance.Value / teamsIn);
 
-			if (_desiredTeamsPerGame != - 1)
+			if (desiredTeamsPerGame != - 1)
 			{
-				double ratio = (double)tpg / _desiredTeamsPerGame;
+				double ratio = (double)tpg / desiredTeamsPerGame;
 
 				if (ratio > 1)
 				{

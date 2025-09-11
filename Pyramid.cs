@@ -59,7 +59,7 @@ namespace Torn
 			if (thisRound.Games == 0)
 				return col;
 
-			gameColumns.Add(report.AddColumn(new ZColumn(thisRound.Games.ToString() + " games", ZAlignment.Center, title)));
+			gameColumns.Add(report.AddColumn(new ZColumn("game".CountPluralise(thisRound.Games), ZAlignment.Center, title)));
 
 			var arrowColumn = report.AddColumn(new ZColumn("", ZAlignment.Center, ""));
 			var arrow = new Arrow();  // This arrow shows teams leaving this round, and skipping ahead, going to next round or repechage, or being eliminated.
@@ -98,7 +98,7 @@ namespace Torn
 				arrow.To.Add(new ZArrowEnd(thisRound.Games + 1, Math.Min(thisRound.TeamsIn - thisRound.Advance, 5)));  // so add an arrow for eliminated teams
 				var row = report.Rows.Force(thisRound.Games + 1);
 				var cell = row.Force(col + 2);  // and a cell representing that elimination.
-				cell.Text = "X";
+				cell.Text = "\u274c";
 			}
 
 			return col + 2;
@@ -115,7 +115,8 @@ namespace Torn
 
 			for (int i = 0; i < Rounds.Count; i++)
 			{
-				Rounds[i].Idealise(desiredTeamsPerGame, advanceRatePerPartRound);
+				Rounds[i].DesiredTeamsPerGame = desiredTeamsPerGame;
+				Rounds[i].Idealise(advanceRatePerPartRound);
 
 				if (i < Rounds.Count - 1)
 					Rounds[i + 1].TeamsIn = Rounds[i].TeamsOut;
