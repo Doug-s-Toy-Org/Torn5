@@ -117,7 +117,7 @@ namespace Torn
 			{
 				FixtureGame fg = new FixtureGame();
 				
-				string[] fields = line.Split('\t');
+				string[] fields = line.Split(separator);
 				fg.Time = DateTime.Parse(fields[0]);
 				for (int i = 1; i < fields.Length; i++)
 					if (!string.IsNullOrEmpty(fields[i]))

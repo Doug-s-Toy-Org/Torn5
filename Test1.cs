@@ -240,7 +240,7 @@ namespace TornWeb
 			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(firstGame)), "match game 1");
 			fixture.Games.Parse("8:00\t2\t1\t3", fixture.Teams);
 			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(firstGame)), "match game 1 again");
-			fixture.Games.Parse("8:00\t1\t2\t\t3", fixture.Teams);
+			fixture.Games.Parse("8:00z1z2zz3", fixture.Teams, 'z');
 			Assert.That(fixture.Games[4], Is.SameAs(fixture.BestMatch(firstGame)), "match game 4");
 		}
 
