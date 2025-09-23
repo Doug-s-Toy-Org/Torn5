@@ -600,8 +600,6 @@ namespace Zoom
 		/// <summary>For each column, calculate a pixel width, and find the min and max values.</summary>
 		void Widths(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints)
 		{
-			var graphics = Graphics.FromImage(new Bitmap(1000, 20));
-			var font = new Font("Arial", 11);
 			maxPoints = 0;
 
 			for (int col = 0; col < Columns.Count; col++)
@@ -651,7 +649,7 @@ namespace Zoom
 						}
 						else if (!string.IsNullOrEmpty(cell.Text))
 						{
-							float width = graphics.MeasureString(cell.Text, font, 1000).Width;
+							float width = TextWidth(cell.Text);
 							total += width;
 							count++;
 							widest = Math.Max(widest, width);
@@ -662,7 +660,7 @@ namespace Zoom
 							numberFormat = cell.NumberFormat;
 						}
 
-						float titleWidth = graphics.MeasureString(cell.Title, font, 1000).Width * 1.01f;
+						float titleWidth = TextWidth(cell.Title);
 						widestTitle = Math.Max(widestTitle, titleWidth);
 					}
 				}
@@ -674,7 +672,7 @@ namespace Zoom
 					if (double.IsInfinity(max) && !string.IsNullOrEmpty(numberFormat) && numberFormat.Length > 1 && numberFormat[0] == 'P' && stringMax.Length < 4)
 						stringMax = 9.99.ToString(numberFormat);
 
-					float widestNumber = graphics.MeasureString(stringMax, font, 1000).Width * 1.01f;
+					float widestNumber = TextWidth(stringMax);
 					float width = Math.Max(widestTitle, widestNumber);
 
 					widths.Add(width);
@@ -1086,7 +1084,7 @@ namespace Zoom
 		}
 
 		// Write a <rect> tag, and a <text> tag on top of it.
-		void SvgRectText(StringBuilder s, int indent, double x, double y, double width, double height, Color fontColor, Color backColor, Color barColor, ZAlignment alignment, string text, bool pure)
+		void SvgRectText(StringBuilder s, int indent, double x, double y, double width, double height, Color fontColor, Color backColor, ZAlignment alignment, string text, bool pure)
 		{
 			SvgRect(s, indent, x, y, width, height, backColor);
 			SvgText(s, indent, (int)x, (int)y, (int)width, (int)height, fontColor, alignment, text, null, null, pure);
@@ -1267,11 +1265,7 @@ namespace Zoom
 
 			float textWidth = width;
 			if (pure)
-			{
-				var graphics = Graphics.FromImage(new Bitmap(1000, 20));
-				var font = new Font("Arial", height / 2);
-				textWidth = Math.Max(width, graphics.MeasureString(text, font, 1000).Width);
-			}
+				textWidth = Math.Max(width, TextWidth(text));
 
 			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (pure ? 0.681 : 0.75), fontColor, alignment, cssClass, pure ? null : hyper, fillWidth);
 			s.Append(text);
@@ -1526,7 +1520,7 @@ namespace Zoom
 		}
 
 		/// <summary>Returns the amount of vertical height the title and column headers will consume.</summary>
-		int SvgHeaderHeight(bool hasGroupHeadings, int rowHeight, int left, List<float> widths)
+		int SvgHeaderHeight(bool hasGroupHeadings, int rowHeight)
 		{
 			int rowTop = rowHeight * 2 + 2;
 			if (!Columns.Exists(col => !string.IsNullOrWhiteSpace(col.Text)))
@@ -1537,9 +1531,7 @@ namespace Zoom
 			if (hasGroupHeadings)
 				rowTop += rowHeight + 1;
 
-			var graphics = Graphics.FromImage(new Bitmap(1000, 20));
-			var font = new Font("Arial", 11);
-			float widest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? graphics.MeasureString(col.Text, font, 1000).Width : 0);
+			float widest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? TextWidth(col.Text) : 0);
 			double headerHeight = hasGroupHeadings && anyRotate ? widest : !hasGroupHeadings && anyRotate ? (widest + rowHeight) / Math.Sqrt(2) : rowHeight;
 
 			return rowTop + (int)headerHeight + 1;
@@ -1566,7 +1558,7 @@ namespace Zoom
 
 					if (!string.IsNullOrWhiteSpace(Columns[start].GroupHeading))
 						SvgRectText(s, 1, widths.Take(start).Sum() + start + left, rowTop, widths.Skip(start).Take(end - start + 1).Sum() + end - start, rowHeight,
-									Colors.TitleFontColor, Colors.TitleBackColor, Colors.BarColor, ZAlignment.Center, Columns[start].GroupHeading, pure);  // Paint group heading.
+									Colors.TitleFontColor, Colors.TitleBackColor, ZAlignment.Center, Columns[start].GroupHeading, pure);  // Paint group heading.
 
 					start = end + 1;
 				}
@@ -1575,9 +1567,7 @@ namespace Zoom
 				s.Append('\n');
 			}
 
-			var graphics = Graphics.FromImage(new Bitmap(1000, 20));
-			var font = new Font("Arial", 11);
-			float widest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? graphics.MeasureString(col.Text, font, 1000).Width : 0);
+			float widest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? TextWidth(col.Text) : 0);
 			double headerHeight = hasGroupHeadings && anyRotate ? widest : !hasGroupHeadings && anyRotate ? (widest + rowHeight) / Math.Sqrt(2) : rowHeight;
 			float x = left;
 
@@ -1940,6 +1930,22 @@ namespace Zoom
 			return (bool)hasGroupHeadings;
 		}
 
+
+		Graphics graphics = null;
+		Font font = null;
+		/// <summary>Width of text in pixels, independent of scaling of current monitor.</summary>
+		float TextWidth(string text)
+		{
+			if (graphics == null)
+			{
+				graphics = Graphics.FromImage(new Bitmap(1000, 20));
+				font = new Font("Arial", 11);
+			}
+
+			float width = graphics.MeasureString(text, font, 1000).Width / graphics.DpiX * 96;
+			return width;
+		}
+
 		internal const int RowHeight = 22;  // This is enough to fit default-sized text.
 
 		/// <summary>Height of report in internal SVG "pixels". Only valid after ToSvg() has been called.</summary>
@@ -1958,7 +1964,7 @@ namespace Zoom
 			double max = maxs.DefaultIfEmpty(1).Max();
 
 			int left = 1;
-			int headerHeight = SvgHeaderHeight(HasGroupHeadings(), RowHeight, left, widths);
+			int headerHeight = SvgHeaderHeight(HasGroupHeadings(), RowHeight);
 			int arrowTop = headerHeight;
 			Height = headerHeight + Rows.Count * (RowHeight + 1);
 			int multiColumns = MultiColumnOK && aspectRatio.HasValue ? Math.Max((int)Math.Sqrt((double)aspectRatio / Width * Height), 1) : 1;
