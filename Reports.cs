@@ -2187,7 +2187,7 @@ namespace Torn.Report
 
 			foreach (var league in leagues)
 			{
-				var games = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue));
+				var games = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue)).ToList();
 				double averageTeamPlayers = games.Average(g => g.Teams.Average(t => t.Players.Count));
 				double playersLoggedOn = games.Average(g => g.Teams.Average(t => t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1)));
 				int gamesWithPoints = games.Count(g => g.Teams.Any(t => t.Points != 0));
@@ -2212,6 +2212,32 @@ namespace Torn.Report
 						(!gameTitle.Contains("ascension") && !gameTitle.Contains("format") && !gameTitle.Contains("final") && !gameTitle.Contains("track"))) &&
 						!game.Teams.Any(t => t.Points != 0))
 						AddSanityCheckRow(report, league, game, null, "Game does not have victory points set.");
+				}
+
+				if (games.Count(g => g.ServerGame != null && g.ServerGame.EndTime != null) > league.GameCount() * 0.9)  // if most games have end times
+				{
+					// Look for games that have too short a duration. These may be games that have been ended early and replayed later and unintentionally committed.
+					bool isGameDurationVariable = games.Select(g => g.Duration()).Distinct().Count() > league.GameCount() / 3.0;  // Probably true for elimination or other formats that can intentionally end early; probably false for formats not intended to end early.
+					double averageDuration = games.Average(g => g.Duration().TotalSeconds);
+
+					foreach (var game in games)
+						if (!isGameDurationVariable && game.Duration().TotalSeconds < averageDuration - 1)
+							AddSanityCheckRow(report, league, game, null, string.Format("Game is only {0} long, less than the average of {1}. This game might have been ended early and committed accidentally.", game.Duration().ToString("m\\:ss"), new TimeSpan(0, 0, (int)averageDuration).ToString("m\\:ss")));
+				}
+				else if (games.Count > 1)
+				{
+					// Look for games that are too short (by time between the start of this game and the start of the next). These may be games that have been ended early and replayed later and unintentionally committed.
+					var durations = new List<TimeSpan>();
+					for (int i = 0; i < games.Count() - 1; i++)
+						durations.Add(games[i + 1].Time - games[i].Time);
+
+					var durationsWithoutOutliers = durations.Where(d => d.TotalSeconds < 1800);  // Exclude last game of a day, etc. -- we only want games that have another game after them.
+					double averageDuration = durationsWithoutOutliers.Average(d => d.TotalSeconds);
+					double stdDevDuration = Math.Sqrt(durationsWithoutOutliers.Average(d => Math.Pow(d.TotalSeconds - averageDuration, 2)));
+
+					for (int i = 0; i < games.Count() - 1; i++)
+						if (durations[i].TotalSeconds < averageDuration - stdDevDuration)
+							AddSanityCheckRow(report, league, games[i], null, string.Format("Time between this game and the next is only {0}, much less than the average of {1}. This game might have been ended early and committed accidentally.", durations[i].ToString("m\\:ss"), new TimeSpan(0,0, (int)averageDuration).ToString("m\\:ss")));
 				}
 
 				foreach (var team in league.Teams())
