@@ -2155,21 +2155,21 @@ namespace Torn.Report
 			if (description)
 			{
 				report.Description = "This report shows the performance of each pack, each time it is used by a logged-on player. " +
-					"Each score the pack gains is scaled by the player's ratio, effectively 'handicapping'. " +
+					"Each score the pack gains is scaled by the player's ratio, effectively 'handicapping'. \n" +
 					"You should ignore results from a pack where most of its games are played by a particular player. " +
-					"You should ignore results from a pack with less than 20 or so games. <br/>" +
-					"'t' is the result of Student's t test -- the further the number is from 0, the more this pack's average deviates from the average of all the rest of the packs. " +
+					"You should ignore results from a pack with less than 20 or so games. \n" +
+					"'t' is the result of Student's t test -- the further the number is from 0, the more this pack's average deviates from the average of all the rest of the packs. \n" +
 					"'p' is the likelihood of the t test result occurring by chance." +
 					"You should pay attention to any pack with a p value smaller than " + (0.05 / packs.Count).ToString("G2", CultureInfo.CurrentCulture) +
-					" -- these results are statistically significant, meaning that there is less than a 5% chance that such results occurred by chance. " +
+					" -- these results are statistically significant, meaning that there is less than a 5% chance that such results occurred by chance. \n" +
 					"Once you know which packs are at the ends of the curve, you should remove any unusually good or bad packs. " +
-					"In a team event, you can try to balance the colours, by removing the best pack from this colour, the worst from that colour, etc. <br/>";
+					"In a team event, you can try to balance the colours, by removing the best pack from this colour, the worst from that colour, etc. \n";
 
 				if (missingTags)
-					report.Description += " Note that on Nexus or Helios, in .Torn files created by Torn 4, only games committed with \"Calculate scores by Torn\" selected in Preferences will show tag ratios. <br/>";
+					report.Description += " Note that on Nexus or Helios, in .Torn files created by Torn 4, only games committed with \"Calculate scores by Torn\" selected in Preferences will show tag ratios. \n";
 
 				if (longitudinal)
-					report.Description += " The \"Longitudinal\" column shows the performance of each pack in each game over time -- higher means the pack did better. <br/>";
+					report.Description += " The \"Longitudinal\" column shows the performance of each pack in each game over time -- higher means the pack did better. \n";
 
 				if (from != null || to != null)
 					report.Description += " The report has been limited to games" + FromTo(games, from, to) + ".";
