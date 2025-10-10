@@ -52,8 +52,10 @@ namespace Torn
 			string textToSend = "{\"command\": \"list\"}";
 			string result = QueryServer(textToSend);
 
-
 			List<ServerGame> games = new List<ServerGame>();
+
+			if (result.Length < 6)
+				return games;
 
 			string cleanedResult = result.Remove(0, 5);
 
