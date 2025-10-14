@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using Torn.Report;
 using Torn5.Controls;
 using Zoom;
 
@@ -12,8 +13,22 @@ namespace Torn
 	class Pyramid
 	{
 		public List<PyramidFixture> Rounds { get; } = new List<PyramidFixture>();
+
+		private List<int> planBHeights = new List<int>();
+
+		/// <summary>Returns a report showing a pyramid fixture with several rounds and repêchages. Each round (or repêchage) is a column in the report.</summary>
 		public ZoomReport Report(string title, int finalsGames, int finalsTeams)
 		{
+			var roundsAndReps = new List<PyramidHalfFixture>();
+			for (int i = 0; i < Rounds.Count; i++)
+			{
+				roundsAndReps.Add(Rounds[i].FixtureRound);
+				if (Rounds[i].HasRepechage)
+					roundsAndReps.Add(Rounds[i].FixtureRepechage);
+			}
+
+			var maxPlayers = Math.Max(roundsAndReps.Max(r => (double)r.TeamsIn / r.Games), finalsTeams);
+
 			var report = new ZoomReport(title + " Pyramid");
 			report.Colors.BackgroundColor = Color.Empty;
 			report.Colors.OddColor = Color.Empty;
@@ -21,23 +36,14 @@ namespace Torn
 			var gameColumns = new List<ZColumn>();
 			report.SameWidths.Add(gameColumns);
 
-			var col = 0;
-			for (int i = 0; i < Rounds.Count; i++)
-			{
-				col = AddRound(report, "Round " + Rounds[i].Round, gameColumns, col, null, Rounds[i].FixtureRound, Rounds[i].FixtureRepechage);
-				if (Rounds[i].HasRepechage)
-					col = AddRound(report, "Rep " + Rounds[i].Round, gameColumns, col, Rounds[i].FixtureRound, Rounds[i].FixtureRepechage, i == Rounds.Count - 1 ? null : Rounds[i + 1].FixtureRound);
-			}
+			planBHeights.Clear();
+			for (int i = 0; i < roundsAndReps.Count; i++)
+				AddRound(report, gameColumns, roundsAndReps, i, maxPlayers);
 
 			for (int i = 0; i < finalsGames; i++)
 			{
 				gameColumns.Add(report.AddColumn(new ZColumn(((char)((int)'A' + i)).ToString(), ZAlignment.Center, "Finals")));
-
-				var cell = report.Rows.Force(0).Force(i + col);
-				cell.TextColor = Color.LightGray;
-				cell.Color = Color.White;
-				cell.Border = Color.Black;
-				cell.Text = finalsTeams.ToString();
+				GameCell(report.Rows.Force(0), report.Columns.Count - 1, finalsTeams);
 			}
 
 			var sb = new StringBuilder();
@@ -54,54 +60,91 @@ namespace Torn
 			return report;
 		}
 
-		int AddRound(ZoomReport report, string title, List<ZColumn> gameColumns, int col, PyramidHalfFixture previousRound, PyramidHalfFixture thisRound, PyramidHalfFixture nextRound)
+		/// <summary>Add a round (or repechage) to our report. Tis involves adding one column for the boxes for the games for this round, and one column to hold the arrows showing how teams leave this round and enter the next.</summary>
+		private void AddRound(ZoomReport report, List<ZColumn> gameColumns, List<PyramidHalfFixture> roundsAndReps, int r, double maxPlayers)
 		{
-			if (thisRound.Games == 0)
-				return col;
+			PyramidHalfFixture thisRound = roundsAndReps[r];
 
-			gameColumns.Add(report.AddColumn(new ZColumn("game".CountPluralise(thisRound.Games), ZAlignment.Center, title)));
+			if (thisRound.Games == 0)
+			{
+				planBHeights.Add(-1);
+				return;
+			}
+
+			gameColumns.Add(report.AddColumn(new ZColumn("game".CountPluralise(thisRound.Games), ZAlignment.Center, thisRound.Title)));
 
 			var arrowColumn = report.AddColumn(new ZColumn("", ZAlignment.Center, ""));
 			var arrow = new Arrow();  // This arrow shows teams leaving this round, and skipping ahead, going to next round or repechage, or being eliminated.
 			arrowColumn.Arrows.Add(arrow);
 
+			PyramidHalfFixture previousRound = r == 0 ? null : roundsAndReps[r - 1];
 			if (!thisRound.IsRound)  // This is a repechage
-				arrow.From.Add(new ZArrowEnd(0, Math.Min(previousRound.Advance, 5)));  // so add a From for teams traveling directly from previous round.
+				arrow.From.Add(new ZArrowEnd(0, Scale(previousRound.Advance, maxPlayers)) { Expand = true });  // so add a From for teams traveling directly from previous round.
 
-			int startRow = thisRound.IsRound ? 0 : 1;
+			// Draw a cell for each game in this round, and a "From" arrow from each game into our multi-headed arrow.
+			int thisOffset = thisRound.IsRound ? 0 : 1;  // If this is a repechage, add a row of offset to make room for the previous To arrowhead for teams skipping past this rep.
 			for (int i = 0; i < thisRound.Games; i++)
 			{
-				var row = report.Rows.Force(i + startRow);
-				var cell = row.Force(col);
-				cell.TextColor = Color.LightGray;
-				cell.Color = Color.White;
-				cell.Border = Color.Black;
-				cell.Text = ((thisRound.TeamsIn * thisRound.GamesPerTeam + thisRound.Games - i - 1) / thisRound.Games).ToString();
-				arrow.From.Add(new ZArrowEnd(i + startRow, Math.Min((double)thisRound.TeamsIn / thisRound.Games, 5)));
+				GameCell(report.Rows.Force(i + thisOffset), report.Columns.Count - 2, (thisRound.TeamsIn * thisRound.GamesPerTeam + thisRound.Games - i - 1) / thisRound.Games);
+				arrow.From.Add(new ZArrowEnd(i + thisOffset, Scale((double)thisRound.TeamsIn / thisRound.Games, maxPlayers)));
 			}
 
-			if (nextRound == null)
-				arrow.To.Add(new ZArrowEnd(0, Math.Min(thisRound.Advance + (previousRound?.Advance ?? 0), 5)));
+			if (r >= 1 && thisRound.IsRound && previousRound.PlanB > 0)
+				arrow.From.Add(new ZArrowEnd(planBHeights[r - 1], Scale(previousRound.PlanB, maxPlayers)) { Expand = true });  // Add an arrowhead from previous Plan B if required.
+
+			// Add "To" heads to the arrow.
+			PyramidHalfFixture nextRound = r == roundsAndReps.Count - 1 ? null : roundsAndReps[r + 1];
+			int toOffset = nextRound == null || nextRound.IsRound ? 0 : 1;
+			int planBOffset = 0;
+			int planBHeight = -1;
+			if (nextRound == null)  // Next is finals
+				arrow.To.Add(new ZArrowEnd(0, Scale(thisRound.Advance + (previousRound?.Advance ?? 0), maxPlayers)));  // so add a single simple To head pointing to finals.
 			else
 			{
 				if (!nextRound.IsRound)  // Next is a repechage
-					arrow.To.Add(new ZArrowEnd(0, Math.Min(thisRound.Advance, 5)) { Expand = true });  // so add a To for teams traveling directly to next round.
+					arrow.To.Add(new ZArrowEnd(0, Scale(thisRound.Advance, maxPlayers)) { Expand = true });  // so add a To for teams traveling directly to next round.
 
-				int startRow2 = nextRound.IsRound ? 0 : 1;
+				// Add one head for each game in the next round.
 				double teamsOut = nextRound.IsRound ? (previousRound?.Advance ?? 0) + thisRound.Advance : thisRound.TeamsOut;
 				for (int i = 0; i < nextRound.Games; i++)
-					arrow.To.Add(new ZArrowEnd(i + startRow2, Math.Min(teamsOut / nextRound.Games, 5)));
+					arrow.To.Add(new ZArrowEnd(i + toOffset, Scale(teamsOut / nextRound.Games, maxPlayers)));
+
+				if (thisRound.PlanB > 0)
+				{
+					planBHeight = nextRound.Games + toOffset;
+					arrow.To.Add(new ZArrowEnd(planBHeight, Scale(thisRound.PlanB, maxPlayers)) { Expand = true });  // Add a Plan B arrowhead if required.
+					planBOffset = 1;
+				}
 			}
 
-			if (nextRound == null || nextRound.IsRound)  // This is an elimination round
+			if (nextRound == null || thisRound.Eliminate > 0)  // This round has eliminations
 			{
-				arrow.To.Add(new ZArrowEnd(thisRound.Games + 1, Math.Min(thisRound.TeamsIn - thisRound.Advance, 5)));  // so add an arrow for eliminated teams
-				var row = report.Rows.Force(thisRound.Games + 1);
-				var cell = row.Force(col + 2);  // and a cell representing that elimination.
+				var elimRow = thisRound.Games + thisOffset;
+				if (nextRound != null)
+					elimRow = Math.Max(elimRow, nextRound.Games + toOffset + planBOffset);
+
+				arrow.To.Add(new ZArrowEnd(elimRow, Scale(thisRound.Eliminate, maxPlayers)));  // so add an arrow for eliminated teams
+				var row = report.Rows.Force(elimRow);
+				var cell = row.Force(report.Columns.Count);  // and a cell representing that elimination.
 				cell.Text = "\u274c";
 			}
 
-			return col + 2;
+			planBHeights.Add(planBHeight);
+		}
+
+		/// <summary>Return a width for an arrow, scaled to the max number of players per game, but at least 1 pixel and at most 5 pixels wide.</summary>
+		double Scale(double players, double maxPlayers)
+		{
+			return Math.Max(Math.Min(players, maxPlayers) / maxPlayers * 5, 1);
+		}
+
+		void GameCell(ZRow row, int col, int value)
+		{
+			var cell = row.Force(col);
+			cell.TextColor = Color.LightGray;
+			cell.Color = Color.White;
+			cell.Border = Color.Black;
+			cell.Text = value.ToString();
 		}
 
 		/// <summary>
@@ -126,6 +169,7 @@ namespace Torn
 		}
 	}
 
+	/// <summary>Create a draw for the next round or repechage in a pyramid-shaped tournament..</summary>
 	class PyramidDraw
 	{
 		/// <summary>

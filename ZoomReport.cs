@@ -456,6 +456,7 @@ namespace Zoom
 		public List<ZColumn> Columns { get; private set; }
 		public List<ZRow> Rows { get; set; }
 		public string Description { get; set; }
+		public string HtmlDescription { get; set; }
 		public ZNumberStyle NumberStyle { get; set; }
 		public string CssClass { get; set; }
 		/// <summary>If true, scale bar charts in each column separately.</summary>
@@ -1053,7 +1054,9 @@ namespace Zoom
 
 			s.Append("</tbody></table>\n");
 
-			if (!string.IsNullOrEmpty(Description))
+			if (!string.IsNullOrEmpty(HtmlDescription))
+				AppendStrings(s, "<p>", HtmlDescription, "</p>\n");
+			else if (!string.IsNullOrEmpty(Description))
 				AppendStrings(s, "<p>", Description.Replace("\n", "<br/>\n"), "</p>\n");
 
 			s.Append("<br /><br />\n\n");
@@ -1317,7 +1320,8 @@ namespace Zoom
 		float FindArrowLeft(ZArrowEnd end, int col, List<float> widths)
 		{
 			if (end.Expand)
-				while (Columns.Valid(col - 1) && Rows[end.Row].Valid(col - 1) && Rows[end.Row][col - 1].Empty() &&
+				while (Columns.Valid(col - 1) &&
+						(!Rows[end.Row].Valid(col - 1) || Rows[end.Row][col - 1].Empty()) &&
 						!Columns[col - 1].Arrows.Exists(a => a.To.Exists(t => t.Row == end.Row)))
 					col--;
 
@@ -1327,7 +1331,8 @@ namespace Zoom
 		float FindArrowRight(ZArrowEnd end, int col, List<float> widths)
 		{
 			if (end.Expand)
-				while (Columns.Valid(col + 1) && Rows[end.Row].Valid(col + 1) && Rows[end.Row][col + 1].Empty() &&
+				while (Columns.Valid(col + 1) &&
+						(!Rows[end.Row].Valid(col + 1) || Rows[end.Row][col + 1].Empty()) &&
 						!Columns[col + 1].Arrows.Exists(a => a.From.Exists(f => f.Row == end.Row)))
 					col++;
 
@@ -1996,7 +2001,9 @@ namespace Zoom
 
 			sb.Append("</svg>\n");
 
-			if (!pure && !string.IsNullOrEmpty(Description))
+			if (!pure && !string.IsNullOrEmpty(HtmlDescription))
+				AppendStrings(sb, "<p>", HtmlDescription, "</p>\n");
+			else if (!pure && !string.IsNullOrEmpty(Description))
 				AppendStrings(sb, "<p>", Description.Replace("\n", "<br/>\n"), "</p>\n");
 			if (!pure)
 				sb.Append("</div>");

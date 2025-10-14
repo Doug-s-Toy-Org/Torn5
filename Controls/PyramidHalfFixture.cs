@@ -11,14 +11,12 @@ namespace Torn5.Controls
 	{
 		bool isRound;
 		[Browsable(true)]
+		/// <summary>True: we're a round. False: we're a repechage.</summary>
 		public bool IsRound { get => isRound;
 			set
 			{
 				isRound = value;
-				if (isRound)
-					labelTeams.Text = roundNumber == 1 ? "Starting teams" : "From Round " + (roundNumber - 1).ToString();
-				else
-					labelTeams.Text = "From Round " + (roundNumber).ToString();
+				RefreshTitle();
 			}
 		}
 
@@ -30,18 +28,47 @@ namespace Torn5.Controls
 			set
 			{
 				roundNumber = value;
-				if (isRound)
-					labelTeams.Text = roundNumber == 1 ? "Starting teams" : "From Round " + (roundNumber - 1).ToString();
-				else
-					labelTeams.Text = "From Round " + (roundNumber).ToString();
+				RefreshTitle();
+				labelAdvance.Text = roundNumber == 3 ? "To Finals" : "To Round " + (roundNumber + 1).ToString();
+				Centre(labelAdvance, numericAdvance);
 			}
 		}
 
+		void RefreshTitle()
+		{
+			if (isRound)
+			{
+				labelTitle.Text = "Round " + roundNumber.ToString();
+				labelEliminate.Text = "Eliminate";
+			}
+			else
+			{
+				labelTitle.Text = "Repêchage " + roundNumber.ToString();
+				labelEliminate.Text = "To Rep " + (roundNumber + 1).ToString();
+				labelEliminate.Visible = roundNumber < 3;
+				numericEliminate.Visible = roundNumber < 3;
+			}
+
+			Centre(labelTitle, labelTeamsIn);
+			Centre(labelEliminate, numericEliminate);
+		}
+
+		/// <summary>Centre one control above another.</summary>
+		void Centre(Control controlToCentre, Control controlToAlignOn)
+		{
+			int newLeft = controlToAlignOn.Left + controlToAlignOn.Width / 2 - controlToCentre.Width / 2;
+			controlToCentre.Left = Math.Min(Math.Max(newLeft, 0), this.Width - controlToCentre.Width);
+		}
+
+		public string Title { get => labelTitle.Text; }
+
 		int teamsIn;
 		public int TeamsIn { get => teamsIn; set { teamsIn = value; ValueChangedInternal(); } }
-		public int TeamsOut { get => teamsIn - (int)numericAdvance.Value; }
+		public int TeamsOut { get => teamsIn - Advance - Eliminate; }
 		public int Games { get => (int)numericGames.Value; set { if (value > 0) numericGames.Value = value; ValueChangedInternal(); } }
 		public int Advance { get => (int)numericAdvance.Value; set { numericAdvance.Value = value; ValueChangedInternal(); } }
+		public int Eliminate { get => isRound ? (int)numericEliminate.Value : teamsIn - Advance; }
+		public int PlanB { get => isRound ? 0 : (int)numericEliminate.Value; }
 
 		int desiredTeamsPerGame = -1;
 		public int DesiredTeamsPerGame { get => desiredTeamsPerGame; set { desiredTeamsPerGame = value; ValueChangedInternal(); } }
@@ -86,13 +113,10 @@ namespace Torn5.Controls
 			labelTeamsIn.Text = teamsIn.ToString();
 
 			decimal tpg = teamsIn * GamesPerTeam / numericGames.Value;
-			if (tpg == (int)tpg)  // If teams per game is a whole number, print it as a whole number, plus invisible characters the width of ".00"
-				labelTeamsPerGame.Text = tpg.ToString("F0", CultureInfo.CurrentCulture) + '\u2008' + '\u2002' + '\u2002';  // punctutation space (width of a .), en space (nut), en space (nut).
-			else  //  else print it with its two actual decimal places showing.
-				labelTeamsPerGame.Text = tpg.ToString("F2", CultureInfo.CurrentCulture);
+			labelTeamsPerGame.Text = Truncate00(tpg);
 
 			if (teamsIn > 0)
-				labelAdvancePercent.Text = String.Format("{0:0.00%}", numericAdvance.Value / teamsIn);
+				labelAdvancePercent.Text = Truncate00(numericAdvance.Value / teamsIn * 100) + "%"; //String.Format("{0:0.00%}", numericAdvance.Value / teamsIn);
 
 			if (desiredTeamsPerGame != - 1)
 			{
@@ -145,6 +169,15 @@ namespace Torn5.Controls
 					toolTip1.SetToolTip(labelAdvancePercent, null);
 				}
 			}
+		}
+
+		/// <summary>Return x as a string. If x is a whole number, return it padded with spaces the width of ".00"; otherwise return it with two decimal places.</summary>
+		string Truncate00(decimal x)
+		{
+			if (x == (int) x)  // If x is a whole number, print it as a whole number, plus invisible characters the width of ".00"
+				return x.ToString("F0", CultureInfo.CurrentCulture) + '\u2008' + '\u2002' + '\u2002';  // punctutation space (width of a .), en space (nut), en space (nut).
+			else  //  else print it with its two actual decimal places showing.
+				return x.ToString("F2", CultureInfo.CurrentCulture);
 		}
 
 		private void NumericKeyUp(object sender, KeyEventArgs e)

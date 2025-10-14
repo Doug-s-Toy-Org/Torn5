@@ -122,7 +122,10 @@ namespace Torn5.Controls
 		{
 			int i;
 			for (i = 0; i < Pyramid.Rounds.Count - 1; i++)
+			{
 				Pyramid.Rounds[i + 1].TeamsIn = Pyramid.Rounds[i].TeamsOut;
+				Pyramid.Rounds[i + 1].PreviousPlanB = Pyramid.Rounds[i].PlanB;
+			}
 
 			labelPyramidFinalsTeams.Text = Pyramid.Rounds[i].TeamsOut.ToString();
 
