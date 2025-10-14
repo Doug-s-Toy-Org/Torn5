@@ -664,6 +664,11 @@ namespace Torn
 			return ServerGame == null || ServerGame.EndTime == default ? Time.AddMinutes(12) : ServerGame.EndTime;
 		}
 
+		public TimeSpan Duration()
+		{
+			return ServerGame == null || ServerGame.EndTime == default ? new TimeSpan(0, 12, 0) : ServerGame.EndTime - Time;
+		}
+
 		/// <summary>True if any team in this game has victory points.</summary>
 		public bool IsPoints()
 		{
