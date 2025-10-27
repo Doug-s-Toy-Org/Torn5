@@ -145,7 +145,6 @@ namespace Torn5.Controls
 			// labelTitle
 			// 
 			this.labelTitle.AutoSize = true;
-			this.labelTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.labelTitle.Location = new System.Drawing.Point(0, 0);
 			this.labelTitle.Name = "labelTitle";
 			this.labelTitle.Size = new System.Drawing.Size(83, 13);

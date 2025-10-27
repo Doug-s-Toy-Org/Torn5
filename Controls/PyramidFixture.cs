@@ -12,7 +12,7 @@ namespace Torn5.Controls
 			set
 			{
 				round = value;
-				checkBoxRepechage.Text = "Repêchage " + round.ToString();
+				checkBoxRepechage.Text = " Repêchage " + round.ToString();
 				fixtureRound.RoundNumber = value;
 				fixtureRepechage.RoundNumber = value;
 			}
@@ -94,14 +94,14 @@ namespace Torn5.Controls
 			Pen pen = new Pen(Color.FromArgb(160, 160, 160), 2 * DeviceDpi / 96F);  // Pen will be 2 pixels wide at 100% scaling.
 			var g = e.Graphics;
 
-			const int xIn = 33;
-			const int xRound = 244;
-			const int xRepechage = 714;
-			const int yArrowTop = 39;
+			float xIn = fixtureRound.Left + fixtureRound.Width * 0.07F;
+			float xRound = fixtureRound.Left + fixtureRound.Width * 0.57F;
+			float xRepechage = fixtureRepechage.Left + fixtureRepechage.Width * 0.57F;
+			float yArrowTop = fixtureRepechage.Bottom;
 
 			float scale = DeviceDpi / 96F;
 
-			g.FillRectangle(new SolidBrush(BackColor), 0, yArrowTop * scale, Width, Height - yArrowTop * scale);
+			g.FillRectangle(new SolidBrush(BackColor), 0, yArrowTop * scale, Width, Height - yArrowTop * scale);  // Clear background of old paint.
 
 			if (HasRepechage)
 				ArcAndLeft(g, pen, xRepechage, xRound + 5, yArrowTop, 7);  // Arc and line from repechage advance number.
@@ -111,44 +111,30 @@ namespace Torn5.Controls
 
 			if (PlanB > 0)
 			{
-				const int xPlanB = 861;
-				const int xRepIn = 502;
+				float xPlanB = fixtureRepechage.Left + fixtureRepechage.Width * 0.91F;
+				float xRepIn = fixtureRepechage.Left + fixtureRepechage.Width * 0.07F;
 
 				ArcAndLeft(g, pen, xPlanB, xRepIn + 7, yArrowTop, 14);  // Arc and line from repechage advance number.
 				ArcAndDownArrow(g, pen, xRepIn, yArrowTop + 21, 7);  // Finish with arrow down to next repechage.
 			}
 		}
 
-		void DrawArc(Graphics g, Pen p, int x, int y, int width, int height, int startAngle, int sweepAngle)
+		/// <summary>Arc starts at 'right', goes downwards and turns leftwards. Line goes from there to 'left'.</summary>
+		void ArcAndLeft(Graphics g, Pen p, float right, float left, float top, float radius)
 		{
-			float scale = DeviceDpi / 96F;
-			g.DrawArc(p, x * scale, y * scale, width * scale, height * scale, startAngle, sweepAngle);
-		}
-
-		void DrawLine(Graphics g, Pen p, int x1, int y1, int x2, int y2)
-		{
-			float scale = DeviceDpi / 96F;
-			g.DrawLine(p, x1 * scale, y1 * scale, x2 * scale, y2 * scale);
-		}
-
-		/// <summary>Arc starts downwards and turns to left. Line goes leftwards from there.</summary>
-		void ArcAndLeft(Graphics g, Pen p, int x1, int x2, int y, int radius)
-		{
-			DrawArc(g, p, x1 - radius - 1, y - radius, radius * 2, radius * 2, 0, 90);  // Arcs are drawn on x, y, width, height...
-			DrawLine(g, p, x1, y + radius, x2, y + radius);  // but lines are drawn on x1, y1, x2, y2.
+			g.DrawArc(p, right - radius - 1, top - radius, radius * 2, radius * 2, 0, 90);  // Arcs are drawn on x, y, width, height...
+			g.DrawLine(p, right, top + radius, left, top + radius);  // but lines are drawn on x1, y1, x2, y2.
 		}
 
 		/// <summary>Arc starts from right and turns down. Line goes down and ends in arrowhead.</summary>
-		void ArcAndDownArrow(Graphics g, Pen p, int x, int y, int radius)
+		void ArcAndDownArrow(Graphics g, Pen p, float x, float y, float radius)
 		{
-			float scale = DeviceDpi / 96F;
-			float halfArrowWidth = 5 * scale;
-			float xScaled = x * scale;
+			float halfArrowWidth = 7;
 
-			DrawArc(g, p, x, y - radius, radius * 2, radius * 2, 180, 90);
-			DrawLine(g, p, x, y, x, Height - (int)halfArrowWidth - 1);
+			g.DrawArc(p, x, y - radius, radius * 2, radius * 2, 180, 90);
+			g.DrawLine(p, x, y, x, Height - (int)halfArrowWidth - 1);
 
-			var arrowhead = new PointF[] { new PointF(xScaled - halfArrowWidth, Height - halfArrowWidth - 1), new PointF(xScaled + halfArrowWidth, Height - halfArrowWidth - 1), new PointF(xScaled, Height - 1) };
+			var arrowhead = new PointF[] { new PointF(x - halfArrowWidth, Height - halfArrowWidth - 1), new PointF(x + halfArrowWidth, Height - halfArrowWidth - 1), new PointF(x, Height - 1) };
 			g.FillPolygon(new SolidBrush(p.Color), arrowhead);
 		}
 	}

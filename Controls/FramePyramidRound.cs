@@ -64,10 +64,12 @@ namespace Torn5.Controls
 					item.Text = leagueGame.ServerGame?.InProgress ?? false ? "In Progress" : leagueGame.Time.FriendlyDateTime();
 
 					if (item.Tag == null)
-						item.Tag = new PyramidGame() { Game = leagueGame, Priority = Priority.Unmarked };
-					
-					while (item.SubItems.Count < listViewGames.Columns.Count || item.SubItems.Count <= ColSecret)
-						item.SubItems.Add("");
+						item.Tag = new PyramidGame() { Priority = Priority.Unmarked };
+
+					((PyramidGame)item.Tag).Game = leagueGame;
+
+						while (item.SubItems.Count < listViewGames.Columns.Count || item.SubItems.Count <= ColSecret)
+							item.SubItems.Add("");
 
 					item.SubItems[ColTitle].Text = leagueGame.Title;  // Description
 					item.SubItems[ColNumTeams].Text = leagueGame.Teams.Count.ToString();  // # teams
