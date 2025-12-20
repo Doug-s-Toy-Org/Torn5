@@ -1268,7 +1268,7 @@ namespace Zoom
 
 			float textWidth = width;
 			if (pure)
-				textWidth = Math.Max(width, TextWidth(text));
+				textWidth = Math.Max(width, TextWidth(text, height));
 
 			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (pure ? 0.681 : 0.75), fontColor, alignment, cssClass, pure ? null : hyper, fillWidth);
 			s.Append(text);
@@ -1496,7 +1496,7 @@ namespace Zoom
 			s.Append("\" />\n");
 		}
 
-		/// <summary>Write the opening <svg tag and the title row.</summary>
+		/// <summary>Write the opening svg tag and the title row.</summary>
 		void SvgBegin(StringBuilder s, int rowHeight, int width, int height, bool pure)
 		{
 			if (!pure)
@@ -1939,7 +1939,7 @@ namespace Zoom
 		Graphics graphics = null;
 		Font font = null;
 		/// <summary>Width of text in pixels, independent of scaling of current monitor.</summary>
-		float TextWidth(string text)
+		float TextWidth(string text, int height = RowHeight)
 		{
 			if (graphics == null)
 			{
@@ -1948,7 +1948,7 @@ namespace Zoom
 			}
 
 			float width = graphics.MeasureString(text, font, 1000).Width / graphics.DpiX * 96;
-			return width;
+			return width * height / RowHeight;
 		}
 
 		internal const int RowHeight = 22;  // This is enough to fit default-sized text.
