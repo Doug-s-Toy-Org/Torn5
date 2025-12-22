@@ -24,11 +24,15 @@ namespace Torn5
 				fixture.Teams.Clear();
 				fixture.Teams.Populate(teams);
 
+				int niceMultiple = numRings % 2 == 0 ? numRings / 2 : numRings;  // If there are _n_ rings, then it's nice to choose blocks that have a multiple of _n_ players, because each game is perfectly full. Special case: if _n_ is even, then half _n_ works fine, because each player plays 6 times, and, um, maths.
+				int smallestNiceBlock = (int)Math.Ceiling(1.0 * smallestBlockSize / niceMultiple) * niceMultiple;
+				if (smallestNiceBlock > largestBlockSize)
+					smallestNiceBlock = smallestBlockSize;
+
 				int remainingPlayers = teams.Count;
-				int remainingBlocks = teams.Count / smallestBlockSize;
+				int remainingBlocks = teams.Count / smallestNiceBlock;
 				var blockSizes = new List<int>();
 
-				int niceMultiple = numRings % 2 == 0 ? numRings / 2 : numRings;  // If there are _n_ rings, then it's nice to choose blocks that have a multiple of _n_ players, because each game is perfectly full. Special case: if _n_ is even, then half _n_ works fine, because each player plays 6 times, and, um, maths.
 				int firstBlock = ((remainingPlayers / remainingBlocks / niceMultiple) * niceMultiple) + remainingPlayers % niceMultiple;  // Put all the non-multiple-of-_n_-ness in one block, so every other block can be nice.
 				blockSizes.Add(firstBlock);
 				remainingPlayers -= firstBlock;
@@ -65,9 +69,16 @@ namespace Torn5
 
 				if (blockSizes.Any(b => !rawBlocks.ContainsKey(b)))
 				{
-					Console.WriteLine("Could not generate ring grid for {0} teams, {1} rings, {2} games each.", teams.Count, numRings, gamesPerTeam);
+					Console.WriteLine("Could not generate blocks for ring grid for {0} teams, {1} rings, {2} games each.", teams.Count, numRings, gamesPerTeam);
 					return;
 				}
+
+				if (blockSizes.Sum() != teams.Count)
+				{
+					Console.WriteLine("Could not generate blocks for ring grid for {0} teams, {1} rings, {2} games each. Blocks summed to {3}.", teams.Count, numRings, gamesPerTeam, blockSizes.Sum());
+					return;
+				}
+
 
 				blockSizes.Sort((x, y) => y - x);  // Largest first.
 
