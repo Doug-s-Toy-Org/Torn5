@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using Torn.Report;
@@ -175,14 +176,13 @@ namespace Torn.UI
 			else if (listViewLeagues.SelectedIndices.Count == 0)
 				listViewLeagues.SelectedIndices.Add(0);
 
-			bool newVersionAvailable = Utility.IsNewerVersionAvailable();
+			Task.Run(CheckForNewVersion);
+		}
 
-			if(newVersionAvailable)
-			{
-				NewVersion updater = new NewVersion();
-				updater.ShowDialog();
-			}
-
+		private void CheckForNewVersion()
+		{
+			if (Utility.IsNewerVersionAvailable())
+				new NewVersion().ShowDialog();
 		}
 
 		void ConnectLaserGameServer()
