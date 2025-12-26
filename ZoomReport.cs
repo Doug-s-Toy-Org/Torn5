@@ -1102,8 +1102,13 @@ namespace Zoom
 			if (outline == default)
 			{
 				int len = s.Length;
-				s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F0}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"fill:", x, y, width, height);
+				s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F0}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x, y, width, height);
+
+				if (fill.A < 255)
+					s.AppendFormat("fill-opacity:{0};", fill.A / 256.0);
+
 				s.Replace(".0", "", len, s.Length - len);
+				s.Append("fill:");
 				s.Append(System.Drawing.ColorTranslator.ToHtml(fill));
 			}
 			else

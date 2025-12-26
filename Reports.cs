@@ -412,9 +412,10 @@ namespace Torn.Report
 			}
 
 			int maxTeams = fixture.Games.Count == 0 ? 0 : fixture.Games.Max(x => x.Teams.Count());
+			var colours = fixture.Games.SelectMany(fg => fg.Teams.Values).Distinct().OrderBy(c => c).ToList();
 
-			for (int i = 0; i < maxTeams; i++)
-				report.AddColumn(new ZColumn("Team", ZAlignment.Left));
+			foreach (var colour in colours)
+				report.AddColumn(new ZColumn(colour.ToString(), ZAlignment.Left));
 
 			FixtureTeams sortedTeams = new FixtureTeams();
 
@@ -430,21 +431,23 @@ namespace Torn.Report
 					timeCell.Hyper = GameHyper(match[fg]);
 				row.Add(timeCell);
 
-				int index = 0;
-
-				foreach (var kv in fg.Teams.OrderBy(t => t.Value).ThenBy(t => t.Key.Name))
+				foreach (var colour in colours)
 				{
-					ZCell teamCell = new ZCell(kv.Key.Name, kv.Value.ToColor())
+					var kv = fg.Teams.FirstOrDefault(d => d.Value == colour);
+					if (kv.Key == null)
+						row.Add(new ZCell());
+					else
 					{
-						Hyper = "?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
-					};
-					row.Add(teamCell);
-					if (index == fg.Teams.Count - 1)
-					{
-						sortedTeams.Add(kv.Key);
+						ZCell teamCell = new ZCell(kv.Key.Name, kv.Value.ToColor())
+						{
+							Hyper = "?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
+						};
+
+						row.Add(teamCell);
 					}
 
-					index++;
+					if (fg.Teams.LastOrDefault().Key == kv.Key)
+						sortedTeams.Add(kv.Key);
 				}
 
 				row.CssClass = String.Concat(fg.Teams.Keys.Select(k => " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
@@ -453,17 +456,6 @@ namespace Torn.Report
 			}
 
 			// grid
-
-			/*foreach (var ft in fixture.Teams)
-			{
-				var row = new ZRow();
-				var teamCell = new ZCell(ft.Name)
-				{
-					Hyper = "fixture.html?team=" + ft.Id().ToString(CultureInfo.InvariantCulture)
-				};
-				row.Add(teamCell);
-				report.Rows.Add(row);
-			}*/
 
 			foreach (var fg in fixture.Games)
 			{
@@ -476,34 +468,25 @@ namespace Torn.Report
 				for (int i = 0; i < sortedTeams.Count; i++)
 				{
 					var ft = sortedTeams[i];
-					ZCell cell;
+					if (sortedTeams.IndexOf(ft) == i)  // Only show each team's games once.
+					{
+						ZCell cell;
 
-					if (fg.Teams.ContainsKey(ft))
-						cell = new ZCell(fg.Teams[ft].ToChar().ToString(), fg.Teams[sortedTeams[i]].ToColor());
-					else
-						cell = new ZCell();
+						if (ft != null && fg.Teams.ContainsKey(ft))
+							cell = new ZCell(fg.Teams[ft].ToChar().ToString(), fg.Teams[sortedTeams[i]].ToColor());
+						else
+							cell = new ZCell();
 
-					cell.CssClass = "t" + ft.TeamId.ToString(CultureInfo.InvariantCulture) +
-						String.Concat(fg.Teams.Keys.Select(k => k.TeamId == ft.TeamId ? "" : " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
+						if (ft != null)
+							cell.CssClass = "t" + ft.TeamId.ToString(CultureInfo.InvariantCulture) +
+								String.Concat(fg.Teams.Keys.Select(k => k.TeamId == ft.TeamId ? "" : " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
 
-					report.Rows[i].Add(cell);
+						report.Rows[i].Add(cell);
+					}
 				}
 			}
 
-			// Add one final column for the team name again.
-			/*report.AddColumn(new ZColumn("Team", ZAlignment.Left));
-			for (int i = 0; i < fixture.Teams.Count; i++)
-			{
-				var ft = fixture.Teams[i];
-				var teamCell = new ZCell(ft.Name)
-				{
-					Hyper = "fixture.html?team=" + ft.Id().ToString(CultureInfo.InvariantCulture)
-				};
-				report.Rows[i].Add(teamCell);
-			}*/
-
 			return report;
-
 		}
 
 		/// <summary> Build a grid of games. One team per row; one game per column.

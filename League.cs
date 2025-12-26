@@ -19,7 +19,7 @@ namespace Torn
 	{
 		public static Color ToColor(this Colour colour)
 		{
-			Color[] Colors = { Color.Empty, Color.FromArgb(0xFF, 0xA0, 0xA0), Color.FromArgb(0xA0, 0xD0, 0xFF),  // None, Red, Blue,
+			Color[] Colors = { Color.FromArgb(0x40, 0x20, 0x20, 0x20), Color.FromArgb(0xFF, 0xA0, 0xA0), Color.FromArgb(0xA0, 0xD0, 0xFF),  // None, Red, Blue,
 				Color.FromArgb(0xA0, 0xFF, 0xA0), Color.FromArgb(0xFF, 0xFF, 0x90), Color.FromArgb(0xC0, 0xA0, 0xFF), Color.FromArgb(0xFF, 0xA0, 0xF0),  // Green, Yellow, Purple, Pink,
 				Color.FromArgb(0xA0, 0xFF, 0xFF), Color.FromArgb(0xFF, 0xD0, 0xA0), Color.FromArgb(0xFF, 0xFF, 0xFF), Color.FromArgb(0x90, 0x90, 0x90),  // Cyan, Orange, White, Black,
 				Color.FromArgb(0xFF, 0xB0, 0x90), Color.FromArgb(0xE0, 0xE0, 0xFF), Color.FromArgb(0xD0, 0xD0, 0x80), Color.FromArgb(0xFF, 0xC0, 0xF0),  // Fire, Ice, Earth, Crystal,
@@ -71,7 +71,7 @@ namespace Torn
 				{ 'r', Colour.Red }, { 'b', Colour.Blue }, { 'g', Colour.Green }, { 'y', Colour.Yellow },
 				{ 'p', Colour.Purple }, { 'm', Colour.Pink }, { 'c', Colour.Cyan }, { 'o', Colour.Orange }, { 'w', Colour.White },
 				{ '1', Colour.Red }, { '2', Colour.Blue }, { '3', Colour.Green }, { '4', Colour.Yellow },
-				{ '5', Colour.Purple }, { '6', Colour.Pink }, { '7', Colour.Cyan }, { '8', Colour.Orange }, { '9', Colour.White }, { '!', Colour.Referee }
+				{ '5', Colour.Purple }, { '6', Colour.Pink }, { '7', Colour.Cyan }, { '8', Colour.Orange }, { '9', Colour.White }, { 'u', Colour.Referee }
 			};
 
 			dict.TryGetValue(char.ToLower(ch, CultureInfo.InvariantCulture), out Colour c);
@@ -80,7 +80,7 @@ namespace Torn
 
 		public static char ToChar(this Colour c)
 		{
-			return "xRBGYPMCOWbfiecrcr"[(int)c];
+			return "xRBGYPMCOWbfiecrcu"[(int)c];
 		}
 
 		public static Colour ToColour(int i) // Converts from a Laserforce colour index number.
