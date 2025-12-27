@@ -296,32 +296,45 @@ namespace Torn
 			if (Time != default)
 			{
 				sb.Append(Time);
-				sb.Append('\t');
+				sb.Append(", ");
 			}
 
-			for (var i = Colour.Red; i <= Colour.White; i++)
+			var pairs = Teams.ToList().OrderBy(t => t.Value);
+
+			foreach (var pair in pairs.Where(t => t.Value != Colour.None))
 			{
-				var ft = Teams.FirstOrDefault(x => x.Value == i).Key;
-				if (ft != null)
-				{
-					if (ft.TeamId == -1)
-						sb.Append(ft.Name);
-					else
-						sb.Append(ft.TeamId);
-					sb.Append('\t');
-				}
+				sb.Append(pair.Key.Name);
+				sb.Append(", ");
 			}
 
-			foreach (var kv in Teams.Where(t => t.Value == Colour.None))
+			foreach (var pair in pairs.Where(t => t.Value == Colour.None))
 			{
-				if (kv.Key.TeamId == -1)
-					sb.Append(kv.Key.Name);
-				else
-					sb.Append(kv.Key.TeamId);
-				sb.Append('\t');
+				sb.Append(pair.Key.Name);
+				sb.Append(", ");
 			}
+			//for (var i = Colour.Red; i <= Colour.White; i++)
+			//{
+			//	var ft = Teams.FirstOrDefault(x => x.Value == i).Key;
+			//	if (ft != null)
+			//	{
+			//		if (ft.TeamId == -1)
+			//			sb.Append(ft.Name);
+			//		else
+			//			sb.Append(ft.TeamId);
+			//		sb.Append('\t');
+			//	}
+			//}
 
-			sb.Length--;
+			//foreach (var kv in Teams.Where(t => t.Value == Colour.None))
+			//{
+			//	if (kv.Key.TeamId == -1)
+			//		sb.Append(kv.Key.Name);
+			//	else
+			//		sb.Append(kv.Key.TeamId);
+			//	sb.Append('\t');
+			//}
+
+			sb.Length -= 2;
 
 			return sb.ToString();
 		}
