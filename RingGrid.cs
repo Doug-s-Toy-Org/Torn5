@@ -9,17 +9,21 @@ namespace Torn5
 	{
 		/// <summary>Generate a Lord of the Ring-style fixture, with multiple ring games running in parallel.
 		/// "team" and "player" are a bit interchangeable in this code, because Lord of the Ring is a solo event: each "team" has just one player in it.</summary>
-		public void GenerateRingGrid(League league, Fixture fixture, List<LeagueTeam> teams, int numRings, int gamesPerTeam, DateTime firstGameDateTime, int minutesBetweenGames, bool referees)
+		public string GenerateRingGrid(League league, Fixture fixture, List<LeagueTeam> teams, int numRings, int gamesPerTeam, DateTime firstGameDateTime, int minutesBetweenGames, bool referees)
 		{
 			fixture.Games.Clear();
 
 			if (!PopulateBlocks(numRings))
-				return;
+				return Error(string.Format("Could not generate fixture for {0} rings.", numRings));
 
 			int smallestBlockSize = rawBlocks.Keys.Min();
 			int largestBlockSize = rawBlocks.Keys.Max();
 
-			if ((smallestBlockSize <= teams.Count && teams.Count <= largestBlockSize) || smallestBlockSize * 2 <= teams.Count)  // We can handle if teams.Count is the size of a single block, or if teams.Count is large enough that we can use two or more blocks.
+			if (smallestBlockSize > teams.Count)  // // We can handle if teams.Count fits in a single block,
+				return Error(string.Format("Could not generate fixture: too few teams. Smallest size for {0} rings is {1} teams.", numRings, smallestBlockSize));
+			else if (teams.Count > largestBlockSize && smallestBlockSize * 2 > teams.Count)  //  or if teams.Count is large enough that we can use two or more blocks.
+				return Error(string.Format("Could not generate fixture. For {0} rings I can't handle {1} to {2} teams.", numRings, largestBlockSize + 1, smallestBlockSize * 2 - 1));
+			else
 			{
 				fixture.Teams.Clear();
 				fixture.Teams.Populate(teams);
@@ -68,16 +72,10 @@ namespace Torn5
 				}
 
 				if (blockSizes.Any(b => !rawBlocks.ContainsKey(b)))
-				{
-					Console.WriteLine("Could not generate blocks for ring grid for {0} teams, {1} rings, {2} games each.", teams.Count, numRings, gamesPerTeam);
-					return;
-				}
+					return Error(string.Format("Could not generate fixture for {0} teams, {1} rings, {2} games each.", teams.Count, numRings, gamesPerTeam));
 
 				if (blockSizes.Sum() != teams.Count)
-				{
-					Console.WriteLine("Could not generate blocks for ring grid for {0} teams, {1} rings, {2} games each. Blocks summed to {3}.", teams.Count, numRings, gamesPerTeam, blockSizes.Sum());
-					return;
-				}
+					return Error(string.Format("Could not generate fixture for {0} teams, {1} rings, {2} games each. Blocks summed to {3}.", teams.Count, numRings, gamesPerTeam, blockSizes.Sum()));
 
 
 				blockSizes.Sort((x, y) => y - x);  // Largest first.
@@ -85,10 +83,12 @@ namespace Torn5
 				// Build the blocks of FixtureGames.
 				var fixtureBlocks = new List<FixtureGames>();
 				int teamOffset = 0;
+				int colourOffset = 0;
 				foreach (var blockSize in blockSizes)
 				{
-					fixtureBlocks.Add(RawToFixture(teams, blockSize, teamOffset));
+					fixtureBlocks.Add(RawToFixture(teams, blockSize, teamOffset, colourOffset));
 					teamOffset += blockSize;
+					colourOffset++;
 				}
 
 				// Interleave those FixtureGame's to make the fixture.
@@ -108,6 +108,14 @@ namespace Torn5
 				if (referees)
 					AddReferees(fixture, teams, numRings, fixtureBlocks.Count >= 2 && fixtureBlocks[0].Count > fixtureBlocks[1].Count ? blockSizes[0] : 0);
 			}
+
+			return "";
+		}
+
+		private string Error(string message)
+		{
+			Console.WriteLine(message);
+			return message;
 		}
 
 		class RefCount { public LeagueTeam Team; public int Count; }
@@ -204,27 +212,32 @@ namespace Torn5
 		}
 
 		/// <summary>Convert a RawBlock to a FixtureGame with actual teams filled in.</summary>
-		private FixtureGames RawToFixture(List<LeagueTeam> teams, int blockSize, int teamOffset)
+		/// <param name="colourOffset">For games after the first in this block, offset the colour we give to each team by this much.
+		/// This is to prevent particular referees and players "following" each other around: without this offset, if a player referees
+		/// the ring they're about to play in, and two consecutive blocks are the same size, then the players in block 1 will always be
+		/// refereed by the same players in block 2.</param>
+		private FixtureGames RawToFixture(List<LeagueTeam> teams, int blockSize, int teamOffset, int colourOffset)
 		{
 			var games = new FixtureGames();
 			var block = rawBlocks[blockSize];
-			foreach (var game in block)
+			int rings = block.Max(g => g.Max());
+
+			for (int i = 0; i < block.Count; i++)
 			{
+				var rawGame = block[i];
 				var fg = new FixtureGame();
 
-				for (int i = 0; i < game.Count; i++)
-				{
-					if (game[i] != Colour.None)  // Colour.None is a bye for this player.
-						fg.Teams.Add(teams[i + teamOffset], game[i]);
-				}
+				for (int j = 0; j < rawGame.Count; j++)
+					if (rawGame[j] != 0)  // 0 is a bye for this player.
+						fg.Teams.Add(teams[j + teamOffset], (Colour)((rawGame[j] + (i == 0 ? 0 : colourOffset) - 1) % rings + 1));
 
 				games.Add(fg);
 			}
 			return games;
 		}
 
-		/// <summary>A list of colours we will use for players in a single game, indicating which colour ring they are playing in, with Colour.None indicating a bye.</summary>
-		class RawGame : List<Colour> { }
+		/// <summary>A list of ints representing colours we will use for players in a single game, indicating which ring they are playing in, with 0 indicating a bye.</summary>
+		class RawGame : List<int> { }
 
 		/// <summary>Each block is a compact group of players playing in games. Each row is a game; each column is a player.
 		/// For example, the first block below for rings == 6 is 18 players in 6 games, with each player playing 6 times.</summary>
@@ -389,14 +402,16 @@ namespace Torn5
 			else if (rings == 3)
 			{
 				PopulateBlock(13, new List<int>() {
-				1,1,1,2,2,2,3,3,3,4,4,4,0,0,0,
-				3,4,1,0,2,3,4,2,1,0,4,2,1,3,0,
-				1,4,0,3,1,4,1,2,3,4,3,0,2,0,2,
-				2,1,4,0,4,3,3,2,1,4,2,0,0,1,3,
-				3,2,4,1,2,0,1,4,0,1,0,3,2,4,3,
-				4,0,1,1,0,2,3,0,4,4,2,3,2,3,1,
-				0,4,3,4,2,3,0,4,2,1,0,3,1,1,2,
-				0,0,0,1,0,0,0,0,0,0,2,1,1,2,2 });
+				1,1,1,2,2,2,3,3,3,0,0,0,0,
+				1,2,0,0,1,3,0,0,3,1,2,2,3,
+				0,0,1,3,2,0,1,2,3,1,3,2,0,
+				2,3,1,1,3,2,2,0,0,0,0,1,3,
+				3,2,0,0,0,0,1,3,2,2,3,1,1,
+				3,1,2,3,2,1,0,1,2,0,0,0,3,
+				0,0,1,0,2,3,2,1,0,3,2,3,1,
+				3,2,0,2,0,0,2,0,3,1,1,3,1,
+				0,0,1,2,0,1,0,2,0,2,1,0,0
+				});
 
 				PopulateBlock(14, new List<int>() {
 				1,1,1,2,2,2,3,3,3,0,0,0,0,0,
@@ -823,7 +838,7 @@ namespace Torn5
 					block.Add(new RawGame());
 				}
 
-				block[game].Add((Colour)plays[play]);
+				block[game].Add(plays[play]);
 
 				play++;
 				indexWithinGame++;
