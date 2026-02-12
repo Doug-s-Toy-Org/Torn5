@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Torn;
 
-namespace Torn5
+namespace Torn.Grids
 {
 	class RingGrid
 	{
@@ -86,7 +85,7 @@ namespace Torn5
 				int colourOffset = 0;
 				foreach (var blockSize in blockSizes)
 				{
-					fixtureBlocks.Add(RawToFixture(teams, blockSize, teamOffset, colourOffset));
+					fixtureBlocks.Add(RawToFixture(teams, rawBlocks[blockSize], teamOffset, colourOffset));
 					teamOffset += blockSize;
 					colourOffset++;
 				}
@@ -216,10 +215,9 @@ namespace Torn5
 		/// This is to prevent particular referees and players "following" each other around: without this offset, if a player referees
 		/// the ring they're about to play in, and two consecutive blocks are the same size, then the players in block 1 will always be
 		/// refereed by the same players in block 2.</param>
-		private FixtureGames RawToFixture(List<LeagueTeam> teams, int blockSize, int teamOffset, int colourOffset)
+		private FixtureGames RawToFixture(List<LeagueTeam> teams, RawBlock block, int teamOffset, int colourOffset)
 		{
 			var games = new FixtureGames();
-			var block = rawBlocks[blockSize];
 			int rings = block.Max(g => g.Max());
 
 			for (int i = 0; i < block.Count; i++)
@@ -243,6 +241,7 @@ namespace Torn5
 		/// For example, the first block below for rings == 6 is 18 players in 6 games, with each player playing 6 times.</summary>
 		class RawBlock : List<RawGame> { }
 
+		/// <summary>Key: number of teams/players in the block. Value: the block.</summary>
 		readonly Dictionary<int, RawBlock> rawBlocks = new Dictionary<int, RawBlock>();
 
 		/// <summary>Create the blocks that we will build the ring grid fixture out of.

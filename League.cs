@@ -107,6 +107,12 @@ namespace Torn
 				default: return Colour.None;
 			}
 		}
+
+		/// <summary>P&C colours; hardest-to-distinguish last, so they get used the least.</summary>
+		public static List<Colour> BestFirst()
+		{
+			return new List<Colour>() { Colour.Red, Colour.Blue, Colour.Green, Colour.Yellow, Colour.Cyan, Colour.Pink, Colour.Purple, Colour.Orange };
+		}
 	}
 
 	public enum HandicapStyle { Percent, Plus, Minus, None };
@@ -2103,7 +2109,7 @@ namespace Torn
 		public List<LeagueTeam> GetTeamLadder()
 		{
 			lock (teams)
-				return teams.OrderByDescending(x => TotalPoints(x, false)).ThenByDescending(x => AverageScore(x,false)).ToList();
+				return teams.OrderByDescending(x => TotalPoints(x, false)).ThenByDescending(x => AverageScore(x, false)).ToList();
 		}
 
 		public List<LeagueTeam> GetTeamLadderScaled()

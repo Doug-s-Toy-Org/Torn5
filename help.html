@@ -50,20 +50,22 @@ Run the program. Click <span class="mnu">Preferences</span>. If you have a laser
 </p><p>
 Click <span class="mnu">OK</span>. Click <span class="mnu">Latest</span>. This will cause Torn to query the lasergame server. A list of games should appear.
 </p><p>
-On the Leagues toolbar, click <span class="mnu">New</span> or <span class="mnu">Open</span>. Torn 5 can open Torn 4 .Torn files. When it saves those files it will write extra information. The latest version of Torn 4 will ignore all that extra information, so you <em>should</em> be able to open the file in one, make changes, then open it in the other, and then back again. But after Torn 4 has opened the file, made changes and saved it again, the extra Torn 5 data will be missing. For your new (or newly opened) .Torn file, click in the Tag cell at the left of the .Torn file's row in the Leagues list. Enter a tag. This will be used as a sub-folder for this league's reports exports, so use a tag name that is a legal folder name (i.e. does not contain special characters like /\:*?"&lt;&gt;|).
+On the Leagues toolbar, click <span class="mnu">New</span> or <span class="mnu">Open</span>. Torn 5 can open Torn 4 .Torn files. When it saves those files it will write extra information. The latest version of Torn 4 will ignore all that extra information, so you <em>should</em> be able to open the file in one, make changes, then open it in the other, and then back again. But after Torn 4 has opened the file, made changes and saved it again, the extra Torn 5 data will be missing.
 </p><p>
-If you like, you can open more league files. This is a difference between Torn 4 and Torn 5 &mdash; Torn 5 allows you to have several league files open at once.
+For your new (or newly opened) .Torn file, click in the Tag cell at the left of the .Torn file's row in the Leagues list. Enter a tag. This will be used as a sub-folder for this league's reports exports, so use a tag name that is a legal folder name (i.e. does not contain special characters like <span class="url">/\:*?"&lt;&gt;|</span>).
+</p><p>
+If you like, you can open more league files. You can have several league files open at once.
 </p><p>
 Click a game to see its packs/players. Now you can do all the usual Torn things &mdash; right-click on a team box and <span class="mnu">Remember</span> that team, <span class="mnu">Commit</span> the game, <span class="mnu">Edit</span> the league, etc.
 </p><p>
-Because the games listing is now an always-visible list instead of being a drop-down "combo box", you can now select multiple games. Some features work on all selected games &mdash; e.g. <span class="mnu">Forget</span> will remove all the selected games from whatever league they had been committed to. <span class="mnu">Set Description</span> lets you title committed games or groups of games: "Round 1", "Repechage 3", "Cascade 2", "Finals", etc. These titles will be shown in reports.
+You can select multiple games. Some features work on all selected games &mdash; e.g. <span class="mnu">Forget</span> will remove all the selected games from whatever league they had been committed to. <span class="mnu">Set Description</span> lets you title committed games or groups of games: "Round 1", "Repechage 3", "Cascade 2", "Finals", etc. These titles will be shown in reports.
 Games present in the game server are shown in white. Games only present in Torn files are shown slightly greyed.
 </p><p>
-Reporting is different in Torn 5. When you click <span class="mnu">Report</span>, Torn 5 will export a default set of reports to a folder. Note that these will include details of each team, game and player. If you would like to configure different reports for the selected league, click <span class="mnu">Configure</span> and then add reports as desired. You can select the output format of your reports: HTML SVG is prettiest, but cannot be imported into Excel etc.
+When you click <span class="mnu">Report</span>, Torn 5 will export a default set of reports to a folder. Note that these will include details of each team, game and player. If you would like to configure different reports for the selected league, click <span class="mnu">Configure</span> and then add reports as desired. You can select the output format of your reports: HTML SVG is prettiest, but cannot be imported into Excel etc.
 </p><p>
-If you select multiple leagues (select one, then hold down the ctrl key as you select more) and click <span class="mnu">Report</span>, all the selected leagues will have reports exported.
+If you select multiple leagues (select one, then hold down the <span class="url">Ctrl</span> key as you select more) and click <span class="mnu">Report</span>, all the selected leagues will have reports exported.
 </p><p>
-If you have enabled the web server under <span class="mnu">Preferences</span>, any web browser that can see the machine Torn is running on can view reports directly from Torn 5's latest data, without you needing to click <span class="mnu">Report</span>. If you're running Torn on a computer called mymachine and you've left it on the default port of 8080, point a web browser at <a href="http://localhost:8080">http://mymachine:8080</a> to see these interactive reports.
+If you have enabled the web server under <span class="mnu">Preferences</span>, any web browser that can see the machine Torn is running on can view reports directly from Torn 5's latest data, without you needing to click <span class="mnu">Report</span>. If you're running Torn on a computer called mymachine and you've left it on the default port of 8080, point a web browser at <a href="http://localhost:8080" class="url">http://mymachine:8080</a> to see these interactive reports.
 </p><p>
 For P&amp;C systems, for games that are still in the lasergame server, more data is shown: each game has a "heat map" showing who shot who and a "worm" showing teams' scores. But this (extensive) data is not stored in the .Torn file, so once the lasergame server purges that data and Torn is restarted, a fresh report will <em>not</em> contain this additional detail.
 </p>
@@ -77,12 +79,12 @@ To the right of the Leagues list is the Games list showing all the games Torn kn
 </p><p>
 To the right of the games list is the unallocated players box: players who are in the game focused in the games list but not yet allocated to a team will show here.
 </p><p>
-To the right of this are the team boxes. These hold players from a single team. If you need more team boxes, Click <span class="mnu">Add Row</span> or <span class="mnu">Add Column</span> in the Teams toolbar. Right-click on team box for a variety of functions, including changing the identity of the team or of a player, or applying a handicap.</p>
+To the right of this are the team boxes. These hold players from a single team. If you need more team boxes, Click <span class="mnu">Add Row</span> or <span class="mnu">Add Column</span> in the Teams toolbar. Right-click on a team box for a variety of functions, including changing the identity of the team or of a player, or applying a handicap.</p>
 <a name="Leagues"><h2>Leagues</h2></a>
 <p>
 To Torn, a league is a collection of games, teams, players and scores. Each league is saved as a .Torn file.
 </p><p>
-<strong><span class="mnu">New</span></strong>: create a new league and its coresponding .Torn file. Once you've done this you'll likely want to click in the Tag cell in the Leagues list and give this league a Tag. This will be used as a sub-folder for this league's reports exports, so use a tag name that is a legal folder name (i.e. does not contain special characters like /\:*?"&lt;&gt;|).
+<strong><span class="mnu">New</span></strong>: create a new league and its coresponding .Torn file. Once you've done this you'll likely want to click in the Tag cell in the Leagues list and give this league a Tag. This will be used as a sub-folder for this league's reports exports, so use a tag name that is a legal folder name (i.e. does not contain special characters like <span class="url">/\:*?"&lt;&gt;|</span>).
 </p><p>
 <strong><span class="mnu">Open</span></strong>: Open one or more existing .Torn files. (This dialog supports multi-select.)
 </p><p>
@@ -109,12 +111,19 @@ The <span class="mnu">Fixtures</span> dialog is "non-modal" &mdash; you can flip
 On the <span class="mnu">Teams</span> tab, you'll see a list of teams that the fixture system already knows about. If your league has teams, they will appear here. If not, you can go to the <span class="mnu">Edit</span> dialog and use <span class="mnu">Add</span> or <span class="mnu">Paste Teams</span>.
 Here, you can generate fixtures. Once generated, Torn 5 will serve a list of these games from its internal web server, and can export the fixtures as HTML for upload to the web. It will also endeavour to keep track of where you are up to in your fixtures &mdash; the Now page from its internal web server will endeavour to identify the game just played (from lasergame server data) and the next game (from fixtures) automatically.
 </p><p>
-To generate fixtures, set desired values and then click <span class="mnu">Generate</span>. Torn will think for the number of seconds you specified in the Max Time box, and then display a fixture. If you want it to do more thinking, click <span class="mnu">Continue</span>. If you want to leave some teams out of the fixture, untick the checkbox next to their name before you generate.
+To generate fixtures, set desired values, click <span class="mnu">Generate</span>, wait a while, then click <span class="mnu">Stop</span>. If you want to leave some teams out of the fixture, untick the checkbox next to their name before you generate.
 </p><p>
-To change how the fixture is displayed, tick or untick the <span class="mnu">Game Grid</span> and <span class="mnu">Game List</span> boxes. To specify the colours used and to specify whether a team will be marked as refereeing each game, tick or untick the relevant boxes before you generate.
+There are several sub-tabs available: Settings, Tuning and Sessions. <span class="mnu">Settings</span> lets you select a number of teams to generate a fixture for that is different from the teams you have ticked. You can also select how many games each team plays, what colours will be used, whether you want referee spots assigned, and if you would like Torn to attempt to optimise by iteratively shuffling the fixture. The <span class="mnu">Tuning</span> tab lets you adjust how much weight various different factors will be given as it shuffles. <span class="mnu">Sessions</span> lets you specify when groups of games start and end. You'll likely want to set the start time of your first game here.
 </p><p>
-To generate Lord of the Ring-style fixtures, in which several small games are run in parallel, click <span class="mnu">Rings</span> and specify the desired number of rings. At the moment, only 5 and 6 rings are supported. Ticking <span class="mnu">Referee</span> will attempt to assign as many referees to each game as there are players in that game. note that your starting league file should have team names in randomised order &mdash; if not, teams near each other on the list will play each other more.
+You can click one of the <span class="mnu">Presets</span> to set values in the above tabs appropriately for various scenarios such as league night, cascade, etc. The <span class="mnu">Add Referees</span> preset lets you create a fixture in two steps: first, set up who plays when, then click <span class="mnu">Add Referees</span> and Generate again.
+When you click <span class="mnu">Generate</span>, Torn will create an initial fixture. Then, if you selected one or more <span class="mnu">Shuffle</span> options on the Settings tab, it will attempt to improve that initial fixture by shuffling things around. It uses the values you set in the Tuning tab to decide what constitutes an improvement. When you are happy enough with the generated fixture, click <span class="mnu">Stop</span>. If you like, you can stop, change values, and Generate some more. It will pick up where it left off. If you'd like to start from fresh, click <span class="mnu">Clear</span>. Details are visible at the bottom, showing progress. Drag the splitter up to see more, or double-click on the details text. This will show you a dialog with the full text, <em>and</em> copy that text to the clipboard, so you can paste it into an editor with a fixed-width font.
 </p><p>
+To change how the fixture is displayed, tick or untick the <span class="mnu">Game Grid</span> and <span class="mnu">Game List</span> boxes.
+</p>
+<a name="LotR"><h4>Lord of the Ring</h4></a>
+<p>
+To generate Lord of the Ring-style fixtures, in which several small games are run in parallel, click <span class="mnu">Rings</span> and specify the desired number and/or colour of rings. At the moment, only 2 to 6 rings are supported, and only 6 games per team is supported. Setting <span class="mnu">Referee</span> to a number greater than 0 will attempt to assign as many referees to each game as there are players in that game. Note that your starting league file should have team names in randomised order &mdash; if not, teams near each other on the list will play each other more. Team names ending with an '*' will not be assigned refereeing spots. If you select no Shuffle options, players will mostly referee immediately before playing, so most players will referee 6 games, and you can tell players to referee the colour ring they're about to play. If you select one or more Shuffle options, Torn may be able to optimise to e.g. reduce day length for players, but the "referee before you play" pattern will be lost.
+</p>
 <a name="Finals"><h3>Finals</h3></a>
 <p>
 The <span class="mnu">Finals</span> page lets you set up finals schemes, such as Ascension, Format D, etc. Click the buttons for the various named finals schemes, or individually adjust parameters such as how many teams should be cut from each elimination game, how many tracks there should be, etc.
@@ -141,7 +150,7 @@ The <span class="mnu">Pyramid round</span> tool lets you rapidly create a draw f
 </p><p>
 To construct a <strong>repêchage</strong> round, select games in the list at the right and click on <span class="mnu">Edit Game(s)</span>. This pops a dialog where you can define details for the game, including how many teams from this particular game go to the repêchage. If your rule is “top 2 teams from each game advance” then you would fill this value in. For a game with 7 teams you would mark 5 teams to go to the repêchage; for a game with 8 teams you would mark 6 teams to go the repêchage; etc. Note that as you select games (and optionally specify number of teams from each), the value at the left for Number of teams from last round will change appropriately.
 </p><p>
-You can select multiple games by holding down Ctrl and/or Shift as you select. Then when you <span class="mnu">Edit Game(s)</span>, you will be editing all the games you have selected at once.
+You can select multiple games by holding down <span class="url">Ctrl</span> and/or <span class="url">Shift</span> as you select. Then when you <span class="mnu">Edit Game(s)</span>, you will be editing all the games you have selected at once.
 </p><p>
 Set choices at the left, for the number of games, teams, etc., overriding the automatic values if necessary. For example, if your scheme is "top 10 teams overall advance" and you have 50 teams in the round, you would set <span class="mnu">Number of teams from last round</span> to 40. Under <span class="mnu">Top or bottom</span>, you want bottom for a repêchage – the way to get into the repêchage is to be low-scoring or low-ranking. Under <span class="mnu">Score or Rank</span>, select appropriately for your nominated scheme. If you would like Torn to assign colours to teams, tick the <span class="mnu">Colour</span> tick box.
 </p><p>
@@ -870,7 +879,7 @@ This report helps you pick up common errors: games with atypical numbers of play
 <p>
 The pack report (illustrated) endeavours to tell you how "good" or "bad" packs are. It does this via <a href="https://en.wikipedia.org/wiki/Student%27s_t-test">Student's t-test</a>.
 </p><p>
-Select one or more leagues (hold down the ctrl key to select additional leagues), then click <span class="mnu">Ad Hoc</span> and select <span class="mnu">Pack Report</span>.
+Select one or more leagues (hold down the <span class="url">Ctrl</span> key to select additional leagues), then click <span class="mnu">Ad Hoc</span> and select <span class="mnu">Pack Report</span>.
 </p><p>
 If Torn 5 has hit data, it will fill in columns for tag ratios. 
 Here's how those are calculated: first we generate a solo ladder showing how "good" each player is. Then, for each pack in each game, we scale the number of tags that pack scored against other players by the "goodness" of the player waering it: if the pack scored 50 hits in a game but was being worn by a player who was 125% as good as the average player, we scale that to 50 / 1.25 = 40 hits. Then we take the ratio of that to the number of tags the pack received during the game.
@@ -878,7 +887,7 @@ Here's how those are calculated: first we generate a solo ladder showing how "go
 If Torn 5 does <em>not</em> have hit data (because this is Laserforce data, or because this is a Torn 4 file), it will show you the score ratio instead. This is calculated in exactly the same way as tag ratio. Score ratio isn't as good as tag ratio, because we're interested here in how good the pack is at tagging other packs versus how good it is at getting tagged, but if you don't have tag data it's a reasonable proxy.
 </p><p>
 You'll see t values and p values. The t value is how many standard deviations this pack is from the mean. Look at the p value &mdash; when this is very small, there's a high chance that this pack is "good" or "bad".
-Any p value greater than 0.01 can be ignored &mdash; it's likely due to change, or to that pack being a favourite of particular players, etc. (You often see a level of p &lt; 0.05 being used, but this is only appropriate when we're testing a single variable. Here we're testing one variable for each pack. The description at the bottom of the report offers a conservative p value threshold for the number of packs shown.)
+Any p value greater than 0.01 can be ignored &mdash; it's likely due to chance, or to that pack being a favourite of particular players, etc. (You often see a level of p &lt; 0.05 being used, but this is only appropriate when we're testing a single variable. Here we're testing one variable for each pack. The description at the bottom of the report offers a conservative p value threshold for the number of packs shown.)
 </p><p>
 Small p values will be highlighted in pink. Very small p values will be highlighted in red. These red packs are of concern &mdash; a "good" pack might have some faulty sensors; a "bad" pack might have weak IR, etc.
 </p><p>
@@ -915,7 +924,7 @@ The object of all this is to eventually allow a remote copy of Torn 5 to pull th
 </p>
 <h2>Download</h2>
 <p>
-Torn 5 can be downloaded from <a href="http://dougburbidge.com/Apps/index.html">my Apps page</a>. The source code is available from <a href="https://github.com/DougBurbidge/Torn5">my GitHub page</a>.
+Torn 5 can be downloaded from <a href="http://dougburbidge.com/Apps/index.html">my Apps page</a>. The source code is available from <a href="https://github.com/Doug-s-Toy-Org/Torn5">my GitHub page</a>.
 </p>
 <br/><br/><br/>
 </div>

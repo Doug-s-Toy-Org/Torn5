@@ -1,5 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.props" Condition="Exists('packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.props')" />
+  <Import Project="packages\Microsoft.Testing.Extensions.Telemetry.1.5.3\build\netstandard2.0\Microsoft.Testing.Extensions.Telemetry.props" Condition="Exists('packages\Microsoft.Testing.Extensions.Telemetry.1.5.3\build\netstandard2.0\Microsoft.Testing.Extensions.Telemetry.props')" />
+  <Import Project="packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.props" Condition="Exists('packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.props')" />
+  <Import Project="packages\Microsoft.Testing.Platform.1.5.3\build\netstandard2.0\Microsoft.Testing.Platform.props" Condition="Exists('packages\Microsoft.Testing.Platform.1.5.3\build\netstandard2.0\Microsoft.Testing.Platform.props')" />
   <Import Project="packages\NUnit.4.1.0\build\NUnit.props" Condition="Exists('packages\NUnit.4.1.0\build\NUnit.props')" />
   <PropertyGroup>
     <ProjectGuid>{83591379-E178-413C-8773-0F9CD687EE87}</ProjectGuid>
@@ -124,8 +128,8 @@
     <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
       <HintPath>packages\BouncyCastle.Cryptography.2.4.0\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
     </Reference>
-    <Reference Include="ExCSS, Version=4.2.5.0, Culture=neutral, PublicKeyToken=bdbe16be9b936b9a, processorArchitecture=MSIL">
-      <HintPath>packages\ExCSS.4.2.5\lib\netstandard2.0\ExCSS.dll</HintPath>
+    <Reference Include="ExCSS, Version=4.3.0.0, Culture=neutral, PublicKeyToken=bdbe16be9b936b9a, processorArchitecture=MSIL">
+      <HintPath>packages\ExCSS.4.3.0\lib\netstandard2.0\ExCSS.dll</HintPath>
     </Reference>
     <Reference Include="Fizzler, Version=1.3.0.0, Culture=neutral, PublicKeyToken=4ebff4844e382110, processorArchitecture=MSIL">
       <HintPath>packages\Fizzler.1.3.0\lib\netstandard2.0\Fizzler.dll</HintPath>
@@ -142,10 +146,37 @@
     <Reference Include="K4os.Hash.xxHash, Version=1.0.8.0, Culture=neutral, PublicKeyToken=32cd54395057cec3, processorArchitecture=MSIL">
       <HintPath>packages\K4os.Hash.xxHash.1.0.8\lib\net462\K4os.Hash.xxHash.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.ApplicationInsights, Version=2.22.0.997, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.ApplicationInsights.2.22.0\lib\net46\Microsoft.ApplicationInsights.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.8.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Testing.Extensions.MSBuild, Version=1.5.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Testing.Platform.MSBuild.1.5.3\lib\netstandard2.0\Microsoft.Testing.Extensions.MSBuild.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Testing.Extensions.Telemetry, Version=1.5.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Testing.Extensions.Telemetry.1.5.3\lib\netstandard2.0\Microsoft.Testing.Extensions.Telemetry.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Testing.Extensions.TrxReport.Abstractions, Version=1.5.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Testing.Extensions.TrxReport.Abstractions.1.5.3\lib\netstandard2.0\Microsoft.Testing.Extensions.TrxReport.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Testing.Extensions.VSTestBridge, Version=1.5.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Testing.Extensions.VSTestBridge.1.5.3\lib\netstandard2.0\Microsoft.Testing.Extensions.VSTestBridge.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Testing.Platform, Version=1.5.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Testing.Platform.1.5.3\lib\netstandard2.0\Microsoft.Testing.Platform.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.TestPlatform.CoreUtilities, Version=15.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.TestPlatform.ObjectModel.17.12.0\lib\net462\Microsoft.TestPlatform.CoreUtilities.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.TestPlatform.PlatformAbstractions, Version=15.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.TestPlatform.ObjectModel.17.12.0\lib\net462\Microsoft.TestPlatform.PlatformAbstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel, Version=15.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.TestPlatform.ObjectModel.17.12.0\lib\net462\Microsoft.VisualStudio.TestPlatform.ObjectModel.dll</HintPath>
+    </Reference>
     <Reference Include="MySql.Data, Version=8.4.0.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
       <HintPath>packages\MySql.Data.8.4.0\lib\net462\MySql.Data.dll</HintPath>
     </Reference>
@@ -164,6 +195,9 @@
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Collections.Immutable, Version=1.2.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Collections.Immutable.1.5.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
@@ -195,6 +229,10 @@
     <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
     </Reference>
+    <Reference Include="System.Reflection.Metadata, Version=1.4.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Reflection.Metadata.1.6.0\lib\netstandard2.0\System.Reflection.Metadata.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime" />
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
@@ -282,6 +320,18 @@
     <Compile Include="Controls\PyramidHalfFixture.Designer.cs">
       <DependentUpon>PyramidHalfFixture.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\SessionControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\SessionControl.Designer.cs">
+      <DependentUpon>SessionControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SessionsControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\SessionsControl.Designer.cs">
+      <DependentUpon>SessionsControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="Finals.cs" />
     <Compile Include="Forms\About.cs">
       <SubType>Form</SubType>
@@ -325,6 +375,7 @@
     <Compile Include="Forms\NewVersion.Designer.cs">
       <DependentUpon>NewVersion.cs</DependentUpon>
     </Compile>
+    <Compile Include="GridFinder.cs" />
     <Compile Include="RingGrid.cs" />
     <Compile Include="JsonServer.cs" />
     <Compile Include="Forms\MainForm1.Designer.cs">
@@ -345,7 +396,6 @@
       <DependentUpon>Torn5.settings</DependentUpon>
     </Compile>
     <Compile Include="Pyramid.cs" />
-    <Compile Include="TeamGrid.cs" />
     <Compile Include="TornTcpListener.cs" />
     <Compile Include="TornTcpServer.cs" />
     <Compile Include="Utility.cs" />
@@ -468,6 +518,12 @@
       <DependentUpon>PyramidHalfFixture.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="Controls\SessionControl.resx">
+      <DependentUpon>SessionControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\SessionsControl.resx">
+      <DependentUpon>SessionsControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\About.resx">
       <DependentUpon>About.cs</DependentUpon>
     </EmbeddedResource>
@@ -508,6 +564,7 @@
       <DependentUpon>MainForm.cs</DependentUpon>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>MainForm1.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\TeamBox.resx">
       <DependentUpon>TeamBox.cs</DependentUpon>
@@ -559,5 +616,13 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('packages\NUnit.4.1.0\build\NUnit.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\NUnit.4.1.0\build\NUnit.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.Testing.Platform.1.5.3\build\netstandard2.0\Microsoft.Testing.Platform.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Testing.Platform.1.5.3\build\netstandard2.0\Microsoft.Testing.Platform.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.Testing.Extensions.Telemetry.1.5.3\build\netstandard2.0\Microsoft.Testing.Extensions.Telemetry.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Testing.Extensions.Telemetry.1.5.3\build\netstandard2.0\Microsoft.Testing.Extensions.Telemetry.props'))" />
+    <Error Condition="!Exists('packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.props'))" />
+    <Error Condition="!Exists('packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.targets'))" />
   </Target>
+  <Import Project="packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.targets" Condition="Exists('packages\Microsoft.Testing.Platform.MSBuild.1.5.3\build\Microsoft.Testing.Platform.MSBuild.targets')" />
+  <Import Project="packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.targets" Condition="Exists('packages\NUnit3TestAdapter.5.0.0\build\net462\NUnit3TestAdapter.targets')" />
 </Project>

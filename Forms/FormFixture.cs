@@ -5,8 +5,8 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using Torn;
+using Torn.Grids;
 using Torn.Report;
-using Torn5;
 using Zoom;
 
 namespace Torn.UI
@@ -55,16 +55,17 @@ namespace Torn.UI
 				printReport1.FileName = System.IO.Path.Combine(ExportFolder, holder.Key, "fixture." + holder.ReportTemplates.OutputFormat.ToExtension());
 		}
 
-		private List<CheckBox> teamSelectors = new List<CheckBox>();
-		private List<CheckBox> fixtureTeamSelectors = new List<CheckBox>();
+		private readonly List<CheckBox> teamSelectors = new List<CheckBox>();
+		private readonly List<CheckBox> fixtureTeamSelectors = new List<CheckBox>();
 		private List<LeagueTeam> selectedTeams = new List<LeagueTeam>();
 		private List<LeagueTeam> fixtureSelectedTeams = new List<LeagueTeam>();
-		private TeamGrid teamGrid;
+		private GridFinder gridFinder = new GridFinder();
 
 		Colour leftButton, middleButton, rightButton, xButton1, xButton2;
 		Point point;  // This is the point in the grid last clicked on. It's counted in grid squares, not in pixels: 9,9 is ninth column, ninth row.
 		bool resizing;
 		bool loading;
+		decimal gamesCount = 1;
 
 		public FormFixture()
 		{
@@ -75,8 +76,6 @@ namespace Torn.UI
 
 			datePicker.Value = DateTime.Now.Date;
 			timePicker.CustomFormat = CultureInfo.CurrentUICulture.DateTimeFormat.ShortTimePattern;
-			DateTime dt = DateTime.Now;
-			gameDateTime.Value = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 0, dt.Kind).AddMinutes(1);  // Don't include seconds / milliseconds.
 
 			leftButton = Colour.Red;
 			middleButton = Colour.Blue;
@@ -87,63 +86,182 @@ namespace Torn.UI
 			resizing = false;
 		}
 
-		void ButtonClearClick(object sender, EventArgs e)
+		void ButtonClearGamesGridClick(object sender, EventArgs e)
 		{
 			Holder.Fixture.Games.Clear();
 			displayReportGames.Report = null;
 			displayReportGrid.Report = null;
 		}
 
+		private void ButtonClearClick(object sender, EventArgs e)
+		{
+			gridFinder = new GridFinder();
+			Holder.Fixture.Games.Clear();
+			reportTeamsList.Report = null;
+		}
+
 		void ButtonGenerateClick(object sender, EventArgs e)
 		{
-			buttonGenerate.Text = "Generating...";
-			buttonGenerate.Enabled = false;
-			try
-			{
-				if (checkRings.Enabled && numericRings.Value > 1)
-					GenerateRingGrid();
-				else
-					GenerateTeamGrid();
-			}
-			finally
-			{
-				buttonGenerate.Text = "Generate";
-				buttonGenerate.Enabled = true;
-			}
-		}
-
-		private void GenerateRingGrid()
-		{
-			var grid = new RingGrid();
-			grid.GenerateRingGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)numericRings.Value, (int)gamesPerTeamInput.Value, gameDateTime.Value, (int)minBetween.Value, referee.Checked);
-
-			RefreshReports();
-		}
-
-		private void GenerateTeamGrid()
-		{
-			teamGrid = new TeamGrid() { BackToBackPenalty = (double)backToBackPenalty.Value };
-
-			if (red.Checked) teamGrid.Colours.Add(Colour.Red);
-			if (blue.Checked) teamGrid.Colours.Add(Colour.Blue);
-			if (green.Checked) teamGrid.Colours.Add(Colour.Green);
-			if (yellow.Checked) teamGrid.Colours.Add(Colour.Yellow);
-			if (referee.Checked) teamGrid.Colours.Add(Colour.Referee);
-
 			SetBusy(true);
 			try
 			{
-				teamGrid.GenerateTeamGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)maxTime.Value * 1000, (int)gamesPerTeamInput.Value, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value));
+				var teams = fixtureSelectedTeams;
 
-				RefreshReports();
+				if (fixtureSelectedTeams.Count != numericTeams.Value)
+				{
+					int maxId = Holder.League.Teams().Any() ? Holder.League.Teams().Max(t => t.TeamId) : 0;
+					teams = fixtureSelectedTeams.ToList();
+					while (teams.Count < numericTeams.Value)
+					{
+						maxId++;
+						teams.Add(new LeagueTeam() { TeamId = maxId, Name = "Team " + maxId.ToString() });
+					}
+				}
+
+				PopulateColours();
+				PopulateScoreScalers();
+				gridFinder.ShuffleType = GetShuffleType();
+				fixtureSessions.Populate(gridFinder.Sessions);
+				gridFinder.Rings = checkRings.Checked;
+
+				if (checkRings.Checked)
+					GenerateRingGrid(teams);
+				else
+					GenerateTeamGrid(teams);
 			}
 			finally
 			{
 				SetBusy(false);
 			}
+		}
 
-			scoreLabel.Text = teamGrid.ScoreText;
-			scoreLabel.BackColor = teamGrid.ScoreColor;
+		private void GenerateRingGrid(List<LeagueTeam> teams)
+		{
+			if (reportTeamsList.Report == null)  // Blank slate.
+			{
+				// Generate a starting-point fixture.
+				var grid = new RingGrid();
+				textBoxScore.Text = grid.GenerateRingGrid(holder.League, holder.Fixture, teams, (int)numericTeamsPerGame.Value, (int)numericGamesPerTeam.Value, gridFinder.Sessions.First().Start, (int)gridFinder.Sessions.First().Between.TotalMinutes, numericReferees.Value > 0);
+
+				if (holder.Fixture.Games.Any())  // If that generate succeeded,
+				{
+					RefreshReports();
+					gridFinder.SetupFromFixture(holder.Fixture);  // set us up to improve it.
+				}
+			}
+
+			if (holder.Fixture.Games.Any())
+				Improve();
+		}
+
+		private void GenerateTeamGrid(List<LeagueTeam> teams)
+		{
+			gridFinder.Setup(Holder.League, Holder.Fixture, teams, (int)numericGamesPerTeam.Value, (int)numericReferees.Value);
+
+			Improve();
+		}
+
+		private bool Improve()
+		{
+			RefreshReports();
+			textBoxScore.Text = gridFinder.Details;
+
+			while (run && gridFinder.ShuffleType != ShuffleType.None)
+			{
+				gridFinder.ImproveParallel(Holder.Fixture);
+				if (gridFinder.Changed)
+				{
+					gridFinder.Changed = false;
+					RefreshReports();
+				}
+				textBoxScore.Text = gridFinder.Details;
+				Application.DoEvents();
+			}
+
+			return gridFinder.Changed;
+		}
+
+		private void PopulateColours()
+		{
+			int ringMultiplier = checkRings.Checked ? 3 : 1;
+
+			gridFinder.Colours.Clear();
+			foreach (var checkBox in tabFixtureSettings.Controls.OfType<CheckBox>())
+				if (checkBox.Tag is Colour colour && checkBox.Checked)
+					for (int i = 0; i < ringMultiplier; i++)
+						gridFinder.Colours.Add(colour);
+
+			// Add more entries to the Colours list if necessary (because the user has ticked some boxes and then manually turned up the Teams Per Game value).
+			if (checkRings.Checked)
+			{
+				// Make a list of colours not yet used, with hard-to-distinguish colours last.
+				var bestColours = ColourExtensions.BestFirst().Where(c => !gridFinder.Colours.Contains(c)).ToList();
+
+				// Add colours until we've got enough.
+				while (gridFinder.Colours.Count < numericTeamsPerGame.Value * ringMultiplier)
+				{
+					var colourToAdd = bestColours.FirstOrDefault();
+					for (int i = 0; i < ringMultiplier; i++)
+						gridFinder.Colours.Add(colourToAdd);
+					bestColours.Remove(colourToAdd);
+				}
+			}
+			else
+			{
+				// If there was only one colour ticked, add more of that colour. Otherwise, just add Colour.None.
+				Colour colourToAdd = gridFinder.Colours.Count == 1 ? gridFinder.Colours.First() : Colour.None;
+				while (gridFinder.Colours.Count < numericTeamsPerGame.Value)
+						gridFinder.Colours.Add(colourToAdd);
+			}
+
+			// Add entries for referees, if any.
+			if (checkRings.Checked && numericReferees.Value > 0)
+				for (int i = 0; i < numericTeamsPerGame.Value * ringMultiplier; i++)
+					gridFinder.Colours.Add(Colour.Referee);
+			else
+				for (int i = 0; i < numericReferees.Value; i++)
+					gridFinder.Colours.Add(Colour.Referee);
+		}
+
+		private void PopulateScoreScalers()
+		{
+			var ss = gridFinder.ScoreScalers;
+
+			ss.PlaySelf = (int)numericPlaySelf.Value;
+			ss.TimesPlayed = (int)numericTimesPlayed.Value;
+			ss.PastTimesPlayed = checkPastTimesPlayed.Checked;
+			ss.DayLength = (int)numericDayLength.Value;
+			ss.NightLength = (int)numericNightLength.Value;
+			ss.NoGamesInSession = (int)numericNoGamesInSession.Value;
+			ss.OneGameInSession = (int)numericOneGameInSession.Value;
+			ss.TeamsOnSite = (int)numericTeamsOnSite.Value;
+			ss.SameDifficulty = (int)numericSameDifficulty.Value;
+			ss.CascadeDifficulty = (int)numericCascadeDifficulty.Value;
+			ss.PerfectColour = (int)numericPerfectColour.Value;
+			ss.BackToBack = (int)numericBackToBack.Value;
+			ss.RefThenPlay = (int)numericRefThenPlay.Value;
+			ss.PlayThenRef = (int)numericPlayThenRef.Value;
+			ss.RefereeClustering = (int)numericClusterRefereeing.Value;
+		}
+
+		private ShuffleType GetShuffleType()
+		{
+			ShuffleType st = ShuffleType.None;
+
+			if (checkRings.Checked)
+			{
+				if (checkShuffleGames.Checked) st |= ShuffleType.Rings;
+			}
+			else
+			{
+				if (checkShuffleTeams.Checked) st |= ShuffleType.BetweenGames;
+				if (checkShuffleGames.Checked) st |= ShuffleType.Games;
+				if (checkShuffleColours.Checked) st |= ShuffleType.WithinGames;
+			}
+
+			if (checkShuffleReferees.Checked) st |= ShuffleType.Referees;
+
+			return st;
 		}
 
 		private void RefreshReports()
@@ -151,45 +269,46 @@ namespace Torn.UI
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
 
-			if (outputGrid.Checked && outputList.Checked)
-			{
+			if (checkGameGrid.Checked && checkGameList.Checked)
 				reportTeamsList.Report = Reports.FixtureCombined(Holder.Fixture, Holder.League);
-			}
-			else if (outputList.Checked)
-			{
+			else if (checkGameList.Checked)
 				reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
-			}
-			else if (outputGrid.Checked)
-			{
+			else if (checkGameGrid.Checked)
 				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
-			}
+		}
+
+		bool run;
+		private void ButtonStopClick(object sender, EventArgs e)
+		{
+			buttonStop.Text = "&Stopping...";
+			run = false;
+		}
+
+		private void FormFixtureFormClosing(object sender, FormClosingEventArgs e)
+		{
+			run = false;
 		}
 
 		private void SetBusy(bool busy)
 		{
-			buttonGenerate.Text = busy ? "Generating..." : "Generate";
+			buttonGenerate.Text = busy ? "Generating..." : "&Generate";
+
+			if (!busy)
+				buttonStop.Text = "&Stop";
+
 			buttonGenerate.Enabled = !busy;
-			continueGenerating.Enabled = !busy;
-			//UseWaitCursor = busy;
-			Cursor.Current = busy ? Cursors.WaitCursor : Cursors.Default;
-		}
+			buttonStop.Enabled = busy;
 
-		private void ContinueGenerateClick(object sender, EventArgs e)
-		{
-			Holder.Fixture.Teams.Clear();
-			Holder.Fixture.Teams.Populate(fixtureSelectedTeams);
-			Holder.Fixture.Games.Clear();
-			SetBusy(true);
-			try
-			{
-				teamGrid.ContinueMixing(Holder.Fixture, (int)maxTime.Value * 1000, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value));
+			valuesChanging = true;
+			buttonClear.Enabled = !busy && Holder.Fixture.Games.Any();  // Dear Visual Studio: why does clearing buttonClear.Enabled cause a call to RadioPresetClick()?
+			valuesChanging = false;
 
-				RefreshReports();
-			}
-			finally
-			{
-				SetBusy(false);
-			}
+			foreach (Control control in groupBoxPresets.Controls)
+				control.Enabled = !busy;
+
+			run = busy;
+			UseWaitCursor = busy;
+			Application.DoEvents();
 		}
 
 		void ButtonImportGamesClick(object sender, EventArgs e)
@@ -254,8 +373,10 @@ namespace Torn.UI
 			tabControl1.TabPages.Remove(tabGamesGrid);
 			tabControl1.TabPages.Remove(tabGraphic);
 
-			Height = Math.Min(Height, Screen.GetWorkingArea(this).Height);
+			int screenHeight = Screen.GetWorkingArea(this).Height;
+			Height = (int)Math.Min(Math.Max(Height, screenHeight * 0.8), screenHeight * 0.99);
 			framePyramidRound1.SetSplit();
+			splitContainerTeams.SplitterDistance = groupBoxPresets.Right + 4;
 
 			if (Holder.Fixture != null)
 			{
@@ -310,55 +431,61 @@ namespace Torn.UI
 					fixtureTeamSelectors[i].Visible = false;
 				}
 
+				numericTeams.Value = Math.Max(leagueTeams.Count, 2);
+
+				var coloursUsed = Holder.League.Games().SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct().ToList();
+				if (coloursUsed.Any())
+				{
+					foreach (var control in tabFixtureSettings.Controls)
+						if (control is CheckBox cb && cb.Tag is Colour colour)
+							cb.Checked = coloursUsed.Contains(colour);
+
+					numericTeamsPerGame.Value = Math.Max(coloursUsed.Count, 2);
+				}
+
 				loading = false;
 				TeamCheckedChanged(null, null);
+				FixtureTeamCheckedChanged(null, null);
 			}
 		}
 
+		/// <summary>Create checkboxes as needed to represent teams, on both the Teams and Finals tabs.</summary>
 		void SetTeamsBox(int i)
 		{
-			SuspendLayout();
-			var oldScale = AutoScaleDimensions;
+			teamsList.SuspendLayout();
+			fixtureTeamsList.SuspendLayout();
 			try
 			{
-				AutoScaleDimensions = new SizeF(6F, 13F);
-
 				while (teamSelectors.Count < i)
-				{
-					var teamBox = new CheckBox
-					{
-						Dock = DockStyle.Top,
-						Parent = teamsList
-					};
+					teamSelectors.Add(MakeTeamBox(teamsList));
 
-					teamBox.CheckedChanged += TeamCheckedChanged;
-					teamSelectors.Add(teamBox);
-				}
 				while (fixtureTeamSelectors.Count < i)
-				{
-					var teamBox = new CheckBox
-					{
-						Dock = DockStyle.Top,
-						Parent = fixtureTeamsList
-					};
-
-					teamBox.CheckedChanged += FixtureTeamCheckedChanged;
-					fixtureTeamSelectors.Add(teamBox);
-				}
+					fixtureTeamSelectors.Add(MakeTeamBox(fixtureTeamsList));
 			}
 			finally
 			{
-				AutoScaleDimensions = oldScale;
-				ResumeLayout();
+				fixtureTeamsList.ResumeLayout();
+				teamsList.ResumeLayout();
 			}
+		}
+
+		private CheckBox MakeTeamBox(Panel parent)
+		{
+			var teamBox = new CheckBox
+			{
+				Dock = DockStyle.Top,
+				Height = buttonGenerate.Height,
+				Parent = parent
+			};
+
+			teamBox.CheckedChanged += TeamCheckedChanged;
+			return teamBox;
 		}
 
 		private void TeamCheckedChanged(object sender, EventArgs e)
 		{
 			if (loading)
-			{
 				return;
-			}
 
 			selectedTeams = Holder.League.GetTeamLadder().FindAll(t =>
 			{
@@ -372,23 +499,11 @@ namespace Torn.UI
 			frameFinals1.Teams = selectedTeams;
 		}
 
-		private void OutputCheckChanged(object sender, EventArgs e)
-		{
-			RefreshReports();
-		}
-
-		private void CheckRingsCheckedChanged(object sender, EventArgs e)
-		{
-			numericRings.Enabled = checkRings.Checked;
-
-			red.Enabled = !checkRings.Checked;
-			green.Enabled = !checkRings.Checked;
-			blue.Enabled = !checkRings.Checked;
-			yellow.Enabled = !checkRings.Checked;
-		}
-
 		private void FixtureTeamCheckedChanged(object sender, EventArgs e)
 		{
+			if (loading)
+				return;
+
 			fixtureSelectedTeams = Holder.League.GetTeamLadder().FindAll(t =>
 			{
 				return fixtureTeamSelectors.Find(fixtureTeamSelector =>
@@ -397,6 +512,175 @@ namespace Torn.UI
 
 				}) != null;
 			});
+
+			numericTeams.Value = Math.Max(fixtureSelectedTeams.Count, 2);
+		}
+
+		bool valuesChanging = false;
+
+		/// <summary>Set settings and tuning values to appropriate values for various scenarios.</summary>
+		private void RadioPresetClick(object sender, EventArgs e)
+		{
+			if (valuesChanging)
+				return;
+
+			bool defaults = sender == radioDefaults;
+			bool league = sender == radioLeague;
+			bool sides = sender == radioSides;
+			bool cascade = sender == radioCascade;
+			bool roundRobin = sender == radioRoundRobin;
+			bool referees = sender == radioAddReferees;
+			bool lotr = sender == radioLordOfTheRing;
+
+			bool triples = sides && numericTeams.Value < 50;
+			bool doubles = sides && 50 <= numericTeams.Value && numericTeams.Value < 90;
+			bool solos = sides && 90 <= numericTeams.Value;
+
+			if (defaults)
+			{
+				numericPlaySelf.Value = 1000;
+				numericTimesPlayed.Value = 50;
+				numericBackToBack.Value = 250;
+				numericRefThenPlay.Value = 125;
+				numericPlayThenRef.Value = 100;
+				numericClusterRefereeing.Value = 1;
+			}
+
+			if (!referees)
+			{
+				checkPastTimesPlayed.Checked = league;
+				numericDayLength.Value = lotr ? 90 : defaults || cascade || roundRobin ? 30 : 0;
+				numericNightLength.Value = defaults || cascade || roundRobin || lotr ? 3 : 0;
+				numericNoGamesInSession.Value = defaults || cascade || roundRobin || lotr ? -1 : 0;
+				numericOneGameInSession.Value = defaults || cascade || roundRobin || lotr ? 2 : 0;
+				numericTeamsOnSite.Value = league ? 0 : 1;
+				numericSameDifficulty.Value = defaults || sides || roundRobin ? 1 : 0;
+				numericCascadeDifficulty.Value = cascade ? 10 : 0;
+				numericPerfectColour.Value = sides || lotr ? 0 : -1;
+				numericClusterRefereeing.Value = lotr ? 0 : 1;
+
+				if (lotr)
+					numericRefThenPlay.Value = -1;
+
+				if (sides)
+				{
+					foreach (var control in tabFixtureSettings.Controls)
+						if (control is CheckBox cb && cb.Tag is Colour colour)
+							cb.Checked = triples ? (int)colour <= 6 : doubles;  // 6 teams per game for triples. All colours true for doubles; all false for solos.
+
+					if (solos)
+						numericTeamsPerGame.Value = 20;
+				}
+				else if (!lotr)
+					numericTeamsPerGame.Value = 3;
+
+				numericGamesPerTeam.Value = roundRobin ? (int)(numericTeams.Value / 2 - 1) : cascade || lotr ? 6 : league ? 3 : 2;
+			}
+
+			numericReferees.Value = referees ? 2 : league || lotr ? 1 : 0;  // I want to set cascade || roundRobin to have 2 referees per game, but I can't get there in one hop: we have to generate the fixture without referees, then have the user hit Stop, add referees, and hit Generate again.
+
+			checkShuffleTeams.Checked = league | roundRobin | sides;
+			checkShuffleGames.Checked = cascade;
+			checkShuffleColours.Checked = cascade;
+			checkShuffleReferees.Checked = !lotr && numericReferees.Value > 0;
+
+			checkRings.Checked = lotr;  // Do this last or last-ish, as it will fire CheckRingsCheckedChanged().
+		}
+
+		private void FixturesValueChanged(object sender, EventArgs e)
+		{
+			valuesChanging = true;
+
+			if (numericPlaySelf.Value != 1000 || numericTimesPlayed.Value != 50 || numericBackToBack.Value != 250 || checkRings.Checked)
+				radioDefaults.Checked = false;
+
+			if (!checkPastTimesPlayed.Checked || numericTeamsOnSite.Value != 0 || numericGamesPerTeam.Value != 3 || numericReferees.Value != 1 || !checkShuffleTeams.Checked || checkRings.Checked)
+				radioLeague.Checked = false;
+
+			if (numericSameDifficulty.Value != 1 || numericPerfectColour.Value != 0 || checkShuffleTeams.Checked || checkRings.Checked)
+				radioSides.Checked = false;
+
+			if (numericDayLength.Value != 30 || numericNightLength.Value != 3 || numericNoGamesInSession.Value != -1 || numericOneGameInSession.Value != 2 || numericTeamsOnSite.Value != 0 || checkRings.Checked)
+			{
+				radioCascade.Checked = false;
+				radioRoundRobin.Checked = false;
+			}
+
+			if (numericCascadeDifficulty.Value != 10 || numericGamesPerTeam.Value != 6 || !checkShuffleGames.Checked || !checkShuffleColours.Checked)
+				radioCascade.Checked = false;
+
+			if (numericSameDifficulty.Value != 1 || !checkShuffleTeams.Checked)
+				radioRoundRobin.Checked = false;
+
+			if (numericReferees.Value == 0)
+				radioAddReferees.Checked = false;
+
+			valuesChanging = false;
+		}
+
+		private void TeamCountValueChanged(object sender, EventArgs e)
+		{
+			gamesCount = numericTeams.Value * numericGamesPerTeam.Value / numericTeamsPerGame.Value;
+			if (checkRings.Checked)
+				gamesCount /= 3;
+
+			labelGameCount.Text = gamesCount == Math.Round(gamesCount) ? gamesCount.ToString() : gamesCount.ToString("N2");
+			fixtureSessions.Games = (int)gamesCount;
+		}
+
+		private void ColourCheckedChanged(object sender, EventArgs e)
+		{
+			if (loading || valuesChanging)
+				return;
+
+			int count = 0;
+			foreach (var control in tabFixtureSettings.Controls)
+				if (control is CheckBox cb && cb.Tag is Colour colour && cb.Checked)
+					count++;
+
+			if (count >= 2)
+				numericTeamsPerGame.Value = count;
+		}
+
+		private void NumericRefereesValueChanged(object sender, EventArgs e)
+		{
+			checkShuffleReferees.Enabled = numericReferees.Value > 0;
+		}
+
+		private void CheckRingsCheckedChanged(object sender, EventArgs e)
+		{
+			bool c = checkRings.Checked;
+
+			labelTeamsPerGame.Text = c ? "Rings" : "Teams per game";
+
+			checkShuffleTeams.Enabled = !c;
+			checkShuffleColours.Enabled = !c;
+
+			if (c)
+			{
+				numericGamesPerTeam.Value = 6;
+				checkShuffleTeams.Checked = false;
+				checkShuffleColours.Checked = false;
+				numericRefThenPlay.Value = -10;
+
+				if (numericTeams.Value < 18)
+					numericTeams.Value = 18;
+			}
+
+			TeamCountValueChanged(sender, e);
+		}
+
+		private void CheckShuffleChanged(object sender, EventArgs e)
+		{
+			bool c = ((CheckBox)sender).Checked;
+
+			if (sender == checkShuffleTeams && c)
+			{
+				checkShuffleGames.Checked = false;
+				checkShuffleColours.Checked = false;
+			}
+			else if ((sender == checkShuffleGames || sender == checkShuffleColours) && c)
+				checkShuffleTeams.Checked = false;
 		}
 
 		private void PrintReportSaveHtmlTable(object sender, EventArgs e)
@@ -404,12 +688,25 @@ namespace Torn.UI
 			ExportPages.ExportFixtureToFile(printReport1.FileName, holder);
 		}
 
+		private void OutputCheckChanged(object sender, EventArgs e)
+		{
+			RefreshReports();
+		}
+
+		private void PanelRightResize(object sender, EventArgs e)
+		{
+			checkGameList.Top = panelRight.Height - checkGameList.Height;
+			checkGameGrid.Top = checkGameList.Top - checkGameGrid.Height;
+		}
+
+		/// <summary>When user presses Ctrl-A in this control, Select All.</summary>
 		void TextBoxKeyDown(object sender, KeyEventArgs e)
 		{
 			if (e.Control && e.KeyCode == Keys.A &&sender != null)
 				((TextBox)sender).SelectAll();
 		}
 
+		#region Graphic
 		// TODO: turn panelGraphic into a custom control that takes a Holder.Fixture as a property, so it can manage its own painting, clicks, etc.
 		void FillCell(int row, int col, int size, Color color)
 		{
@@ -538,7 +835,7 @@ namespace Torn.UI
 //						FillCell(x, y, size, Color.LightGray);
 		}
 
-		// Paint coloured cells onto grid to show teams in games.
+		/// <summary>Paint coloured cells onto grid to show teams in games.</summary>
 		void PaintCells(int size)
 		{
 			for (int col = 0; col < Holder.Fixture.Games.Count; col++)
@@ -645,6 +942,7 @@ namespace Torn.UI
 			resizing = false;
 			panelGraphic.Invalidate();
 		}
+		#endregion
 	}
 }
 
