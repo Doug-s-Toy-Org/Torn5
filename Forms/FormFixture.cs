@@ -296,10 +296,9 @@ namespace Torn.UI
 			if (!busy)
 				buttonStop.Text = "&Stop";
 
+			valuesChanging = true;
 			buttonGenerate.Enabled = !busy;
 			buttonStop.Enabled = busy;
-
-			valuesChanging = true;
 			buttonClear.Enabled = !busy && Holder.Fixture.Games.Any();  // Dear Visual Studio: why does clearing buttonClear.Enabled cause a call to RadioPresetClick()?
 			valuesChanging = false;
 
