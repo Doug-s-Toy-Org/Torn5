@@ -11,9 +11,9 @@ namespace Torn
 	/// </summary>
 	public class JsonServer: LaserGameServer
 	{
-        readonly WebClient webClient;  // TODO: remove WebClient and replace with HttpClient. (A single HttpClient handles multiple requests in parallel.)
-        readonly DemoServer demoServer;
-        readonly string _server;
+		readonly WebClient webClient;  // TODO: remove WebClient and replace with HttpClient. (A single HttpClient handles multiple requests in parallel.)
+		readonly DemoServer demoServer;
+		readonly string _server;
 
 		public JsonServer(string server = "")
 		{

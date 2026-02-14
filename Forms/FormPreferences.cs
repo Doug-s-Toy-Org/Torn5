@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Drawing;
 using System.Windows.Forms;
 
 namespace Torn.UI
 {
-	public enum SystemType { Nexus, Zeon, OZone, Laserforce, Torn, Demo };
+	public enum SystemType { Nexus, Zeon, OZone, Laserforce, Torn, Json, Demo };
 
 	/// <summary>Prefs Form.</summary>
 	public partial class FormPreferences : Form
@@ -28,6 +27,7 @@ namespace Torn.UI
 				if (radioOZone.Checked)      return SystemType.OZone;
 				if (radioLaserforce.Checked) return SystemType.Laserforce;
 				if (radioTorn.Checked)       return SystemType.Torn;
+				if (radioJson.Checked)       return SystemType.Json;
 				return SystemType.Demo;
 			}
 
@@ -38,6 +38,7 @@ namespace Torn.UI
 					case SystemType.OZone:		 radioOZone.Checked      = true;  break;
 					case SystemType.Laserforce:  radioLaserforce.Checked = true;  break;
 					case SystemType.Torn:        radioTorn.Checked       = true;  break;
+					case SystemType.Json:        radioJson.Checked       = true;  break;
 					default:                     radioDemo.Checked       = true;  break;
 				}
 			}

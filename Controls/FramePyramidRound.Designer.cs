@@ -145,6 +145,7 @@
 			this.splitContainerTop.Panel1.Controls.Add(this.label13);
 			this.splitContainerTop.Panel1.Controls.Add(this.label12);
 			this.splitContainerTop.Panel1.Controls.Add(this.labelPyramidGamesIntro);
+			this.splitContainerTop.Panel1.Padding = new System.Windows.Forms.Padding(0, 0, 1, 0);
 			// 
 			// splitContainerTop.Panel2
 			// 
@@ -164,7 +165,7 @@
 			this.panelKey.Dock = System.Windows.Forms.DockStyle.Bottom;
 			this.panelKey.Location = new System.Drawing.Point(0, 240);
 			this.panelKey.Name = "panelKey";
-			this.panelKey.Size = new System.Drawing.Size(663, 14);
+			this.panelKey.Size = new System.Drawing.Size(662, 14);
 			this.panelKey.TabIndex = 28;
 			// 
 			// labelKeyWithdrawn

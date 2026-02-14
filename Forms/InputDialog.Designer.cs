@@ -48,6 +48,8 @@ namespace Torn.UI
 			// 
 			// textBox1
 			// 
+			this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
 			this.textBox1.Location = new System.Drawing.Point(12, 35);
 			this.textBox1.Name = "textBox1";
 			this.textBox1.Size = new System.Drawing.Size(268, 20);
@@ -76,29 +78,29 @@ namespace Torn.UI
 			// numericUpDown1
 			// 
 			this.numericUpDown1.Increment = new decimal(new int[] {
-									500,
-									0,
-									0,
-									0});
+            500,
+            0,
+            0,
+            0});
 			this.numericUpDown1.Location = new System.Drawing.Point(12, 36);
 			this.numericUpDown1.Maximum = new decimal(new int[] {
-									2000000000,
-									0,
-									0,
-									0});
+            2000000000,
+            0,
+            0,
+            0});
 			this.numericUpDown1.Minimum = new decimal(new int[] {
-									2000000000,
-									0,
-									0,
-									-2147483648});
+            2000000000,
+            0,
+            0,
+            -2147483648});
 			this.numericUpDown1.Name = "numericUpDown1";
 			this.numericUpDown1.Size = new System.Drawing.Size(120, 20);
 			this.numericUpDown1.TabIndex = 4;
 			this.numericUpDown1.Value = new decimal(new int[] {
-									1000,
-									0,
-									0,
-									-2147483648});
+            1000,
+            0,
+            0,
+            -2147483648});
 			this.numericUpDown1.Visible = false;
 			// 
 			// InputDialog
@@ -107,13 +109,12 @@ namespace Torn.UI
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.buttonCancel;
-			this.ClientSize = new System.Drawing.Size(292, 102);
+			this.ClientSize = new System.Drawing.Size(292, 101);
 			this.Controls.Add(this.numericUpDown1);
 			this.Controls.Add(this.buttonCancel);
 			this.Controls.Add(this.buttonOK);
 			this.Controls.Add(this.textBox1);
 			this.Controls.Add(this.label1);
-			this.MaximumSize = new System.Drawing.Size(2000, 140);
 			this.MinimumSize = new System.Drawing.Size(200, 140);
 			this.Name = "InputDialog";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
@@ -121,6 +122,7 @@ namespace Torn.UI
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
 			this.ResumeLayout(false);
 			this.PerformLayout();
+
 		}
 		private System.Windows.Forms.NumericUpDown numericUpDown1;
 		private System.Windows.Forms.Button buttonCancel;
