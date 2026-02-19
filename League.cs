@@ -1378,6 +1378,12 @@ namespace Torn
 		}
 
 		/// <summary>Load a .Torn file from disk.</summary>
+		public void Load()
+		{
+			Load(FileName);
+		}
+
+		/// <summary>Load a .Torn file from disk.</summary>
 		public void Load(string fileName)
 		{
 			Clear();

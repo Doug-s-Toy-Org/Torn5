@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -39,31 +38,25 @@ namespace Torn.UI
 			{
 				if (leagueTeam == null && value != null && value.Handicap == null)
 					value.Handicap = handicap;
+
 				leagueTeam = value;
-				GameTeam.TeamId = leagueTeam == null ? (int?)null : leagueTeam.TeamId;
+
+				if (GameTeam != null)
+					GameTeam.TeamId = leagueTeam?.TeamId;
+
 				var yellows = 0;
 				var reds = 0;
 				if (GameTeam?.TermRecords != null)
-				{
 					foreach (TermRecord term in GameTeam.TermRecords)
-					{
 						if (term.Type == TermType.Yellow)
-						{
 							yellows++;
-						}
-						if (term.Type == TermType.Red)
-						{
+						else if (term.Type == TermType.Red)
 							reds++;
-						}
-					}
-				}
-                if (leagueTeam != null)
-                {
-                    League.Load(League.FileName);
-                }
+
+				League?.Load();
+
 				bool isPoints = League?.IsPoints() ?? false;
-				var points = GameTeam.Points;
-				ListView.Columns[1].Text = (isPoints ? "(" + points + ") " : "") + (leagueTeam == null ? "Players" : (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + leagueTeam.Name);
+				ListView.Columns[1].Text = (isPoints ? "(" + GameTeam?.Points + ") " : "") + (leagueTeam == null ? "Players" : (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + leagueTeam.Name);
 			}
 		}
 
@@ -112,7 +105,7 @@ namespace Torn.UI
 
 		LeagueTeam GetLeagueTeamFromFile()
 		{
-			League.Load(League.FileName);
+			League.Load();
 			List<string> playerIds = new List<string>();
 			foreach (ServerPlayer player in Players())
 			{
@@ -298,8 +291,7 @@ namespace Torn.UI
 				Recalculate(false);
 			} else
 			{
-				MessageBoxButtons buttons = MessageBoxButtons.OK;
-				MessageBox.Show("Please Identify Team before adding Handicap", "Cannot Apply Handicap", buttons);
+				MessageBox.Show("Please Identify Team before adding Handicap", "Cannot Apply Handicap", MessageBoxButtons.OK);
 			}
 		}
 
@@ -319,8 +311,7 @@ namespace Torn.UI
 				var leaguePlayer = League.LeaguePlayer(player.PlayerId);
 				if (leaguePlayer != null)
 				{
-					MessageBoxButtons buttons = MessageBoxButtons.OK;
-					MessageBox.Show("Please Commit Team with new player before grading player", "Cannot Apply Grade", buttons);
+					MessageBox.Show("Please Commit Team with new player before grading player", "Cannot Apply Grade", MessageBoxButtons.OK);
 					return;
 				}
 				Grade grade = (Grade)((ToolStripMenuItem)sender).Tag;
@@ -340,8 +331,7 @@ namespace Torn.UI
 				Recalculate(false);
 			} else
 			{
-				MessageBoxButtons buttons = MessageBoxButtons.OK;
-				MessageBox.Show("Please Identify Team before grading players", "Cannot Apply Grade", buttons);
+				MessageBox.Show("Please Identify Team before grading players", "Cannot Apply Grade", MessageBoxButtons.OK);
 			}
 
 
@@ -356,7 +346,7 @@ namespace Torn.UI
 			leagueTeam.Name = LeagueTeam.Name;
 
 			League.Save();
-			League.Load(League.FileName);
+			League.Load();
 		}
 
 		void MenuRememberTeamClick(object sender, EventArgs e)
@@ -530,16 +520,6 @@ namespace Torn.UI
 				}
 			}
 			ListView.Columns[1].Text = (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + (leagueTeam?.Name ?? "Players");
-		}
-	}
-
-	class SortByScore : IComparer
-	{
-		int IComparer.Compare(object x, object y)
-		{
-			return (x is ListViewItem itemX && y is ListViewItem itemY && itemX.Tag is ServerPlayer playerX && itemY.Tag is ServerPlayer playerY) ?
-				playerY.Score.CompareTo(playerX.Score) :
-				0;
 		}
 	}
 }
