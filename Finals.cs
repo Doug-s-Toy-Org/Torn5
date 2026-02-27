@@ -129,7 +129,10 @@ namespace Torn
 
 				for (int j = 0; j < TeamsPerGame; j++)
 				{
-					int colourNum = (j - i + coloursUsed.Count) % coloursUsed.Count;
+					int colourNum = (j - i) % coloursUsed.Count;
+					while (colourNum < 0)
+						colourNum += coloursUsed.Count;
+
 					if (Report.Rows.Valid(i))
 						Report.Rows[i].Add(new ZCell(" ", coloursUsed[colourNum].ToColor()) { Border = Color.Black });
 				}
