@@ -10,7 +10,7 @@ namespace Torn.UI
 	/// </summary>
 	public partial class BaseBox : UserControl
 	{
-		public ListView.ListViewItemCollection Items { get { return listView1.Items; } }
+		protected ListView.ListViewItemCollection Items { get { return listView1.Items; } }
 		public ImageList Images { get { return listView1.SmallImageList; } set { listView1.SmallImageList = value; } }
 		protected ListView ListView { get {return listView1; } }
 		private readonly ListViewColumnSorter sorter;
@@ -100,10 +100,7 @@ namespace Torn.UI
 		///<summary>Move selected items from us to another BaseBox.</summary>
 		protected virtual void ListView1DoubleClick(object sender, EventArgs e)
 		{
-			if (GetMoveTarget == null)
-				return;
-
-			BaseBox target = GetMoveTarget();
+			BaseBox target = GetMoveTarget?.Invoke();
 
 			if (target == null)
 				return;
@@ -169,6 +166,11 @@ namespace Torn.UI
 				players.Add((ServerPlayer)item.Tag);
 
 			return players;
+		}
+
+		public bool Empty()
+		{
+			return Items.Count == 0;
 		}
 	}
 

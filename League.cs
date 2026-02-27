@@ -2236,7 +2236,7 @@ namespace Torn
 
 				bool hasSwept = nonElimedTeams.Count() == 1 && nonElimedTeams[0].TeamId == gameTeam.TeamId;
 
-				Console.WriteLine("Tie Break " + ZeroedTieBreak);
+				//Console.WriteLine("Tie Break " + ZeroedTieBreak);
 
 				if (HitsTieBreak)
 				{

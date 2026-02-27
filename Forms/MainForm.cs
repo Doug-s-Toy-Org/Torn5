@@ -261,7 +261,7 @@ namespace Torn.UI
 			try
 			{
 				if (!neww)
-					league.Load(fileName);
+					league.Load();
 				item.Text = league.Key;
 			}
 			catch (Exception ex)
@@ -617,7 +617,7 @@ namespace Torn.UI
 				try
 				{
 					GetExportFolder();
-					pd = ReportPages.OverviewReports(holder, true, exportFolder).ToPrint();
+					pd = ReportPages.OverviewReports(holder, true, false, exportFolder).ToPrint();
 				}
 				finally
 				{
@@ -994,7 +994,7 @@ namespace Torn.UI
 		TeamBox FindEmptyTeamBox()
 		{
 			foreach (Control c in tableLayoutPanel1.Controls)
-				if (c is TeamBox teamBox && teamBox.Items.Count == 0)
+				if (c is TeamBox teamBox && teamBox.Empty())
 					return teamBox;
 
 			return null;
@@ -1030,20 +1030,15 @@ namespace Torn.UI
 						if (serverPlayers.Any() && box < teamBoxes.Count)
 							teamBoxes[box++].Accept(serverPlayers);
 					}
-				else // Alias or LotR
+				else // group by Alias or LotR
 				{ 
 					List<ServerPlayer> addedPlayers = new List<ServerPlayer>();
 					foreach (var player in playersBox.Players())
-					{
-						bool isDuplicatePlayer = addedPlayers.Exists(p => p.PlayerId == player.PlayerId);
-						if (!isDuplicatePlayer && box < teamBoxes.Count)
+						if (!addedPlayers.Exists(p => p.PlayerId == player.PlayerId) && box < teamBoxes.Count)
 						{
-							List<ServerPlayer> playersToAdd = new List<ServerPlayer>();
-							playersToAdd.Add(player);
-							teamBoxes[box++].Accept(playersToAdd);
+							teamBoxes[box++].Accept(new List<ServerPlayer> { player });
 							addedPlayers.Add(player);
 						}
-					}
 				}
 			}
 			else  // This game is previously committed. Match game players to game teams.
@@ -1073,8 +1068,8 @@ namespace Torn.UI
 
 					if (serverPlayers.Any() && box < teamBoxes.Count)
 					{
-						teamBoxes[box].LeagueTeam = league.LeagueTeam(gameTeam);
 						teamBoxes[box].GameTeam = gameTeam;
+						teamBoxes[box].LeagueTeam = league.LeagueTeam(gameTeam);
 						teamBoxes[box].Accept(serverPlayers);
 						box++;
 					}

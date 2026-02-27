@@ -21,7 +21,7 @@ namespace Torn.UI
 			set
 			{
 				rank = value;
-				ListView.Columns[0].Text = Items.Count == 0 ? "Pack" : rank.ToString(CultureInfo.CurrentCulture);
+				ListView.Columns[0].Text = Empty() ? "Pack" : rank.ToString(CultureInfo.CurrentCulture);
 			}
 		}
 
@@ -52,8 +52,6 @@ namespace Torn.UI
 							yellows++;
 						else if (term.Type == TermType.Red)
 							reds++;
-
-				League?.Load();
 
 				bool isPoints = League?.IsPoints() ?? false;
 				ListView.Columns[1].Text = (isPoints ? "(" + GameTeam?.Points + ") " : "") + (leagueTeam == null ? "Players" : (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + leagueTeam.Name);
@@ -118,7 +116,7 @@ namespace Torn.UI
 
 		protected override void Recalculate(bool guessTeam = true)
 		{
-			if (Items.Count == 0)
+			if (Empty())
 			{
 				rank = 0;
 				score = 0;

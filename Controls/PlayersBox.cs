@@ -38,7 +38,7 @@ namespace Torn.UI
 			if (serverGame.Players != null)
 				foreach (var player in serverGame.Players)
 				{
-					league?.Load(league?.FileName);
+					league?.Load();
 					LeaguePlayer leaguePlayer = league?.LeaguePlayer(player.PlayerId);
 					GamePlayer gamePlayer = league?.Games(false)?.Find(g => g.Time == serverGame.Time)?.Players()?.Find(p => p.PlayerId == player.PlayerId);
 					if(gamePlayer != null && gamePlayer.Grade != null)
@@ -82,10 +82,9 @@ namespace Torn.UI
 
 					item.ToolTipText = tooltip;
 
-					Console.WriteLine("playerScore " + player.Score);
-					Console.WriteLine("playerIsElmininated " + player.IsEliminated);
-					Console.WriteLine("zeroElimed " + league?.ZeroElimed);
-					Console.WriteLine("zeroElimed " + league?.ZeroElimed);
+					Console.WriteLine("player.Score " + player.Score + 
+						(player.IsEliminated ? "; player.IsEliminated " : "") + 
+						( league == null ? "; no league" : league.ZeroElimed ? "; league.ZeroElimed " : ""));
 
 					var score = player.Score > 0 && player.IsEliminated && (league?.ZeroElimed ?? false) ? "0" : player.Score.ToString();
 

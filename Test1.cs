@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Windows.Forms;
 using System.Xml;
 using NUnit.Framework;
 using Torn;
 using Torn.Report;
+using Torn.UI;
 using Zoom;
 
 // When setting up a new machine to compile Torn5: if you get 'Could not locate the assembly "NUnit.Framework"',
@@ -44,21 +47,27 @@ namespace TornWeb
 			serverGame.League = league;
 			serverGame.Time = new DateTime(2018, 1, 1, 12, 0, 0);
 
-			var teamDatas = new System.Collections.Generic.List<GameTeamData>();
+			var teamDatas = new List<GameTeamData>();
 
-			var teamData = new GameTeamData();
-			teamData.GameTeam = new GameTeam();
-			teamData.Players = new System.Collections.Generic.List<ServerPlayer>();
-			teamData.Players.Add(new ServerPlayer() { PlayerId = "001" } );
-			teamData.Players.Add(new ServerPlayer() { PlayerId = "002" } );
-			teamData.Players.Add(new ServerPlayer() { PlayerId = "003" } );
+			var teamData = new GameTeamData
+			{
+				GameTeam = new GameTeam(),
+				Players = new List<ServerPlayer>
+				{
+					new ServerPlayer() { PlayerId = "001", Score = 1000 },
+					new ServerPlayer() { PlayerId = "002", Score = 2000 },
+					new ServerPlayer() { PlayerId = "003", Score = 3000 }
+				}
+			};
 			teamDatas.Add(teamData);
 
 			teamData = new GameTeamData();
 			teamData.GameTeam = new GameTeam();
-			teamData.Players = new System.Collections.Generic.List<ServerPlayer>();
-			teamData.Players.Add(new ServerPlayer() { PlayerId = "004" } );
-			teamData.Players.Add(new ServerPlayer() { PlayerId = "nonexistent" } );
+			teamData.Players = new List<ServerPlayer>
+			{
+				new ServerPlayer() { PlayerId = "004", Score = 0 },
+				new ServerPlayer() { PlayerId = "nonexistent" }
+			};
 			teamDatas.Add(teamData);
 
 			var addedGame = league.CommitGame(serverGame, teamDatas, GroupPlayersBy.Alias);
@@ -245,7 +254,7 @@ namespace TornWeb
 		}
 
 		[Test]
-		public void TestVictoryPoints()
+		public void TestScoreAndPoints()
 		{
 			var league = CreateLeague();
 			league.VictoryPoints.Add(6.0);
@@ -259,19 +268,21 @@ namespace TornWeb
 			AddTeam(firstGame);
 			AddTeam(firstGame);
 
-			firstGame.Teams[0].Score = 2000;
-			
-			Assert.That(6.0 == league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Alias), "2000 - 1st");
-			Assert.That(0.0 == league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Alias), "0 - 5th");
-			Assert.That(2.0 == league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th A");
-			Assert.That(2.0 == league.CalculatePoints(firstGame.Teams[3], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th B");
-			Assert.That(2.0 == league.CalculatePoints(firstGame.Teams[4], GroupPlayersBy.Alias), "1000 - tied 2nd/3rd/4th C");
+			Assert.That(league.CalculateScore(firstGame.Teams[0]), Is.EqualTo(6000));
+			Assert.That(league.CalculateScore(firstGame.Teams[1]), Is.EqualTo(0));
+			Assert.That(league.CalculateScore(firstGame.Teams[2]), Is.EqualTo(1000));
 
-			Assert.That(6.0 == league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Lotr), "2000 - 1st");
-			Assert.That(6.0 == league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Lotr), "0 - 1st");
-			Assert.That(4.0 == league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd A");
-			Assert.That(4.0 == league.CalculatePoints(firstGame.Teams[3], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd B");
-			Assert.That(4.0 == league.CalculatePoints(firstGame.Teams[4], GroupPlayersBy.Lotr), "1000 - tied 1st/2nd/3rd C");
+			Assert.That(league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Alias), Is.EqualTo(6.0), "6000 - 1st");
+			Assert.That(league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Alias), Is.EqualTo(0.0), "0 - 5th");
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), Is.EqualTo(2.0), "1000 - tied 2nd/3rd/4th A");
+			Assert.That(league.CalculatePoints(firstGame.Teams[3], GroupPlayersBy.Alias), Is.EqualTo(2.0), "1000 - tied 2nd/3rd/4th B");
+			Assert.That(league.CalculatePoints(firstGame.Teams[4], GroupPlayersBy.Alias), Is.EqualTo(2.0), "1000 - tied 2nd/3rd/4th C");
+
+			Assert.That(league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Lotr), Is.EqualTo(6.0), "6000 - 1st");
+			Assert.That(league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Lotr), Is.EqualTo(6.0), "0 - 1st");
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Lotr), Is.EqualTo(4.0), "1000 - tied 1st/2nd/3rd A");
+			Assert.That(league.CalculatePoints(firstGame.Teams[3], GroupPlayersBy.Lotr), Is.EqualTo(4.0), "1000 - tied 1st/2nd/3rd B");
+			Assert.That(league.CalculatePoints(firstGame.Teams[4], GroupPlayersBy.Lotr), Is.EqualTo(4.0), "1000 - tied 1st/2nd/3rd C");
 		}
 
 		LaserGameServer stubServer;
@@ -290,7 +301,7 @@ namespace TornWeb
 			webOutput.Elapsed = Elapsed;
 
 			jsonServer = new JsonServer();
-			Assert.That(new TimeSpan(0, 0, 42) == jsonServer.GameTimeElapsed(), "jsonServer time");
+			Assert.That(jsonServer.GameTimeElapsed(), Is.EqualTo(new TimeSpan(0, 0, 42)), "jsonServer time");
 
 			var games = jsonServer.GetGames();
 			Assert.That(3 == games.Count);
@@ -332,6 +343,74 @@ namespace TornWeb
 			Assert.That("axes" == Utility.Pluralise("axis"), "pluralise axis");
 			Assert.That("fairies" == Utility.Pluralise("fairy"), "pluralise fairy");
 			Assert.That("monkeys" == Utility.Pluralise("monkey"), "pluralise monkey");
+		}
+
+		[Test]
+		public void TestTeamBox()
+		{
+			var league = CreateLeague();
+			league.Save();
+			var game = AddGame(league);
+
+			var form = CreateUI();
+
+			PlayersBox playersBox = null;
+			TeamBox teamBox = null;
+			TeamBox teamBox2 = null;
+
+			foreach (Control control in form.Controls)
+			{
+				if (control is PlayersBox pb)
+					playersBox = pb;
+
+				if (control is TeamBox tb)
+				{
+					if (teamBox == null)
+						teamBox = tb;
+					else
+						teamBox2 = tb;
+				}
+			}
+
+			playersBox.LoadGame(league, game.ServerGame);
+
+			teamBox.League = league;
+
+			Assert.That(teamBox.Empty(), Is.True);
+			Assert.That(teamBox.Score, Is.EqualTo(0));
+
+			teamBox.Accept(playersBox.Players());
+
+			Assert.That(teamBox.Empty(), Is.False, "teamBox Accept players.");
+			Assert.That(teamBox.Score, Is.EqualTo(6000));
+
+			teamBox.Clear();
+
+			Assert.That(teamBox.Empty(), Is.True, "teamBox Clear.");
+
+			playersBox.LoadGame(league, game.ServerGame);
+			teamBox2.Accept(playersBox.Players());
+
+			teamBox.Accept(teamBox2.Players());
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(teamBox.Empty(), Is.False, "teamBox Accept players from teamBox2.");
+				Assert.That(teamBox2.Empty(), Is.True);
+				Assert.That(teamBox.Score, Is.EqualTo(6000));
+				Assert.That(teamBox2.Score, Is.EqualTo(0));
+			});
+		}
+
+		Form CreateUI()
+		{
+			var form = new Form();
+
+			form.Controls.Add(new PlayersBox());
+			form.Controls.Add(new TeamBox());
+			form.Controls.Add(new TeamBox());
+
+			return form;
 		}
 	}
 
@@ -414,5 +493,5 @@ namespace TornWeb
 			player.Id = id;
 			return player;
 		}
-    }
+	}
 }
