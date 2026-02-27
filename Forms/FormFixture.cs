@@ -111,6 +111,10 @@ namespace Torn.UI
 				{
 					int maxId = Holder.League.Teams().Any() ? Holder.League.Teams().Max(t => t.TeamId) : 0;
 					teams = fixtureSelectedTeams.ToList();
+
+					if (teams.Count > numericTeams.Value)
+						teams.RemoveRange((int)numericTeams.Value, teams.Count - (int)numericTeams.Value);
+
 					while (teams.Count < numericTeams.Value)
 					{
 						maxId++;
@@ -379,7 +383,7 @@ namespace Torn.UI
 
 			if (Holder.Fixture != null)
 			{
-				Holder.League.Load(Holder.League.FileName);
+				Holder.League.Load();
 				List<LeagueTeam> leagueTeams = Holder.League.GetTeamLadder();
 				if (Holder.Fixture.Teams.Count == 0)
 				{
