@@ -32,6 +32,11 @@ namespace Torn.Report
 			CountBest = 0;
 		}
 
+		public Drops Clone()
+		{
+			return new Drops() { PercentWorst = PercentWorst, PercentBest = PercentBest, CountWorst = CountWorst, CountBest = CountBest };
+		}
+
 		public int CountAfterDrops(int count)
 		{
 			return count - DropWorst(count) - DropBest(count);
@@ -515,7 +520,7 @@ namespace Torn.Report
 					ZAlignment.Integer)
 				{
 					GroupHeading = game.Title,
-					Hyper = GameHyper(game),
+					Hyper = GameHyper(game, rt),
 					Tag = game
 				};
 				report.AddColumn(column);
@@ -698,7 +703,7 @@ namespace Torn.Report
 						{
 							row.Add(new ZCell(game.Time.ToShortTimeString())
 							{
-								Hyper = GameHyper(game)
+								Hyper = GameHyper(game, rt)
 							}
 							);
 							row.Add(new ZCell(gameTeam.Score, ChartType.Bar, "N0", gameTeam.Colour.ToColor()));
@@ -776,7 +781,7 @@ namespace Torn.Report
 
 				ZCell dateCell = new ZCell(game.ShortTitle())
 				{
-					Hyper = GameHyper(game)
+					Hyper = GameHyper(game, rt)
 				};
 				row.Add(dateCell);
 
@@ -898,7 +903,7 @@ namespace Torn.Report
 
 				ZCell dateCell = new ZCell(game.ShortTitle())
 				{
-					Hyper = GameHyper(game)
+					Hyper = GameHyper(game, rt)
 				};
 				teamsRow.Add(dateCell);
 
@@ -1121,7 +1126,7 @@ namespace Torn.Report
 
 						row.Add(new ZCell((group[game].Time.ToShortTimeString()).Trim())
 						{
-							Hyper = GameHyper(group[game])
+							Hyper = GameHyper(group[game], rt)
 						}
 						);
 
@@ -3099,7 +3104,7 @@ namespace Torn.Report
 						};
 
 						if (cellGames.Count == 1)
-							cell.Hyper = GameHyper(cellGames[0]);
+							cell.Hyper = GameHyper(cellGames[0], rt);
 					}
 					row.Add(cell);
 				}
@@ -3548,9 +3553,15 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		}
 
 		/// <summary>Callback passed to various reports to generate HTML fragment with URL of a game.</summary>
-		static string GameHyper(Game game)
+		static string GameHyper(Game game, ReportTemplate rt = null)
 		{
-			return "games" + game.Time.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + ".html#game" + game.Time.ToString("HHmm", CultureInfo.InvariantCulture);
+			return GameHyper(game.Time, rt != null && rt.OneGamePerPage);
+		}
+
+		public static string GameHyper(DateTime time, bool oneGamePerPage)
+		{
+			return oneGamePerPage ? "game" + time.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture) + ".html" :
+				"games" + time.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + ".html#game" + time.ToString("HHmm", CultureInfo.InvariantCulture);
 		}
 
 		static string TeamHyper(LeagueTeam leagueTeam)

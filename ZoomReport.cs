@@ -52,7 +52,7 @@ namespace Zoom
 	}
 
 	/// <summary>This is the abstract parent of ZColumn and ZCell, holding only a few fields common to "rectangular areas that can contain text".</summary>
-	public class Block
+	public class ZBlock
 	{
 		/// <summary>If this cell or column heading contains text which links to another report, put the URL of that report here.</summary>
 		public string Hyper { get; set; }
@@ -63,7 +63,7 @@ namespace Zoom
 	}
 
 	/// <summary>This is just the header row(s) and metadata for a column -- does not include the actual cells.</summary>
-	public class ZColumn: Block
+	public class ZColumn: ZBlock
 	{
 		/// <summary>Text to appear in the column header.</summary>
 		public string Text { get; set; }
@@ -184,7 +184,7 @@ namespace Zoom
 	}
 
 	/// <summary>Represents a single cell in a table. The cell can optionally have a horizontal chart bar.</summary>
-	public class ZCell: Block
+	public class ZCell: ZBlock
 	{
 		string text;
 

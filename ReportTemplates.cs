@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
@@ -25,6 +24,8 @@ namespace Torn.Report
 		public Drops Drops { get; set; }
 		public DateTime? From { get; set; }
 		public DateTime? To { get; set; }
+		/// <summary>When creating hyperlinks to game reports, should we assume that all the games for a given day are in a single html file, or that each game is in its own html file?</summary>
+		public bool OneGamePerPage { get; set; }
 
 		public ReportTemplate()
 		{
@@ -68,6 +69,11 @@ namespace Torn.Report
 			}
 		}
 
+		public ReportTemplate Clone()
+		{
+			return new ReportTemplate() { ReportType = ReportType, Title = Title, Settings = Settings.ToList(), Drops = Drops?.Clone(), From = From, To = To, OneGamePerPage = OneGamePerPage };
+		}
+
 		/// <summary>If a setting with this name exists, return its value. Otherwise return null.</summary>
 		public string Setting(string name)
 		{
@@ -96,6 +102,7 @@ namespace Torn.Report
 				Settings.RemoveAt(i);
 			return i != -1;
 		}
+
 		public override string ToString()
 		{
 			StringBuilder sb = new StringBuilder();
@@ -184,18 +191,6 @@ namespace Torn.Report
 			}
 			else if (!string.IsNullOrEmpty(setting))
 				parent.AppendChild(doc.CreateElement(setting));
-		}
-
-		void SetAttribute(XmlDocument doc, XmlNode node, string key, string value)
-		{
-			if (node.Attributes[key] != null)
-				node.Attributes[key].Value = value;
-			else
-			{
-				XmlAttribute attr = doc.CreateAttribute(key);
-				attr.Value = value;
-				node.Attributes.Append(attr);
-			}
 		}
 
 		public void ToXml(XmlDocument doc, XmlNode node)

@@ -66,7 +66,7 @@ namespace Torn.Report
 		}
 
 		/// <summary>Generate a page full of reports for a league. If no ReportTemplates, use a default set of reports.</summary>
-		public static ZoomReports OverviewReports(Holder holder, bool includeSecret, string exportFolder = "")
+		public static ZoomReports OverviewReports(Holder holder, bool includeSecret, bool oneGamePerPage = false, string exportFolder = "")
 		{
 			ZoomReports reports = new ZoomReports(holder.League.Title);
 
@@ -80,9 +80,13 @@ namespace Torn.Report
 				reportTemplates = holder.ReportTemplates;
 
 			foreach (ReportTemplate rt in reportTemplates)
-				reports.Add(Report(holder.League, includeSecret, rt, exportFolder));
+			{
+				var rt2 = rt.Clone();
+				rt2.OneGamePerPage = oneGamePerPage;
+				reports.Add(Report(holder.League, includeSecret, rt2, exportFolder));
+			}
 
-			//reports.Add(new ZoomHtmlInclusion("</div><br/><a href=\"../now.html\">Now Playing</a><br/><a href=\"fixture.html\">Fixture</a><br/><a href=\"../index.html\">Index</a><div>"));
+			reports.Add(new ZoomHtmlInclusion("<br/></div><a href=\"../index.html\">Index</a><div>"));
 
 			return reports;
 		}
@@ -137,18 +141,29 @@ namespace Torn.Report
 			}
 		}
 
-		public static string OverviewPage(Holder holder, bool includeSecret, OutputFormat outputFormat)
-		{
-			return OverviewReports(holder, includeSecret).ToOutput(outputFormat);
-		}
-
 		public static string GamePage(League league, Game game, OutputFormat outputFormat = OutputFormat.Svg)
 		{
 			ZoomReports reports = new ZoomReports();
 			reports.Colors.BackgroundColor = Color.Empty;
 			reports.Colors.OddColor = Color.Empty;
 			reports.Add(Reports.OneGame(league, game));
-			reports.Add(new ZoomHtmlInclusion("</div><br/><a href=\"index.html\">Index</a><div>"));
+
+			reports.Add(new ZoomHtmlInclusion("</div><br/><div align=\"center\">"));
+
+			var gameTimes = league.Games().Select(g => g.Time);
+
+			var previousGameTime = gameTimes.Where(t => t < game.Time).LastOrDefault();
+			if (previousGameTime != default)
+				reports.Add(new ZoomHtmlInclusion("<a href=\"" + Reports.GameHyper(previousGameTime, true) + "\">\u25C0 Previous game</a> "));
+
+			reports.Add(new ZoomHtmlInclusion("<a href=\"index.html\">\u25B2 Index</a> "));
+
+			var nextGameTime = gameTimes.Where(t => t > game.Time).FirstOrDefault();
+			if (nextGameTime != default)
+				reports.Add(new ZoomHtmlInclusion("<a href=\"" + Reports.GameHyper(nextGameTime, true) + "\">Next game \u25B6</a> "));
+
+			reports.Add(new ZoomHtmlInclusion("</div>"));
+
 			return reports.ToOutput(outputFormat);
 		}
 
@@ -393,7 +408,7 @@ xhrScoreboard.send();
 				if (request.RawUrl == "/")
 				{
 					if (Leagues.Count == 1)
-						Respond(context, ReportPages.OverviewPage(holder, false, OutputFormat.Svg));
+						Respond(context, ReportPages.OverviewReports(holder, false, true).ToSvg());
 					else
 						Respond(context, ReportPages.RootPage(Leagues));
 				}
@@ -424,27 +439,30 @@ xhrScoreboard.send();
 		string HtmlResponse(HttpListenerContext context, string lastPart, Holder holder)
 		{
 			string rawUrl = context.Request.RawUrl;
-			if (lastPart == "now.html")
+			if (rawUrl == "/index.html")
+				return ReportPages.RootPage(Leagues);
+			else if (lastPart == "now.html")
 				return NowPage();
 			else if (lastPart == "scoreboard.html")
 				return ScoreboardPage();
 			else if (holder == null)
 				return string.Format(CultureInfo.InvariantCulture, "<html><body>Couldn't find a league key in \"<br>{0}\". Try <a href=\"now.html\">Now Playing</a> instead.</body></html>", rawUrl);
 			else if (lastPart == "index.html")
-				return ReportPages.OverviewPage(holder, false, OutputFormat.Svg);
+				return ReportPages.OverviewReports(holder, false, true).ToSvg();
 			else if (lastPart.StartsWith("games", StringComparison.OrdinalIgnoreCase))
 			{
-				DateTime dt = DateTime.ParseExact(lastPart.Substring(5, 8), "yyyyMMdd", CultureInfo.InvariantCulture);
-				Game game = holder.League.Games().Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
+				DateTime day = DateTime.ParseExact(lastPart.Substring(5, 8), "yyyyMMdd", CultureInfo.InvariantCulture);
+				Game game = holder.League.Games().Find(x => x.Time >= day);  // The URL is likely like "gamesyyyyMMdd.html#gameHHmm", but the stuff after the # never gets passed to us -- it's handled internally by the web browser. So just return the first game after midnight on this day.
+
 				if (game == null)
-					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid game: <br>{0}</body></html>", rawUrl);
+					return string.Format(CultureInfo.InvariantCulture, "<html><body>No games found on or after <br>{0}</body></html>", rawUrl);
 				else
 					return ReportPages.GamePage(holder.League, game);
 			}
 			else if (lastPart.StartsWith("game2", StringComparison.OrdinalIgnoreCase))
 			{
 				DateTime dt = DateTime.ParseExact(lastPart.Substring(4, 12), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
-				Game game = holder.League.Games().Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
+				Game game = holder.League.Games().Find(x => x.Time >= dt && x.Time.Subtract(dt).TotalSeconds < 60);
 				if (game == null)
 					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid game: <br>{0}</body></html>", rawUrl);
 				else
@@ -777,7 +795,7 @@ xhrScoreboard.send();
 					Directory.CreateDirectory(Path.Combine(path, holder.Key));
 
 					using (StreamWriter sw = File.CreateText(Path.Combine(path, holder.Key, "index." + holder.ReportTemplates.OutputFormat.ToExtension())))
-						sw.Write(ReportPages.OverviewPage(holder, includeSecret, holder.ReportTemplates.OutputFormat));
+						sw.Write(ReportPages.OverviewReports(holder, includeSecret).ToOutput(holder.ReportTemplates.OutputFormat));
 					myProgress.Increment(holder.League.Title + " Overview page exported.");
 
 					foreach (LeagueTeam leagueTeam in holder.League.Teams())
