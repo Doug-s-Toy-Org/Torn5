@@ -2359,9 +2359,9 @@ namespace Torn.Report
 
 		}
 
-		public static ZoomReport PackHitsReport(League league, bool includeSecret, ReportTemplate rt, string exportFolder, DateTime? from, DateTime? to)
+		public static ZoomReport PackHitsReport(ReportTemplate rt, string exportFolder, DateTime? from, DateTime? to)
 		{
-			ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", league.Title, rt),
+			ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", "", rt),
 												"Pack,Chest,Back,Phasor,L Shoulder,R Shoulder,Chest,Back,Phasor,L Shoulder,R Shoulder,Total Hits",
 												"left,integer,right,integer,right,integer,right,integer,right,integer,right,integer",
 												",Percentage,Percentage,Percentage,Percentage,Percentage,Hits,Hits,Hits,Hits,Hits,");
@@ -2462,6 +2462,8 @@ namespace Torn.Report
 				row.AddCell(new ZCell(pack.frShoulder.ToString(), "R Shoulder"));
 				row.AddCell(new ZCell((int)pack.TotalHits()));
 			}
+
+			report.Description = "Pack hits collated from " + files.Count() + " JSON files.";
 
 			return report;
 		}
