@@ -2177,7 +2177,7 @@ namespace Torn.Report
 			{
 				var games = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue)).ToList();
 				double averageTeamPlayers = games.Average(g => g.Teams.Average(t => t.Players.Count));
-				double playersLoggedOn = games.Average(g => g.Teams.Average(t => t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1)));
+				double playersLoggedOn = games.Any() ? games.Average(g => g.Teams.Any() ? g.Teams.Average(t => t.Players.Any() ? t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1) : 0) : 0) : 0;
 				int gamesWithPoints = games.Count(g => g.Teams.Any(t => t.Points != 0));
 
 				foreach (var game in games)
@@ -2240,6 +2240,16 @@ namespace Torn.Report
 								}
 						);
 			}
+
+			if (report.Rows.Count == 0)
+							report.Rows.Add(
+								new ZRow()
+								{
+									new ZCell(string.Empty),
+									new ZCell("No problems found. Hooray!"),
+									new ZCell(string.Empty)
+								}
+						);
 
 			if (description)
 				report.Description = "This report lists possible problems with committed games.\nTake remedial action (e.g. by fixing the problem and recommitting the game) where appropriate.";
@@ -3498,7 +3508,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				new ZRow()
 				{
 					new ZCell(game?.LongTitle()) { Hyper = GameHyper(game) },
-					team == null ? new ZCell(string.Empty) : new ZCell(league.LeagueTeam(team).Name, team.Colour.ToColor()),
+					team == null ? new ZCell(string.Empty) : new ZCell(league.LeagueTeam(team)?.Name, team.Colour.ToColor()),
 					new ZCell(message)
 				}
 			);
