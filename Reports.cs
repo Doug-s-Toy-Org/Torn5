@@ -1690,8 +1690,6 @@ namespace Torn.Report
 				totals.Score = 0;
 			}
 
-			Console.WriteLine("OnePlayer: " + totalTagRatio + " " + totalCount);
-
 			FillDetails(totalRow, totals, default, (double)totalScore / totalCount, (double)totalTagRatio / totalGames);
 
 			report.Rows.Add(totalRow);
@@ -2486,15 +2484,15 @@ namespace Torn.Report
 			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
 			ZoomReport report = new ZoomReport(ReportTitle("Solo Ladder", league.Title, rt),
-											   ",Player,Team,Average Score," + (showZeroed ? "Average Non-Zeroed Score," : "") + "TR\u00D7SR,Tag Ratio,Score Ratio,Tags +,Tags-,Rank,Destroys,Denies,Denied,Yellow,Red,Elimed,Games,Dropped,Grade,Comments,Longitudinal",
-											   "center,left,left,integer," + (showZeroed ? "integer," : "") + "integer,integer,integer,float,float,float,integer,integer,integer,integer,integer,integer,integer,integer,integer",
-											   ",,," + (showZeroed ? "," : "") + ",Ratios,Ratios,Ratios,Tags,Tags,,Base,Base,Base,Penalties,Penalties,,,,")
+											   ",Player,Team,Average Score," + (showZeroed ? "Average Non-Zeroed Score," : "") + "TR\u00D7SR,Tag Ratio,Score Ratio,Tags +,Tags-,Rank,Destroys,Denies,Denied,Yellow,Red,Eliminated,Games,Dropped,Grade,Comments,Longitudinal",
+											   "center,left,left,integer," + (showZeroed ? "integer," : "") + "float,float,float,float,float,float,integer,integer,integer,integer,integer,integer,integer,integer,integer,left,left",
+											   ",,," + (showZeroed ? "," : "") + ",Ratios,Ratios,Ratios,Tags,Tags,,Base,Base,Base,Penalties,Penalties,,,,,,")
 			{
 				MaxChartByColumn = true,
 				MultiColumnOK = true
 			};
 
-			report.Columns.First().Rotate = true;
+			report.Columns.First(c => c.Text == "Eliminated").Rotate = true;
 			report.Columns.First(c => c.Text == "Games").Rotate = true;
 			report.Columns.First(c => c.Text == "Dropped").Rotate = true;
 
@@ -2588,9 +2586,10 @@ namespace Torn.Report
 					row.Add(DataCell(played.Select(x => (double)x.BaseDenied).ToList(), rt.Drops, ChartType.Bar, "N1", "Denied"));
 					row.Add(DataCell(played.Select(x => (double)x.YellowCards).ToList(), rt.Drops, ChartType.Bar, "N1", "Yellow"));
 					row.Add(DataCell(played.Select(x => (double)x.RedCards).ToList(), rt.Drops, ChartType.Bar, "N1", "Red"));
-					row.Add(TotalDataCell(played.Select(x => (double)(x.IsEliminated ? 1 : 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Eliminated"));
+					row.Add(new ZCell(played.Count(x => x.IsEliminated), ChartType.Bar, "N0"));
+					row.Last().Title = "xxxx";
 
-					row.Add(new ZCell(played.Count(), ChartType.None, "N0", default, "Games"));  // Games
+					row.Add(new ZCell(played.Count(), ChartType.None, "N0", default, "xxxx"));  // Games
 
 					if (rt.Drops == null)
 						row.Add(new ZCell());  // games dropped
