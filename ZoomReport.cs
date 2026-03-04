@@ -620,7 +620,7 @@ namespace Zoom
 					if (col < Rows[row].Count)
 					{
 						var cell = Rows[row][col];
-						if (cell.Data != null && cell.Data.Any())
+						if (cell.Data != null && cell.Data.Any() && cell.ChartType != ChartType.None && cell.ChartType != ChartType.Bar)  // For charts including rug, box plot, etc., let's get the min/max of the data points within the cell, instead of just the cell's display value.
 						{
 							hasNumber = true;
 							min = Math.Min(min, cell.Data.Min());
@@ -642,11 +642,11 @@ namespace Zoom
 							max = Math.Max(max, points.Max(p => p.X.Ticks));
 							maxPoints = Math.Max(maxPoints, points.Count);
 						}
-						else if (cell.Number.HasValue && !double.IsNaN((double)cell.Number) && !double.IsInfinity((double)cell.Number) && !double.IsNaN((double)cell.Number))
+						else if (cell.Number is double n && !double.IsNaN(n) && !double.IsInfinity(n) && !double.IsNaN(n))
 						{
 							hasNumber = true;
-							min = Math.Min(min, Math.Abs((double)cell.Number));
-							max = Math.Max(max, Math.Abs((double)cell.Number));
+							min = Math.Min(min, n);
+							max = Math.Max(max, n);
 						}
 						else if (!string.IsNullOrEmpty(cell.Text))
 						{
@@ -1102,7 +1102,10 @@ namespace Zoom
 			if (outline == default)
 			{
 				int len = s.Length;
-				s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F0}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x, y, width, height);
+				if (width > 0)
+					s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F0}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x, y, width, height);
+				else
+					s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F0}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x + width, y, -width, height);
 
 				if (fill.A < 255)
 					s.AppendFormat("fill-opacity:{0};", fill.A / 256.0);
