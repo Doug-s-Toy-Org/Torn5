@@ -277,9 +277,10 @@ namespace Torn.Report
 					ws = new WebServer(SendResponse, "http://localhost:" + port.ToString(CultureInfo.InvariantCulture) + "/");
 					ws.Run();
 				}
-				catch (Exception)
+				catch (Exception e)
 				{
 					// Squish. Probably couldn't get the port because something else (maybe another copy of Torn) is using it.
+					Console.WriteLine("WebOutput.Start() threw. Probably couldn't get the port because something else (maybe another copy of Torn) is using it. Message:\n" + e.Message + "\n. Stack trace:\n" + e.StackTrace);
 				}
 			}
 		}
@@ -424,6 +425,7 @@ xhrScoreboard.send();
 				Respond(context, "<html><body>\n" + ex.Message + "\n<br/><br/>\n" + ex.StackTrace + "</body></html>");
 				context.Response.StatusCode = 500;
 				context.Response.StatusDescription = ex.Message + "\n<br/><br/>\n" + ex.StackTrace;
+				Console.WriteLine("WebOutput.SendResponse() threw with message:\n" + ex.Message + "\n. Stack trace:\n" + ex.StackTrace);
 				throw;
 			}
 		}

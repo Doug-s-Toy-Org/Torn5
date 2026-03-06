@@ -11,17 +11,21 @@
 
 <div style="max-width:800px; margin:auto">
 <p><strong>Contents</strong>:<br/>
-<a href="#QuickStart">Quick Start</a>
-<a href="#MainWindow">Main Window</a>
-<a href="#Leagues">Leagues</a>
+<a href="#QuickStart">Quick Start</a><br/>
+<a href="#MainWindow">Main Window</a><br/>
+<a href="#Leagues">Leagues</a>:
 <a href="#Edit">Edit</a><br/>
 <a href="#Fixtures">Fixtures</a>:
 <a href="#Teams">Teams</a>
 <a href="#Finals">Finals</a>
 <a href="#Pyramid">Pyramid</a>
 <a href="#PyramidRound">Pyramid Round</a><br/>
-<a href="#Games">Games</a>
+<a href="#Games">Games</a><br/>
 <a href="#Reports">Reports</a>
+<a href="#ReportTypes">Report Types</a>:
+<a href="#TeamLadder">Ladders</a>
+<a href="#GameReports">Game reports</a>
+<a href="#PyramidReports">Pyramid reports</a> etc.<br/>
 <a href="#WebServer">Web Server</a>
 </p>
 <h1>Torn 5</h1>
@@ -39,11 +43,12 @@ If you're familiar with Torn 4, here's the very quick guide:
 <li>You can generate fixtures.</li>
 <li>Torn 5 acts as a web server so that players can get up-to-the-minute reports without you having to click anything other than Commit.</li></ul>
 </p>
-<a name="#QuickStart"><h2>Quick Start</h2></a>
+<a name="QuickStart"><h2>Quick Start</h2></a>
 </p><p>
 Run the program. Click <span class="mnu">Preferences</span>. If you have a lasergame system, select the appropriate system and enter the laser game database server address. 
 <ul>
-<li>For P&amp;C systems, this is the name or IP address of the database server machine.</li>
+<li>For P&amp;C Nexus systems, this is the name or IP address of the database server machine.</li>
+<li>For P&amp;C O-Zone systems, use the Helios net IP address, and port 123123. You will need a system that supports print server.</li>
 <li>For Laserforce, this is probably lf-main\lf6. (Depending on firewall and SQL Server configuration, you may need to run Torn 5 on the database PC.)</li>
 <li>If you don't have a lasergame system, just leave it at Demo.</li>
 </ul>
@@ -202,15 +207,15 @@ The first time you generate reports Torn will ask what folder to export to. You 
 </p><p>
 <strong><span class="mnu">Ad Hoc</span></strong>: Choose a report type and set its various settings, and you'll see the report shown in a floating window. From the floating window you can save or print that report. That floating window doesn't block Torn -- it's "non-modal". That means you can do other things in Torn while the floating window is still open, including generating more ad hoc reports to their own floating windows.
 </p><p>
-<strong><span class="mnu">Export Json</span></strong> gets data about games from the lasergame server and saves it as JSON files. games.json contains a list of games; players.json contains a list of players; and there's a JSON file for each game, with details. This is the same data available from Torn's internal web server, except that detailed game files have _ in their name instead of : because Windows doesn't like filenames with : in them.
+<strong><span class="mnu">Export Json</span></strong> gets data about games from the lasergame server and saves it as JSON files. games.json contains a list of games; players.json contains a list of players; and there's a JSON file for each game, with details. This is the same data available from Torn's internal web server, except that detailed game files have _ in their name instead of : because Windows doesn't like filenames with : in them. This button is currently disabled.
 </p>
-<h2>Misc</h2>
+<a name="Misc"><h2>Misc</h2></a>
 <p>
 <strong><span class="mnu">Help</span></strong>: this document.
 </p><p>
 <strong><span class="mnu">About</span></strong>: a brief About dialog.
 </p>
-<h3>Report Types</h3>
+<a name="ReportTypes"><h3>Report Types</h3></a>
 <p>
 Reporting is my favourite part of the software, so it gets all the attention. There are a variety of report types available, detailed below.
 </p><p>
@@ -232,7 +237,7 @@ You can choose various chart types for various reports, though not every type ma
 <p>
 If you export reports as HTML SVG or HTML tables, your reports will contain hyperlinks, which users can click to go to the appropriate place. Anywhere you see a team name, click it to see that team's stats page. Anywhere you see a player's name, click it to see that player's stats. Anywhere you see a game title or game time, click it to see details of that game.
 </p>
-<h3>Team Ladder</h3>
+<a name="TeamLadder"><h3>Team Ladder</h3></a>
 </div>
 <div style="float:left">
 <svg viewBox="0 0 293 100" width="410" align="center">
@@ -293,7 +298,7 @@ You can limit the report to <span class="mnu">show only the top <i>n</i> teams</
 </p><p>
 If you tick <span class="mnu">longitudinal chart</span> you'll get an extra column at the right of the report that shows how well each team did in each game.
 </p>
-<h3>Multi Team Ladder</h3>
+<a name="MultiTeamLadder"><h3>Multi Team Ladder</h3></a>
 </div>
 <div style="float:left; margin-right:10">
 <svg viewBox="0 0 530 198" width="530">
@@ -422,7 +427,7 @@ If you tick <span class="mnu">longitudinal chart</span> you'll get an extra colu
 <p>
 If you have set descriptions for groups of games, this report will show you several incremental ladders, showing the state of play at the end of each group of games. It also has arrows showing how teams rose and fell between groups. If a group description mentions "final" it will be ranked as if it were a grand final (i.e. scores from previous games don't count). If a group description mentions "semifinal", "semi final", "ascension", "format " or "track" it will be ranked as if it were an ascension (i.e. teams that survive longer are ranked higher).
 </p>
-<h3>Teams vs teams</h3>
+<a name="TeamsVsTeams"><h3>Teams vs teams</h3></a>
 </div>
 <div style="float:right">
 <svg viewBox="0 0 233 172" width="326" align="center">
@@ -501,11 +506,11 @@ If you have set descriptions for groups of games, this report will show you seve
 <p>
 This report (illustrated) shows a square array of teams versus teams. Each cell within the array shows how many times those teams have won against each other. If a cell represents one game (because those teams have played each other exactly once), it will be hyperlinked, and clicking the link will take you to that game. If you choose the <span class="mnu">show average victory points</span> option, then in addition to the number of wins you'll also see the average number of victory points the team scored in games against the other team.
 </p>
-<h3>Solo Ladder</h3>
+<a name="SoloLadder"><h3>Solo Ladder</h3></a>
 <p>
 The solo ladder has most of the same options as the team ladder. No <span class="mnu">show colours</span> option though.
 </p>
-<h3>Game Reports</h3>
+<a name="GameReports"><h3>Game Reports</h3></a>
 </div>
 <div style="float:left">
 <svg viewBox="0 0 490 176" width="490" align="center">
@@ -654,7 +659,7 @@ A <strong>Game grid</strong> (illustrated) shows results in a grid, with a row f
 </p><p>
 The <strong>Game grid condensed</strong> report (see Pyramid condensed illustration below right) is like the game grid, with each row being a team's results, but columns are condensed, so that each team's games are just shown in consecutive columns. If you have set descriptions for groups of games, then there will be groups of columns for each named group of games. The condensed grid is good when there are too many games for an ordinary game grid, but each team plays just a few games.
 </p>
-<h3>Pyramids</h3>
+<a name="PyramidReports"><h3>Pyramids</h3></a>
 </div>
 <div style="float:right">
 <svg viewBox="0 0 350 121" width="490" align="center">
@@ -756,11 +761,11 @@ The pyramid report is useful when you're running a competition that gradually el
 </p><p>
 The <strong>Pyramid condensed</strong> report (illustrated) still has a row for each team, but similar to the game grid condensed, it doesn't try to put each game in a column; instead just listing all a team's games across that team's row.
 </p>
-<h3>Ascension</h3>
+<a name="Ascension"><h3>Ascension</h3></a>
 <p>
 An ascension report is like a game grid, with one team per row and one game per column, but teams are ranked by the last game they survived in. This is useful for semifinals series.
 </p>
-<h3>Colours</h3>
+<a name="ColourReport"><h3>Colours</h3></a>
 </div>
 <div style="float:left">
 <svg viewBox="0 0 133 138" width="150" align="center">
@@ -821,11 +826,11 @@ An ascension report is like a game grid, with one team per row and one game per 
 <p>
 In an arena where a particular colour may have an advantage or disadvantage because of arena layout, this report (illustrated) shows how many times each colour got each placing. This report can be good to give to teams before they have to make colour choices for e.g. semifinals or finals games.
 </p>
-<h3>Sanity Check Report</h3>
+<a name="SanityCheck"><h3>Sanity Check Report</h3></a>
 <p>
 This report helps you pick up common errors: games with atypical numbers of players, players who have not been identified, games with no victory points where subsequent games do have victory points, etc.
 </p>
-<h3>Pack Report</h3>
+<a name="PackReport"><h3>Pack Report</h3></a>
 </div>
 <div style="float:right">
 <svg viewBox="0 0 240 140" width="240" align="center">
@@ -895,13 +900,13 @@ If pack hardware has been re-arranged (e.g. you've swapped guns between packs) o
 </p><p>
 If you tick the <span class="mnu">longitudinal</span> checkbox, you'll get an extra column showing when each pack played and how well it did. Higher is better.
 </p>
-<h3>Tech Report</h3>
+<a name="TechReport"><h3>Tech Report</h3></a>
 <p>
 This report shows the number of times each pack got hit in each location in the average game. Like the pack report, if you generate this from <span class="mnu">Ad Hoc</span>, you can select more than one league as input. But if you do this, be sure to only select leagues that are comparable to each other -- players are going to get hit a lot less in an elimination game format, for example.
 </p><p>
 If you see a pack getting hit a lot less than other packs in its left shoulder, for example, that pack might have a problem.
 </p>
-<h3>Everything Report</h3>
+<a name="EverythingReport"><h3>Everything Report</h3></a>
 <p>
 List every player in every game. Useful for data export. Export to TSV (tab-separated values) for easiest import into other tools.
 </p>
@@ -909,7 +914,7 @@ List every player in every game. Useful for data export. Export to TSV (tab-sepa
 <p>
 Torn 5 has an internal web server. You can enable/disable it from <span class="mnu">Preferences</span>. You can also set its port number. The default, 8080, is a common port number for web servers that don't want to get in the way of anything else on the same machine that might be using port 80. If you're confident that nothing else is using port 80, you can set it to that if you like.
 </p><p>
-If you're running Torn on a computer called mymachine and you've left it on the default port of 8080, point a web browser at <span class="url">http://mymachine:8080</span>. From the computer running Torn 5, you can use <a href="http://localhost:8080" class="url">http://localhost:8080</a>.
+If you're running Torn on a computer called mymachine and you've left it on the default port of 8080, point a web browser at <span class="url">http://mymachine:8080</span>. From the computer running Torn 5, you can use <a href="http://localhost:8080" class="url">http://localhost:8080</a>. Click links from there.
 </p><p>
 There's a scoreboard showing the most recent committed game at <a href="http://localhost:8080/tag/scoreboard.html"><span class="url">http://localhost:8080/</span>[tag]<span class="url">/scoreboard.html</span></a>, where [tag] is the tag you set for this league file.
 </p><p>
@@ -922,7 +927,7 @@ In addition to HTML, Torn 5's internal web server will serve JSON.
 </ul>
 The object of all this is to eventually allow a remote copy of Torn 5 to pull the statistics it needs from a lasergame server via a local copy of Torn 5 &mdash; the local copy pulls results from the lasergame server and in turn passes them as JSON to the remote copy of Torn 5. This avoids any need to directly expose the lasergame server to the internet. But this feature isn't well tested. It's also eventually intended to be able to push these files from the local Torn 5 to a web location, so that a remote Torn 5 can query those static files from an ordinary web server. This isn't implemented.
 </p>
-<h2>Download</h2>
+<a name="Download"><h2>Download</h2></a>
 <p>
 Torn 5 can be downloaded from <a href="http://dougburbidge.com/Apps/index.html">my Apps page</a>. The source code is available from <a href="https://github.com/Doug-s-Toy-Org/Torn5">my GitHub page</a>.
 </p>

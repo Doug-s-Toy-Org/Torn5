@@ -29,7 +29,7 @@ namespace Torn.UI
 		bool loading = false;
 		void FormLeagueShown(object sender, EventArgs e)
 		{
-			League.Load(League.FileName);
+			League.Load();
 			Text = "Torn -- " + League.Title;
 
 			BuildTree(League.Teams());

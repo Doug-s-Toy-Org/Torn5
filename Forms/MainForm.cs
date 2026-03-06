@@ -14,6 +14,7 @@ using System.Xml;
 using Torn.Report;
 using Torn5;
 using Torn5.Forms;
+using Torn5.Properties;
 using Zoom;
 
 /*
@@ -132,6 +133,8 @@ namespace Torn.UI
 
 		void MainFormShown(object sender, EventArgs e)
 		{
+			Console.WriteLine("Torn5 " + Resources.version + " starting.");
+
 			// Tries to export entire server could be 500 games and crashes everything
 			ribbonButtonExportJson.Enabled = false;
 			leagues = new Holders();
@@ -227,6 +230,7 @@ namespace Torn.UI
 			{
 				string s = ex.ToString();
 				MessageBox.Show("Error while connecting to lasergame database server. Please check your settings.\n\n" + s.Substring(0, s.IndexOf('\n')));
+				Console.WriteLine("ConnectLaserGameServer() threw with message:\n" + ex.Message + "\n. Stack trace:\n" + ex.StackTrace);
 			}
 
 			timeToNextCheck = TimeSpan.FromSeconds(0);
@@ -249,6 +253,7 @@ namespace Torn.UI
 			{
 				string s = ex.ToString();
 				MessageBox.Show("Error while exiting application.\n\n" + s.Substring(0, s.IndexOf('\n')));
+				Console.WriteLine("MainFormFormClosing() threw with message:\n" + ex.Message + "\n. Stack trace:\n" + ex.StackTrace);
 			}
 		}
 
@@ -268,6 +273,7 @@ namespace Torn.UI
 			{
 				item.ImageKey = "cross";
 				item.Text = ex.Message + " -- " + ex.StackTrace;
+				Console.WriteLine("AddLeague() threw with message:\n" + ex.Message + "\n. Stack trace:\n" + ex.StackTrace);
 			}
 
 			if (string.IsNullOrEmpty(league.Key))

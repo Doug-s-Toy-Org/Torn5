@@ -53,7 +53,7 @@ namespace Torn.UI
 				"Everything",
 			};
 			listBoxReportType.Items.AddRange(reports.ToArray());
-			League.Load(League.FileName);
+			League.Load();
 			listBoxReportType.Focus();
 
 			if (League != null)
