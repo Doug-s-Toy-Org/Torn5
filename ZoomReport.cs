@@ -1544,8 +1544,12 @@ namespace Zoom
 			if (hasGroupHeadings)
 				rowTop += rowHeight + 1;
 
-			float widest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? TextWidth(col.Text) : 0);
-			double headerHeight = hasGroupHeadings && anyRotate ? widest : !hasGroupHeadings && anyRotate ? (widest + rowHeight) / Math.Sqrt(2) : rowHeight;
+			float tallest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? TextWidth(col.Text) : 0);
+			double headerHeight = !hasGroupHeadings && anyRotate ? (tallest + rowHeight) / Math.Sqrt(2) : rowHeight;
+
+			// If some columns have group headings, for any column that doesn't, we can grow the heading of that column upwards into the space that would have been used by the group heading. The "-rowHeight" bit below does this.
+			if (hasGroupHeadings && anyRotate)
+				headerHeight = Math.Max(headerHeight, Columns.Max(c => c.Rotate ? TextWidth(c.Text) + (string.IsNullOrWhiteSpace(c.GroupHeading) ? -rowHeight : 1) : rowHeight));
 
 			return rowTop + (int)headerHeight + 1;
 		}
@@ -1580,14 +1584,13 @@ namespace Zoom
 				s.Append('\n');
 			}
 
-			float widest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? TextWidth(col.Text) : 0);
-			double headerHeight = hasGroupHeadings && anyRotate ? widest : !hasGroupHeadings && anyRotate ? (widest + rowHeight) / Math.Sqrt(2) : rowHeight;
+			int headerHeight = SvgHeaderHeight(hasGroupHeadings, rowHeight) - rowTop - 1;
 			float x = left;
 
 			for (int col = 0; col < Columns.Count; col++)
 			{
 				var column = Columns[col];
-				int upset = hasGroupHeadings && string.IsNullOrWhiteSpace(column.GroupHeading) ? rowHeight + 1 : 0;
+				int upset = hasGroupHeadings && string.IsNullOrWhiteSpace(column.GroupHeading) ? rowHeight + 1 : 0;  // If some columns have group headings, but this column doesn't, we can grow the heading of this column upwards into the space that would have been used by the group heading.
 				Color backColor = column.Color == default ? Colors.TitleBackColor : column.Color;
 				Color textColor = column.Color == default ? Colors.TitleFontColor : backColor.GetBrightness() < 0.63 ? Color.White : Color.Black;
 				bool nextRotated = Columns.Valid(col + 1) && Columns[col + 1].Rotate;
@@ -1616,7 +1619,7 @@ namespace Zoom
 					s.Append("\t<text alignment-baseline=\"middle\" ");
 
 					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
-									x + widths[col] / 2 - rowHeight / 4, rowTop + headerHeight - rowHeight / 4, headerHeight, Math.Min(rowHeight * 3 / 4, widths[col]));
+									x + widths[col] / 2 - rowHeight / 4, rowTop + headerHeight - rowHeight / 4, headerHeight + upset, Math.Min(rowHeight * 3 / 4, widths[col]));
 					s.Append(System.Drawing.ColorTranslator.ToHtml(textColor));
 					s.Append("\">");
 
@@ -1655,7 +1658,7 @@ namespace Zoom
 				x += widths[col] + 1;
 			}
 
-			rowTop += (int)headerHeight + 1;
+			rowTop += headerHeight + 1;
 			s.Append('\n');
 			return rowTop;
 		}
