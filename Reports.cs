@@ -565,7 +565,10 @@ namespace Torn.Report
 				}
 
 				if (rt.Drops != null && (rt.Drops.DropWorst(100) > 0 || rt.Drops.DropBest(100) > 0))
+				{
 					report.AddColumn(new ZColumn("Dropped", ZAlignment.Integer));
+					report.Columns.Last().Rotate = true;
+				}
 			}
 
 			// Add a row for each team, with a cell for each game.
@@ -676,7 +679,10 @@ namespace Torn.Report
 				}
 
 				if (rt.Drops != null && (rt.Drops.DropWorst(100) > 0 || rt.Drops.DropBest(100) > 0))
+				{
 					report.AddColumn(new ZColumn("Dropped", ZAlignment.Integer));
+					report.Columns.Last().Rotate = true;
+				}
 			}
 
 			// Add a row for each team.
