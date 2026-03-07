@@ -1167,7 +1167,8 @@ namespace Torn.Report
 
 			var games = Games(league, includeSecret, rt);
 			var groups = games.Select(g => g.Title).Distinct().ToList();
-			var groupGames = new List<Game>();
+			var groupGames = new List<Game>();  // This list can accumulate games across multiple groups, if results are supposed to accumulate across multiple groups (e.g. as they do from Round Robin to Cascade).
+			var teamColumns = new List<int>();  // List of indexes of columns that contain team names.
 
 			for (int i = 0; i < league.TeamCount(); i++)
 				report.AddRow(new ZRow()).Add(new ZCell(i + 1));  // Rank
@@ -1180,7 +1181,7 @@ namespace Torn.Report
 				string groupName = groups[group]?.ToLower() ?? "";
 
 				bool isPoints = league.IsPoints() && !(groupName.Contains("final") && !groupName.Contains("semi"));
-				int columnsPerGroup = isPoints ? 5 : 4;
+				int columnsThisGroup = isPoints ? 5 : 4;
 
 				if ((groupName.Contains("final") && !groupName.Contains("semi")) || groupName.StartsWith("rep ") || groupName.Contains("repechage") || groupName.Contains("repêchage") || 
 						previousGroupName.StartsWith("rep ") || previousGroupName.Contains("repechage") || previousGroupName.Contains("repêchage"))
@@ -1190,6 +1191,8 @@ namespace Torn.Report
 				groupGames.AddRange(thisGroupGames);
 
 				teamColumn = report.AddColumn(new ZColumn("Team", ZAlignment.Left, groups[group]));
+				teamColumns.Add(report.Columns.Count - 1);
+
 				if (isPoints)
 					report.AddColumn(new ZColumn("Points", ZAlignment.Right, groups[group]) { Rotate = true });
 
@@ -1213,7 +1216,7 @@ namespace Torn.Report
 					previousLadder = null;
 
 					for (int team = 0; team < offset; team++)
-						AddBlankCells(report.Rows[team], columnsPerGroup);
+						AddBlankCells(report.Rows[team], columnsThisGroup);
 
 					// For teams that are in this round, add cells for them.
 					for (int team = 0; team < Math.Min(report.Rows.Count, ascension.Rows.Count); team++)
@@ -1236,7 +1239,7 @@ namespace Torn.Report
 						row.Add(new ZCell(thisGroupGames.Count(g => g.Teams.Any(t => t.TeamId == teamId))));  // Games
 						row.Add(new ZCell());  // Arrow
 
-						MultiLadderArrow(report, teamCell, group, columnsPerGroup, team + offset);
+						MultiLadderArrow(report, teamCell, group, teamColumns, team + offset);
 					}
 				}
 				else
@@ -1255,7 +1258,7 @@ namespace Torn.Report
 								break;
 					previousLadder = ladder;
 					for (int team = 0; team < offset; team++)
-						AddBlankCells(report.Rows[team], columnsPerGroup);
+						AddBlankCells(report.Rows[team], columnsThisGroup);
 
 					for (int t = 0; t < ladder.Count; t++)
 					{
@@ -1266,7 +1269,7 @@ namespace Torn.Report
 
 						var gamesPlayedThisGroup = league.Played(thisGroupGames, team).Count;
 						if (gamesPlayedThisGroup == 0)
-							AddBlankCells(row, columnsPerGroup);
+							AddBlankCells(row, columnsThisGroup);
 						else
 						{
 							ZCell teamCell = row.AddCell(TeamCell(team));  // Team
@@ -1294,7 +1297,7 @@ namespace Torn.Report
 							row.Add(new ZCell(gamesPlayedThisGroup));  // Games
 							row.Add(new ZCell());  // Arrow
 
-							MultiLadderArrow(report, teamCell, group, columnsPerGroup, t + offset);
+							MultiLadderArrow(report, teamCell, group, teamColumns, t + offset);
 						}
 					}
 				}
@@ -1327,24 +1330,26 @@ namespace Torn.Report
 			return report;
 		}
 
-		static void MultiLadderArrow(ZoomReport report, ZCell teamCell, int group, int columnsPerGroup, int rank)
+		static void MultiLadderArrow(ZoomReport report, ZCell teamCell, int group, List<int> teamColumns, int rank)
 		{
 			if (group > 0)
 			{
 				int previousRank = -1;
-				int previousCol = (group - 1) * columnsPerGroup + 1;
-				while (previousCol >= 0 && previousRank == -1)
+				int previousGroup = group - 1;
+
+				while (previousGroup >= 0 && teamColumns[previousGroup] >= 0 && previousRank == -1)
 				{
-					previousRank = report.Rows.FindIndex(r => r.Valid(previousCol) && r[previousCol].Hyper == teamCell.Hyper);
-					previousCol -= columnsPerGroup;
+					previousRank = report.Rows.FindIndex(r => r.Valid(teamColumns[previousGroup]) && r[teamColumns[previousGroup]].Hyper == teamCell.Hyper);
+					previousGroup--;
 				}
+
 				if (previousRank > -1)
 				{
 					var arrow = new Arrow();
 					arrow.From.Add(new ZArrowEnd(previousRank, 5) { Expand = true });
 					arrow.To.Add(new ZArrowEnd(rank, 5));
 					arrow.Color = Utility.StringToColor(teamCell.Text);
-					report.Columns[group * columnsPerGroup].Arrows.Add(arrow);
+					report.Columns[teamColumns[group] - 1].Arrows.Add(arrow);
 				}
 			}
 		}
