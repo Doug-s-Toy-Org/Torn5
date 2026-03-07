@@ -1191,15 +1191,15 @@ namespace Torn.Report
 
 				teamColumn = report.AddColumn(new ZColumn("Team", ZAlignment.Left, groups[group]));
 				if (isPoints)
-					report.AddColumn(new ZColumn("Points", ZAlignment.Right, groups[group]));
+					report.AddColumn(new ZColumn("Points", ZAlignment.Right, groups[group]) { Rotate = true });
 
 				if (groupName.Contains("semifinal") || groupName.Contains("semi final") ||
-					groupName.Contains("ascension") || groupName.Contains("format ") || groupName.Contains("track"))
+					groupName.Contains("ascension") || groupName.Contains("format ")  || groupName.Contains("system ") || groupName.Contains("track"))
 				{
 					// Rank this round as an Ascension: teams that survive longer are ranked higher.
 
 					report.AddColumn(new ZColumn("Placings", ZAlignment.Right, groups[group]));
-					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]));
+					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]) { Rotate = true });
 					report.AddColumn(new ZColumn());  // This column is for arrows.
 
 					var ascension = GamesGrid(league, thisGroupGames, new ReportTemplate(ReportType.Ascension, new string[] { }));
@@ -1233,7 +1233,7 @@ namespace Torn.Report
 						}
 						row.Add(new ZCell(string.Join(", ", placings.ToArray())));  // Placings
 
-						row.Add(new ZCell((ascensionRow.Count(c => !c.Empty()) - 2) / 2));  // Games
+						row.Add(new ZCell(thisGroupGames.Count(g => g.Teams.Any(t => t.TeamId == teamId))));  // Games
 						row.Add(new ZCell());  // Arrow
 
 						MultiLadderArrow(report, teamCell, group, columnsPerGroup, team + offset);
@@ -1244,7 +1244,7 @@ namespace Torn.Report
 					// Rank this round based on score and/or victory points accumulated to date.
 
 					report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average score", ZAlignment.Float, groups[group]));
-					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]));
+					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]) { Rotate = true });
 					report.AddColumn(new ZColumn());  // This column is for arrows.
 
 					var ladder = Ladder(league, groupGames, rt, !isPoints);

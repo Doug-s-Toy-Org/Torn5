@@ -183,17 +183,17 @@ namespace Torn.UI
 			ReportType r = (ReportType)(i + 1);
 			bool isTeamOrSolo = r == ReportType.TeamLadder || r == ReportType.SoloLadder;
 
-			scaleGames.Enabled = r == ReportType.TeamLadder;
-			dropGames.Enabled = isTeamOrSolo || r == ReportType.GameGrid;
+			AbleClear(scaleGames, r == ReportType.TeamLadder);
+			AbleClear(dropGames, isTeamOrSolo || r == ReportType.GameGrid);
 			dateFrom.Enabled = true;
 			dateTo.Enabled = true;
-			showColours.Enabled = r == ReportType.TeamLadder;
-			showPoints.Enabled = r == ReportType.TeamsVsTeams;
-			showComments.Enabled = r == ReportType.SoloLadder;
-			showGrades.Enabled = r == ReportType.SoloLadder;
-			ignorePoints.Enabled = r == ReportType.GameGrid;
+			AbleClear(showColours, r == ReportType.TeamLadder);
+			AbleClear(showPoints, r == ReportType.TeamsVsTeams);
+			AbleClear(showComments, r == ReportType.SoloLadder);
+			AbleClear(showGrades, r == ReportType.SoloLadder);
+			AbleClear(ignorePoints, r == ReportType.GameGrid);
 			chartType.Enabled = true;
-			showTopN.Enabled = isTeamOrSolo || r == ReportType.MultiLadder;
+			AbleClear(showTopN, isTeamOrSolo || r == ReportType.MultiLadder);
 			numericUpDownTopN.Enabled = showTopN.Enabled;
 			labelTopWhat.Enabled = showTopN.Enabled;
 			atLeastN.Enabled = isTeamOrSolo;
@@ -201,13 +201,13 @@ namespace Torn.UI
 			labelAtLeastGames.Enabled = isTeamOrSolo;
 			orderBy.Enabled = r == ReportType.SoloLadder;
 			labelOrderBy.Enabled = r == ReportType.SoloLadder;
-			withDescription.Enabled = r != ReportType.MultiLadder;
+			AbleClear(withDescription, r != ReportType.MultiLadder);
 			description.Enabled = true;
-			longitudinal.Enabled = isTeamOrSolo || r == ReportType.Packs;
-			showHits.Enabled = r == ReportType.DetailedGames || r == ReportType.GameByGame || r == ReportType.GameGrid;
-			isDecimal.Enabled = r == ReportType.GameGrid || r == ReportType.TeamLadder || r == ReportType.SoloLadder || r == ReportType.GameGridCondensed;
+			AbleClear(longitudinal, isTeamOrSolo || r == ReportType.Packs);
+			AbleClear(showHits, r == ReportType.DetailedGames || r == ReportType.GameByGame || r == ReportType.GameGrid);
+			AbleClear(isDecimal, r == ReportType.GameGrid || r == ReportType.TeamLadder || r == ReportType.SoloLadder || r == ReportType.GameGridCondensed);
 			longitudinal.Checked = false;
-			showZeroed.Enabled = r == ReportType.TeamLadder || r == ReportType.SoloLadder || r == ReportType.DetailedGames;
+			AbleClear(showZeroed, r == ReportType.TeamLadder || r == ReportType.SoloLadder || r == ReportType.DetailedGames);
 
 			labelTopWhat.Text = r == ReportType.SoloLadder ? "players" : "teams";
 			atLeastN.Text = r == ReportType.SoloLadder ? "show only players with at least" : "show only teams with at least";
@@ -217,6 +217,13 @@ namespace Torn.UI
 					isTeamOrSolo || r == ReportType.TeamsVsTeams ? 3 :  // bar with rug
 					r == ReportType.Packs ? 8 :  // kernel density estimate with rug
 					1;  // everything else: bar
+		}
+
+		/// <summary>Enable/disable a checkbox. If we are disabling it, also clear the value in that checkbox.</summary>
+		void AbleClear(CheckBox cb, bool enable)
+		{
+			cb.Enabled = enable;
+			cb.Checked &= enable;
 		}
 
 		void DatePickerFromValueChanged(object sender, EventArgs e)
