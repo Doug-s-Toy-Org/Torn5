@@ -2507,10 +2507,12 @@ namespace Torn.Report
 			report.Columns.First(c => c.Text == "Games").Rotate = true;
 			report.Columns.First(c => c.Text == "Dropped").Rotate = true;
 
-			double bestScoreRatio = 0;
-			string bestScoreRatioText = "";
-			double bestTagRatio = 0;
-			string bestTagRatioText = "";
+			double bestScore = double.MinValue;
+			var bestScorers = new List<LeaguePlayer>();
+			double bestScoreRatio = double.MinValue;
+			var bestScoreRatioers = new List<LeaguePlayer>();
+			double bestTagRatio = double.MinValue;
+			var bestTagRatioers = new List<LeaguePlayer>();
 			int atLeastN = rt.SettingInt("AtLeastN") ?? 1;
 			bool showGrades = rt.FindSetting("ShowGrades") >= 0;
 			bool showComments = rt.FindSetting("ShowComments") >= 0;
@@ -2563,21 +2565,9 @@ namespace Torn.Report
 							pointRatios.Add(new ChartPoint(game.Time, scoreRatio / (scoreRatio + 1), Color.FromArgb(0xFF, 0x33, 0x00)));  // scarlet
 							pointRatios.Add(new ChartPoint(game.Time, tagRatio / (tagRatio + 1), Color.FromArgb(0x3D, 0x42, 0x8B)));  // royal blue
 
-							if (bestScoreRatio == scoreRatio)
-								bestScoreRatioText += ", " + player.Name;
-							else if (bestScoreRatio < scoreRatio)
-							{
-								bestScoreRatio = scoreRatio;
-								bestScoreRatioText = player.Name;
-							}
-
-							if (bestTagRatio == tagRatio)
-								bestTagRatioText += ", " + player.Name;
-							else if (bestTagRatio < tagRatio)
-							{
-								bestTagRatio = tagRatio;
-								bestTagRatioText = player.Name;
-							}
+							KeepBest(play.Score, ref bestScore, player, bestScorers);
+							KeepBest(scoreRatio, ref bestScoreRatio, player, bestScoreRatioers);
+							KeepBest(tagRatio, ref bestTagRatio, player, bestTagRatioers);
 						}
 					}
 
@@ -2648,10 +2638,9 @@ namespace Torn.Report
 			for (int i = 0; i < report.Rows.Count; i++)
 				report.Rows[i][0].Number = i + 1;
 
-			if (bestTagRatio > 0)
-				report.Description += string.Format("Best tag ratio was {0:P0} by {1}. ", bestTagRatio, bestTagRatioText);
-			if (bestScoreRatio > 0)
-				report.Description += string.Format("Best score ratio was {0:P0} by {1}. ", bestScoreRatio, bestScoreRatioText);
+			WriteBest(report, league, "score", bestScore, "N0", bestScorers);
+			WriteBest(report, league, "score ratio", bestScoreRatio, "P0", bestScoreRatioers);
+			WriteBest(report, league, "tag ratio", bestTagRatio, "P0", bestTagRatioers);
 
 			int? topN = rt.SettingInt("ShowTopN");
 			if (topN != null)
@@ -2664,11 +2653,33 @@ namespace Torn.Report
 				report.RemoveZeroColumns();
 				report.Rows[0].Last().Text = null;
 				report.Description += " The Longitudinal column shows each game for each player. Red is score ratio; blue is tag ratio.";
+				report.HtmlDescription += " The Longitudinal column shows each game for each player. Red is score ratio; blue is tag ratio.";
 			}
 			else
 				report.RemoveZeroColumns();
 
 			return report;
+		}
+
+		static void KeepBest(double thiss, ref double best, LeaguePlayer player, List<LeaguePlayer> bestList)
+		{
+			if (best < thiss)
+			{
+				best = thiss;
+				bestList.Clear();
+			}
+
+			if (best == thiss)
+				bestList.Add(player);
+		}
+
+		static void WriteBest(ZoomReport report, League league, string caption, double best, string format, List<LeaguePlayer> bests)
+		{
+			if (bests.Count == 0)
+				return;
+
+			report.Description += string.Format("Best {0} was {1:" + format + "} by {2}. ", caption, best, string.Join(", ", bests.Select(p => p.Name)));
+			report.HtmlDescription += string.Format("Best {0} was {1:" + format + "} by {2}. ", caption, best, string.Join(", ", bests.Select(p => "<a href=\"team" + league.LeagueTeam(p).TeamId + ".html#player" + p.Id + "\">" + p.Name + "</a>")));
 		}
 
 		public static ZoomReport TermReport(League league, bool includeSecret, ReportTemplate rt)
