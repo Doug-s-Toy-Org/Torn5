@@ -1197,6 +1197,20 @@ namespace Zoom
 			s.Append('\n');
 		}
 
+		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool pure = false, bool fillWidth = false, bool htmlEncode = true)
+		{
+			if (string.IsNullOrEmpty(text))
+				return;
+
+			float textWidth = width;
+			if (pure)
+				textWidth = Math.Max(width, TextWidth(text, height));
+
+			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (pure ? 0.681 : 0.75), fontColor, alignment, cssClass, pure ? null : hyper, fillWidth);
+			s.Append(htmlEncode ? WebUtility.HtmlEncode(text) : text);
+			SvgEndText(s, pure ? null : hyper);
+		}
+
 		/// <summary>This overload formats the value of a cell then calls the other overload.
 		/// If you specify a format starting with 'E' or 'G', it changes values like 0.0000123 to a style like 1.23x10^-5, but with Unicode superscript digits.
 		/// Special format lowercase 'f' or 'n' will trim trailing 0's after a decimal where the value is a whole number, so "1.00" becomes "1"; "1.20" remains "1.20".</summary>
@@ -1261,26 +1275,140 @@ namespace Zoom
 						s2.Append(digits[(int)((Math.Abs(magnitude) / Math.Pow(10, i)) % 10)]);
 			}
 
-			SvgTextEscaped(s, indent, x, y, width, height, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, s2.ToString(), cell.CssClass, cell.Hyper, pure, column.FillWidth);
+			SvgText(s, indent, x, y, width, height, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, s2.ToString(), cell.CssClass, cell.Hyper, pure, column.FillWidth, false);
 		}
 
-		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool pure = false)
+		/// <summary>Print text, but see if we can make the ultimate font size bigger by breaking the text into multiple lines, instead of just shrinking the text to fit on a single line.</summary>
+		void SvgMultilineText(StringBuilder s, int indent, int x, int y, int width, int rectHeight, int textHeight, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool pure = false)
 		{
-			SvgTextEscaped(s, indent, x, y, width, height, fontColor, alignment, WebUtility.HtmlEncode(text), cssClass, hyper, pure, false);
+			var textWidth = TextWidth(text, textHeight);
+			var oversize = textWidth / width;  // Is the text too wide to fit in the cell without shrinking to fit? If so, how much by?
+			if (oversize <= 1)  // Our text is not oversized for this width.
+				SvgText(s, indent, x, y, width, textHeight, fontColor, alignment, text, cssClass, hyper, pure, false);  // Just print it on one row.
+			else  // Text won't fit on one line without shrinking.
+			{
+				int linesToUse = (int)Math.Ceiling(oversize);  // Number of lines we would like to break the text into, to avoid having to shrink the text.
+				int lineHeight = textHeight;
+				string[] lines;
+
+				if (Math.Ceiling(oversize) > rectHeight / textHeight) // The rect we're fitting into is not tall enough to directly fit the number of lines we want to break the text into.
+				{
+					var shrinkRatio = Math.Sqrt(oversize);
+					var linestoUseByRectHeight = (int)Math.Max(shrinkRatio * rectHeight / textHeight, 1);
+					linesToUse = (int)Math.Max(Math.Min(shrinkRatio, linestoUseByRectHeight), rectHeight / textHeight);
+					lineHeight = Math.Min(textHeight, rectHeight / linesToUse);
+				}
+
+				lines = BreakText(text, linesToUse);
+				for (int i = 0; i < lines.Length; i++)
+					SvgText(s, indent, x, y + textHeight + (i - lines.Length) * lineHeight, width, lineHeight, fontColor, alignment, lines[i], cssClass, hyper, pure, false);
+			}
 		}
 
-		void SvgTextEscaped(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass, string hyper, bool pure, bool fillWidth)
+		/// <summary>Break text (at spaces) into several lines.</summary>
+		string[] BreakText(string text, int lines)
 		{
-			if (string.IsNullOrEmpty(text))
-				return;
+			char[] textChars = text.ToCharArray();
+			int length = textChars.Length;
 
-			float textWidth = width;
-			if (pure)
-				textWidth = Math.Max(width, TextWidth(text, height));
+			var spaces = new List<int>();
+			for (int n = 0; n < length; n++)
+				if (char.IsWhiteSpace(textChars[n]))
+					spaces.Add(n);
 
-			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (pure ? 0.681 : 0.75), fontColor, alignment, cssClass, pure ? null : hyper, fillWidth);
-			s.Append(text);
-			SvgEndText(s, pure ? null : hyper);
+			spaces.Add(text.Length);  // Add a dummy space at the end.
+
+			if (spaces.Count == 1)
+				return new string[1] { text };
+			else if (spaces.Count - 1 < lines)  // Not enough spaces (or the exact correct number of spaces) -- just break the text at every space.
+			{
+				var strings = new string[spaces.Count];
+				strings[0] = text.Substring(0, spaces[0]);
+
+				for (int i = 1; i < spaces.Count; i++)
+					strings[i] = text.Substring(spaces[i - 1] + 1, spaces[i] - spaces[i - 1] - 1);
+
+				return strings;
+			}
+			else  // We've got more spaces than we need -- gotta go through and pick which ones we want.
+			{
+				var lineBreaks = new List<int>();  // Pointers into the spaces list. We initialise this with rough guesses, and refine later.
+				for (int i = 0; i < lines - 1; i++)
+					lineBreaks.Add((int)Math.Round(1.0 * i / lines * (spaces.Count - 1)));
+
+				lineBreaks.Add(spaces.Count - 1);  // Add dummy line break at end, pointing at final dummy space.
+
+				var spaceWidth = TextWidth(" ");
+
+				var wordWidths = new List<float>() { TextWidth(text.Substring(0, spaces[0])) };  // Width of each word in pixels, not including any leading/trailing whitespace.
+				for (int w = 1; w < spaces.Count; w++)
+					wordWidths.Add(TextWidth(text.Substring(spaces[w - 1] + 1, spaces[w] - spaces[w - 1] - 1)));
+
+				var lineWidths = new List<float>();
+				for (int b = 0; b < lineBreaks.Count; b++)
+					lineWidths.Add(Length(spaces, lineBreaks, wordWidths, spaceWidth, b));
+
+				bool changed = true;
+				int passes = 0;
+				while (changed && passes < 100)  // Keep doing this until we make a pass through without making any changes.
+				{
+					changed = false;
+					passes++;
+
+					// If moving a break left or right makes the lines before and after that break more equal, do it.
+					for (int i = 0; i < lineWidths.Count - 1; i++)
+						while (true)
+						{
+							int direction = Math.Sign(lineWidths[i + 1] - lineWidths[i]);  // First line is longer: try moving line break leftward; direction = -1. Second line is longer: try moving line break rightward; direction = +1. Same length: direction = 0.
+
+							if (direction == 0)
+								break;
+
+							int newBreak = lineBreaks[i] + direction;
+							if (!spaces.Valid(newBreak) || !spaces.Valid(i + direction) || newBreak == lineBreaks[i + direction])  // Oops -- we have reached the start/end of the text or the line break that starts/ends this line, so adjusting to here would make this line zero length.
+								break;
+
+							var currentWidthDifference = Math.Abs(lineWidths[i] - lineWidths[i + 1]);
+							var wordWidth = wordWidths[lineBreaks[i] + direction];
+							var newWidthDifference = Math.Abs(lineWidths[i] - lineWidths[i + 1] + (wordWidth * direction - spaceWidth) * 2);
+
+							if (newWidthDifference < currentWidthDifference)
+							{
+								lineBreaks[i] = newBreak;
+								lineWidths[i] += (wordWidth + spaceWidth) * direction;
+								lineWidths[i + 1] -= (wordWidth + spaceWidth) * direction;
+								changed = true;
+							}
+							else
+								break;
+						}
+				}
+
+				if (passes > spaces.Count * 2 || passes > 30)
+					Console.WriteLine("BreakText passes: " + passes + ". Text: " + text);
+
+				var strings = new string[lines];
+				strings[0] = text.Substring(0, spaces[lineBreaks[0]]);
+				for (int i = 1; i < strings.Length; i++)
+					strings[i] = text.Substring(spaces[lineBreaks[i - 1]] + 1, spaces[lineBreaks[i]] - spaces[lineBreaks[i - 1]] - 1);
+
+				return strings;
+			}
+		}
+
+		/// <summary>
+		/// Return the length of a line, in characters, given a list of where spaces occur and a list of where line breaks occur.
+		/// </summary>
+		/// <param name="spaces">List of places where whitespace characters occur in the text.</param>
+		/// <param name="breaks">List of places where we are currently putting line breaks. These are indexes into spaces, not indexes into the text.</param>
+		/// <param name="wordWidths">Width (in pixels) of each word in the text.</param>
+		/// <param name="break2">Index (into breaks) of the ending break of the line whose length we are measuring. This line runs from break2 - 1 to break2.</param>
+		/// <returns></returns>
+		float Length(List<int> spaces, List<int> breaks, List<float> wordWidths, float spaceWidth, int break2)
+		{
+			int startWord = break2 == 0 ? 0 : breaks[break2 - 1] + 1;
+			int endWord = breaks[break2];
+			return wordWidths.GetRange(startWord, endWord - startWord + 1).Sum() + spaceWidth * (endWord - startWord - 1);
 		}
 
 		void SvgCircle(StringBuilder s, int indent, double x, double y, double radius, Color fillColor)
@@ -1521,7 +1649,7 @@ namespace Zoom
 							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Navy\">&#160;&#8722;&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
 			}
 
-			SvgText(s, 1, 1, 1, width - 2, rowHeight * 2, Colors.TitleFontColor, ZAlignment.Center, Title, null, TitleHyper, pure);  // Paint title "row" text.
+			SvgMultilineText(s, 1, 1, 1, width - 2, rowHeight * 2, rowHeight * 2, Colors.TitleFontColor, ZAlignment.Center, Title, null, TitleHyper, pure);  // Paint title "row" text.
 			s.Append('\n');
 
 			if (!pure)
@@ -1554,7 +1682,7 @@ namespace Zoom
 			return rowTop + (int)headerHeight + 1;
 		}
 
-		/// <summary>Write the column header row(s). Returns the amount of vertical height it has consumed.</summary>
+		/// <summary>Write the column header row(s). Returns the amount of vertical height it has consumed. Doesn't render the Title -- that's in SvgBegin().</summary>
 		int SvgHeader(StringBuilder s, bool hasGroupHeadings, int rowHeight, int left, List<float> widths, bool pure)
 		{
 
@@ -1652,7 +1780,7 @@ namespace Zoom
 					s.Append("\n");
 				}
 				else  // Paint column heading text flat.
-					SvgText(s, 1, (int)x, rowTop + (int)headerHeight - rowHeight, (int)widths[col] - (nextRotated && !hasGroupHeadings ? rowHeight : 0), rowHeight,
+					SvgMultilineText(s, 1, (int)x, rowTop + (int)headerHeight - rowHeight, (int)widths[col] - (nextRotated && !hasGroupHeadings ? rowHeight : 0), headerHeight + upset, rowHeight,
 						textColor, column.Alignment, column.Text, null, column.Hyper, pure);
 
 				x += widths[col] + 1;

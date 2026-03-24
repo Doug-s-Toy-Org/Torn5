@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Reflection;
 using System.Windows.Forms;
 using System.Xml;
 using NUnit.Framework;
@@ -411,6 +411,24 @@ namespace TornWeb
 			form.Controls.Add(new TeamBox());
 
 			return form;
+		}
+
+		[Test]
+		public void TestReportLineBreak()
+		{
+			ZoomReport report = new ZoomReport("title");
+			var method = report.GetType().GetMethod("BreakText", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(method.Invoke(report, new object[] { "one two", 2 }), Is.EqualTo(new string[] { "one", "two" }));
+				Assert.That(method.Invoke(report, new object[] { "one two", 4 }), Is.EqualTo(new string[] { "one", "two" }));
+				Assert.That(method.Invoke(report, new object[] { "one two three", 3 }), Is.EqualTo(new string[] { "one", "two", "three" }));
+				Assert.That(method.Invoke(report, new object[] { "one two three", 2 }), Is.EqualTo(new string[] { "one two", "three" }));
+				Assert.That(method.Invoke(report, new object[] { "one two three four", 2 }), Is.EqualTo(new string[] { "one two", "three four" }));
+				Assert.That(method.Invoke(report, new object[] { "one two three verylongwordgoeshereandgoesonforquiteabit", 2 }), Is.EqualTo(new string[] { "one two three", "verylongwordgoeshereandgoesonforquiteabit" }));
+				Assert.That(method.Invoke(report, new object[] { "verylongwordgoeshereandgoesonforquiteabit two three four", 2 }), Is.EqualTo(new string[] { "verylongwordgoeshereandgoesonforquiteabit", "two three four" }));
+			});
 		}
 	}
 
