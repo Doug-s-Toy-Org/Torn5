@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Drawing;
 using System.Drawing.Printing;
 using System.Globalization;
@@ -195,16 +196,19 @@ namespace Zoom
 			{
 				if (text == null)
 				{
-					if (Number != null && double.IsNegativeInfinity((double)Number))
-						return "-\u221E";
-					else if (Number != null && double.IsInfinity((double)Number))
-						return "\u221E";
-					else if (Number != null && double.IsNaN((double)Number))
-						return "-";
-					else if (string.IsNullOrEmpty(NumberFormat))
-						return Number.ToString();
-					else if (Number != null)
-							return ((double)Number).ToString(NumberFormat, CultureInfo.CurrentCulture);
+					if (Number is double n)
+					{
+						if (double.IsNegativeInfinity(n))
+							return "-\u221E";
+						else if (double.IsInfinity(n))
+							return "\u221E";
+						else if (double.IsNaN(n))
+							return "-";
+						else if (string.IsNullOrEmpty(NumberFormat))
+							return n.ToString();
+						else
+							return n.ToString(NumberFormat, CultureInfo.CurrentCulture);
+					}
 					else
 						return "";
 				}
@@ -282,6 +286,102 @@ namespace Zoom
 		public bool EmptyOrNaN()
 		{
 			return string.IsNullOrEmpty(text) && (Number == null || double.IsNaN((double)Number));
+		}
+
+		public string OutputText(OutputFormat of)
+		{
+			return
+				of == OutputFormat.Svg && !string.IsNullOrEmpty(Svg) ? Svg :
+				of == OutputFormat.HtmlTable && !string.IsNullOrEmpty(Html) ? Html :
+				of == OutputFormat.Tsv || of == OutputFormat.Csv ? Text :
+				FormatNumber(WebUtility.HtmlEncode(Text), Number, NumberFormat);
+		}
+
+		/// <summary>Formats the value of a cell.
+		/// If you specify a format starting with 'E' or 'G', it changes values like 0.0000123 to a style like 1.23x10^-5, but with Unicode superscript digits.
+		/// Special format lowercase 'f' or 'n' will trim trailing 0's after a decimal where the value is a whole number, so "1.00" becomes "1   "; "1.20" remains "1.20".</summary>
+		private string FormatNumber(string text, double? number, string format)
+		{
+			if (number == null)
+				return text;
+
+			char formatSpecifier = format?.Length >= 1 ? format[0] : ' ';
+
+			if (formatSpecifier != 'E' && formatSpecifier != 'G' && formatSpecifier != 'f' && formatSpecifier != 'n')
+				return text;
+
+			var n = (double)number;
+			var s2 = new StringBuilder();
+
+			int precision = format?.Length >= 2 ? int.Parse(format.Substring(1)) : 0;
+
+			string decimalSeparator = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+
+			if ((formatSpecifier == 'f' || formatSpecifier == 'n') && precision > 0 && n == (int)n)  // The format specifies decimals, but this is a whole number.
+			{
+				int pos = text.IndexOf(decimalSeparator);
+				if (pos > -1)
+				{
+					s2.Append(text.Substring(0, pos));  // Append the whole-number part of the text.
+					s2.Append('\u2008', decimalSeparator.Length);  // Pad with a punctuation space (width of a .)
+					s2.Append('\u2002', precision);  // and an en space for each decimal that we're not showing.
+				}
+				else
+					s2.Append(text);
+			}
+			else if (double.IsNaN(n) || double.IsInfinity(n))
+				s2.Append(text);
+			else if (formatSpecifier == 'G' && n == 0 || Math.Abs(n) > 0.51 * Math.Pow(10, -precision))
+			{
+				// Print out the number
+				s2.Append(text);
+
+				// and right-pad it, with a decimal-sized space if there's no decimal, and digit-sized spaces if there's not enough digits after the decimal.
+				var decimalPos = text.IndexOf(decimalSeparator);
+				if (decimalPos == -1)
+					s2.Append("\u2008\u2002\u2002\u2002\u2002");  // Add padding spaces equal in width to .0000
+				else
+				{
+					var digitsAfterDecimal = text.Length - decimalPos - 1;
+
+					if (digitsAfterDecimal < 4)
+						s2.Append('\u2002', 4 - digitsAfterDecimal);  // Add padding en spaces (so these non-exponential form numbers will line up nicely with exponential form numbers).
+				}
+			}
+			else if (formatSpecifier == 'G' && Math.Abs(n) > 0.0001 && Math.Abs(n) < 100000)
+			{
+				int magnitude = (int)Math.Floor(Math.Log10(Math.Abs(n)));
+				if (-magnitude < precision)
+					return text;
+
+				// Print an optional '-', then a "0.", then some '0's then [precision] non-zero digits.
+				if (n < 0)
+					s2.Append(CultureInfo.CurrentCulture.NumberFormat.NegativeSign);
+				
+				s2.Append("0.");
+				s2.Append('0', -magnitude - 1);
+				s2.AppendFormat("{0:N0}", Math.Abs(n) * Math.Pow(10, -magnitude + precision - 1));
+			}
+			else
+			{
+				// Convert into scientific notation: 1.23 x 10(superscript digits)
+				int magnitude = n == 0 ? 0 : (int)Math.Floor(Math.Log10(Math.Abs(n)));
+				char[] digits = "\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079".ToCharArray();  // superscript 0123456789
+
+				s2.AppendFormat("{0:F" + (precision - 1).ToString() + "}", n * Math.Pow(10, -magnitude));
+				s2.Append('\u00D7'); // multiply symbol
+				s2.Append("10");
+				if (magnitude < 0)
+					s2.Append('\u207B');  // superscript -
+
+				if (magnitude == 0)
+					s2.Append('\u2070');  // superscript 0
+				else
+					for (int i = (int)Math.Log10(Math.Abs(magnitude)); i >= 0; i--)
+						s2.Append(digits[(int)((Math.Abs(magnitude) / Math.Pow(10, i)) % 10)]);
+			}
+
+			return s2.ToString();
 		}
 
 		public Color GetBarColor(Color? rowBackground = null, Color? barNone = null)
@@ -602,6 +702,7 @@ namespace Zoom
 		void Widths(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints)
 		{
 			maxPoints = 0;
+			const string egFormat = ".\u00D710\u207B\u2079";
 
 			for (int col = 0; col < Columns.Count; col++)
 			{
@@ -613,7 +714,7 @@ namespace Zoom
 				double max = 0.0;
 				string numberFormat = "";
 				bool hasNumber = false;
-				float widestTitle = 0;
+				float widestTitle = Columns[col].Rotate ? RowHeight : 0;
 
 				for (int row = 0; row < Rows.Count; row++)
 				{
@@ -670,7 +771,9 @@ namespace Zoom
 				{
 					double furthestFromZero = max > -min ? max : min;
 					string stringMax = string.IsNullOrEmpty(numberFormat) ? furthestFromZero.ToString() : furthestFromZero.ToString(numberFormat);
-					if (double.IsInfinity(max) && !string.IsNullOrEmpty(numberFormat) && numberFormat.Length > 1 && numberFormat[0] == 'P' && stringMax.Length < 4)
+					if (numberFormat.Length >= 2 && (numberFormat[0] == 'E' || numberFormat[0] == 'G'))
+						stringMax = new string('9', int.Parse(numberFormat.Substring(1))) + egFormat;
+					else if (double.IsInfinity(max) && !string.IsNullOrEmpty(numberFormat) && numberFormat.Length > 1 && numberFormat[0] == 'P' && stringMax.Length < 4)  // Deal with "infinity percent" case.
 						stringMax = 9.99.ToString(numberFormat);
 
 					float widestNumber = TextWidth(stringMax);
@@ -1211,71 +1314,10 @@ namespace Zoom
 			SvgEndText(s, pure ? null : hyper);
 		}
 
-		/// <summary>This overload formats the value of a cell then calls the other overload.
-		/// If you specify a format starting with 'E' or 'G', it changes values like 0.0000123 to a style like 1.23x10^-5, but with Unicode superscript digits.
-		/// Special format lowercase 'f' or 'n' will trim trailing 0's after a decimal where the value is a whole number, so "1.00" becomes "1"; "1.20" remains "1.20".</summary>
+		/// <summary>Formats the value of a cell then calls the other overload.</summary>
 		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell, bool pure)
 		{
-			if (cell.Empty())
-				return;
-
-			var text = cell.Svg ?? WebUtility.HtmlEncode(cell.Text);
-			var s2 = new StringBuilder();
-			int decimals = 0;
-			char numberFormat = cell.NumberFormat?.Length >= 1 ? cell.NumberFormat[0] : ' ';
-			if (cell.NumberFormat?.Length >= 2 && (numberFormat == 'E' || numberFormat == 'G'))
-				decimals = int.Parse(cell.NumberFormat.Substring(1));
-
-			if ((numberFormat == 'f' || numberFormat == 'n') && cell.Number == (int)cell.Number)
-			{
-				int pos = text.IndexOf(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0]);
-				if (pos > -1)
-				{
-					s2.Append(text.Substring(0, pos));
-					decimals = int.Parse(cell.NumberFormat.Substring(1));
-					s2.Append('\u2008');  // punctutation space (width of a .)
-					s2.Append('\u2002', decimals);  // en space (nut)
-				}
-				else
-					s2.Append(text);
-			}
-			else if (cell.Number == 0 || cell.Number == null || double.IsNaN((double)cell.Number) || double.IsInfinity((double)cell.Number) ||
-			    Math.Abs((double)cell.Number) > 0.0001)
-			{
-				s2.Append(text);
-				
-				// Now right-pad it, with a decimal-sized space if there's no decimal, and digit-sized spaces if there's not enough digits after the decimal.
-				if (decimals > 0 && !text.Contains(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator))
-					s2.Append('\u2008');  // punctutation space (width of a .)
-				var digitsAfterDecimal = text.Length - text.IndexOf(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator) - 1;
-				if (decimals > 0 && digitsAfterDecimal < decimals)
-				{
-					s2.Append('0', decimals - digitsAfterDecimal);
-					if (digitsAfterDecimal < 4)
-						s2.Append('\u2002', 4 - decimals);  // en space (nut)
-				}
-				else if (decimals > 0 && digitsAfterDecimal < 4)
-					s2.Append('\u2002', 4 - digitsAfterDecimal);  // en space (nut)
-			}
-			else
-			{
-				// Convert into scientific notation: 1.23 x 10(superscript digits)
-				int magnitude = (int)Math.Floor(Math.Log10(Math.Abs((double)cell.Number)));
-				string digits = "\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079";  // superscript 0123456789
-				s2.AppendFormat("{0:F" + (decimals - 1).ToString() + "}", (double)cell.Number * Math.Pow(10, -magnitude));
-				s2.Append('\u00D7'); // multiply symbol
-				s2.Append("10");
-				if (magnitude < 0)
-					s2.Append('\u207B');  // superscript -
-
-				if (magnitude == 0)
-					s2.Append('\u2070');  // superscript 0
-				else
-					for (int i = (int)Math.Log10(Math.Abs(magnitude)); i >= 0; i--)
-						s2.Append(digits[(int)((Math.Abs(magnitude) / Math.Pow(10, i)) % 10)]);
-			}
-
-			SvgText(s, indent, x, y, width, height, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, s2.ToString(), cell.CssClass, cell.Hyper, pure, column.FillWidth, false);
+			SvgText(s, indent, x, y, width, height, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, cell.OutputText(OutputFormat.Svg), cell.CssClass, cell.Hyper, pure, column.FillWidth, false);
 		}
 
 		/// <summary>Print text, but see if we can make the ultimate font size bigger by breaking the text into multiple lines, instead of just shrinking the text to fit on a single line.</summary>
@@ -1397,7 +1439,7 @@ namespace Zoom
 		}
 
 		/// <summary>
-		/// Return the length of a line, in characters, given a list of where spaces occur and a list of where line breaks occur.
+		/// Return the length of a line, in pixels, given a list of where spaces occur and a list of where line breaks occur.
 		/// </summary>
 		/// <param name="spaces">List of places where whitespace characters occur in the text.</param>
 		/// <param name="breaks">List of places where we are currently putting line breaks. These are indexes into spaces, not indexes into the text.</param>

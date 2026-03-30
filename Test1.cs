@@ -430,6 +430,31 @@ namespace TornWeb
 				Assert.That(method.Invoke(report, new object[] { "verylongwordgoeshereandgoesonforquiteabit two three four", 2 }), Is.EqualTo(new string[] { "verylongwordgoeshereandgoesonforquiteabit", "two three four" }));
 			});
 		}
+
+		[Test]
+		public void TestZCellFormatNumber()
+		{
+			var cell = new ZCell();
+			var method = cell.GetType().GetMethod("FormatNumber", BindingFlags.NonPublic | BindingFlags.Instance);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(method.Invoke(cell, new object[] { null, null, null }), Is.EqualTo(null));
+				Assert.That(method.Invoke(cell, new object[] { "test", null, null }), Is.EqualTo("test"));
+				Assert.That(method.Invoke(cell, new object[] { "1.0", 1.0, "N1" }), Is.EqualTo("1.0"));
+				Assert.That(method.Invoke(cell, new object[] { "1.0", 1.0, "n1" }), Is.EqualTo("1\u2008\u2002"));
+				Assert.That(method.Invoke(cell, new object[] { "0.0", 0.0, "N1" }), Is.EqualTo("0.0"));
+				Assert.That(method.Invoke(cell, new object[] { "0.0", 0.0, "n1" }), Is.EqualTo("0\u2008\u2002"));
+				Assert.That(method.Invoke(cell, new object[] { "0.0", 0.0, "E1" }), Is.EqualTo("0\u00D710\u2070"));  // 0x10^0
+				Assert.That(method.Invoke(cell, new object[] { "0.0", 0.0, "G1" }), Is.EqualTo("0.0\u2002\u2002\u2002"));
+				Assert.That(method.Invoke(cell, new object[] { null, 0.0000123, "G2" }), Is.EqualTo("1.2\u00D710\u207B\u2075"));  // 1.2x10^-5
+				Assert.That(method.Invoke(cell, new object[] { null, 0.000123, "G3" }), Is.EqualTo("0.000123"));
+				Assert.That(method.Invoke(cell, new object[] { null, 0.000123, "G2" }), Is.EqualTo("0.00012"));
+				Assert.That(method.Invoke(cell, new object[] { null, 0.000126, "G2" }), Is.EqualTo("0.00013"));
+				Assert.That(method.Invoke(cell, new object[] { null, -0.0000123, "G2" }), Is.EqualTo("-1.2\u00D710\u207B\u2075"));  // -1.2x10^-5
+				Assert.That(method.Invoke(cell, new object[] { null, -0.000123, "G2" }), Is.EqualTo("-0.00012"));
+			});
+		}
 	}
 
 	public class StubServer: LaserGameServer
