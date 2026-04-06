@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Drawing;
 using System.Drawing.Printing;
 using System.Globalization;
@@ -246,36 +245,25 @@ namespace Zoom
 		public Color Border { get; set; }
 		/// <summary>List of values to be shown as a scatter plot / quartile plot / stem-and-leaf plot / rug map / kernel density estimation.</summary>
 		public List<double> Data { get; private set; }
-		public string Title {  get; set; }
 
 		public ZCell()
 		{
 		}
 
-        public ZCell(string text, string title)
-        {
-            Text = text;
-            Color = default;
-            ChartCell = null;
-            Title = title;
-        }
-
-        public ZCell(string text = "", Color color = default, ZCell barCell = null, string title = "")
+        public ZCell(string text = "", Color color = default, ZCell barCell = null)
 		{
 			Text = text;
 			Color = color;
 			ChartCell = barCell;
-			Title = title;
 		}
 
-		public ZCell(double? number, ChartType chartType = ChartType.None, string numberFormat = "", Color color = default, string title = "")
+		public ZCell(double? number, ChartType chartType = ChartType.None, string numberFormat = "", Color color = default)
 		{
 			Number = number;
 			NumberFormat = numberFormat;
 			Color = color;
 			ChartType = chartType;
 			Data = new List<double>();
-			Title = title;
 		}
 
 		public bool Empty()
@@ -698,14 +686,23 @@ namespace Zoom
 			return maxWidth;
 		}
 
-		/// <summary>For each column, calculate a pixel width, and find the min and max values.</summary>
-		void Widths(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints)
+		/// <summary>For each column, calculate a pixel width, and find the min and max values. Also calculate header height.</summary>
+		/// <param name="widths">Width in pixels for each colunm.</param>
+		/// <param name="mins">Lowest value in each column (in either the cells themselves or in Data points in those cells).</param>
+		/// <param name="maxs">Highest value in each column (in either the cells themselves or in Data points in those cells).</param>
+		/// <param name="maxPoints">Largest number of Data points in any chart in any cell.</param>
+		/// <param name="maxLines">Number of lines of text used by the column heading that wraps onto the most lines, plus 1 if that column has a GroupHeading.</param>
+		/// <returns>Vertical height the title and column headers will consume (including the blank pixel below the headers).</returns>
+		int Metrics(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints, bool pure)
 		{
 			maxPoints = 0;
+			int maxLines = 1;
+			float spaceWidth = TextWidth(" ", pure);
 			const string egFormat = ".\u00D710\u207B\u2079";
 
 			for (int col = 0; col < Columns.Count; col++)
 			{
+				var column = Columns[col];
 				var maxArrowWidth = MaxArrowWidth(col);
 				float widest = maxArrowWidth == 0 ? 1 : (float)maxArrowWidth * 3;
 				float total = widest;
@@ -714,7 +711,18 @@ namespace Zoom
 				double max = 0.0;
 				string numberFormat = "";
 				bool hasNumber = false;
-				float widestTitle = Columns[col].Rotate ? RowHeight : 0;
+
+				List<int> spaces = null;
+				List<float> wordWidths = null;
+				float titleWidth;
+				if (column.Rotate)
+					titleWidth = RowHeight;
+				else
+				{
+					spaces = Spaces(column.Text);
+					wordWidths = WordWidths(column.Text, spaces);
+					titleWidth = wordWidths.Any() ? wordWidths.Max() : 0;
+				}
 
 				for (int row = 0; row < Rows.Count; row++)
 				{
@@ -727,17 +735,17 @@ namespace Zoom
 							min = Math.Min(min, cell.Data.Min());
 							max = Math.Max(max, cell.Data.Max());
 
-							if(Math.Abs(min) > max)
-                            {
+							if (Math.Abs(min) > max)
+							{
 								max = min;
-                            }
+							}
 							maxPoints = Math.Max(maxPoints, cell.Data.Count);
 						}
 						else if (cell.Tag is List<ChartPoint> points && points.Any())
 						{
 
 							if (min == 0.0)
-								min = double.MaxValue; // For most data types we want an all-positive data series to have a  min of 0, not its actual series minimum. But for chart points, where X is a date/time, that starts the chart at 1900, which is bad. So one-off setting the min to MaxValue means we'll end with a min of the earliest time in the series. 
+								min = double.MaxValue; // For most data types we want an all-positive data series to have a min of 0, not its actual series minimum. But for chart points, where X is a date/time, that starts the chart at 1900, which is bad. So one-off setting the min to MaxValue means we'll end with a min of the earliest time in the series. 
 							hasNumber = true;
 							min = Math.Min(min, points.Min(p => p.X.Ticks));
 							max = Math.Max(max, points.Max(p => p.X.Ticks));
@@ -758,12 +766,7 @@ namespace Zoom
 						}
 
 						if (hasNumber && !string.IsNullOrEmpty(cell.NumberFormat))
-						{
 							numberFormat = cell.NumberFormat;
-						}
-
-						float titleWidth = TextWidth(cell.Title);
-						widestTitle = Math.Max(widestTitle, titleWidth);
 					}
 				}
 
@@ -777,21 +780,27 @@ namespace Zoom
 						stringMax = 9.99.ToString(numberFormat);
 
 					float widestNumber = TextWidth(stringMax);
-					float width = Math.Max(widestTitle, widestNumber);
 
-					widths.Add(width);
+					widths.Add(Math.Max(titleWidth, widestNumber));
 				}
 				else
 				{
 					float cellWidth = widest > 2 * total / count ?  // Are there are a few pathologically wide fields?
 							   total / count * 1.4f :        // Just use the average, plus some padding.
 							   widest;
-					float width = Math.Max(widestTitle, cellWidth);
 
-					widths.Add(cellWidth);
+					widths.Add(Math.Max(titleWidth, cellWidth));
 				}
+
 				mins.Add(min);
 				maxs.Add(max);
+
+				if (!column.Rotate)
+				{
+					var titleLineWidth = wordWidths.Sum() + (spaces.Count - 1) * spaceWidth;
+					if (widths.Last() < titleLineWidth)
+						maxLines = Math.Max(maxLines, Math.Min(wordWidths.Count, (int)Math.Ceiling(titleLineWidth / widths.Last())) + (string.IsNullOrEmpty(column.GroupHeading) ? 0 : 1));
+				}
 			}
 
 			foreach (var sw in SameWidths)
@@ -803,6 +812,27 @@ namespace Zoom
 				foreach (var c in sw)
 					widths[Columns.IndexOf(c)] = widestInGroup;
 			}
+
+			// Calculate vertical height the title and column headers will consume.
+			int titleHeight = RowHeight * 2 + 2;  // The + 2 is for the one-pixel spaces above and below the title rectangle.
+			if (!Columns.Exists(col => !string.IsNullOrWhiteSpace(col.Text)))
+				return titleHeight;
+
+			bool hasGroupHeadings = HasGroupHeadings();
+			bool anyRotate = Columns.Exists(col => col.Rotate);
+			double headingsHeight = 0;
+
+			if (anyRotate)
+			{
+				if (hasGroupHeadings)
+					headingsHeight = Columns.Where(c => c.Rotate).Max(c => TextWidth(c.Text) + (string.IsNullOrWhiteSpace(c.GroupHeading) ? 0 : RowHeight + 1));
+				else
+					headingsHeight = Columns.Where(c => c.Rotate).Max(c => TextWidth(c.Text) + RowHeight) / Math.Sqrt(2);  // This case is where rotated columns are rotated 45 degrees.
+			}
+
+			headingsHeight = Math.Max(headingsHeight, RowHeight * maxLines);
+
+			return titleHeight + (int)Math.Round(headingsHeight) + (hasGroupHeadings ? 2 : 1);  // The + 2 or 1 is for the one-pixel space between the column headings and the first data row of the table; and optionally for the spaces between the group headings and column headings.
 		}
 
 		public override IEnumerable<Color> BarCellColors()
@@ -1041,14 +1071,14 @@ namespace Zoom
 
 			// Title row
 			if (!string.IsNullOrEmpty(Title))
-				AppendStrings(s, "    <tr bgcolor=\"", System.Drawing.ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n",
+				AppendStrings(s, "    <tr bgcolor=\"", ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n",
 				              "       <th colspan=\"", columns.Count.ToString(CultureInfo.InvariantCulture), "\"><H2>", WebUtility.HtmlEncode(Title), "</H2></th>\n",
 				              "    </tr>\n");
 
 			// Group Headings row
 			if (hasgroupheadings)
 			{
-				AppendStrings(s, "    <tr bgcolor=\"", System.Drawing.ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n");
+				AppendStrings(s, "    <tr bgcolor=\"", ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n");
 
 				int start = 0;
 				while (start < columns.Count)
@@ -1071,7 +1101,7 @@ namespace Zoom
 			}
 
 			// Headings row
-			AppendStrings(s, "    <tr bgcolor=\"", System.Drawing.ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n");
+			AppendStrings(s, "    <tr bgcolor=\"", ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n");
 
 			foreach (ZColumn col in Columns)
 				if (string.IsNullOrEmpty(col.Hyper))
@@ -1099,7 +1129,7 @@ namespace Zoom
 			foreach (ZRow row in Rows)
 			{
 		        // Write the <tr> tag that begins the row.
-				AppendStrings(s, "    <tr style=\"background-color: ", System.Drawing.ColorTranslator.ToHtml(Colors.GetBackColor(row, odd)), "\"");
+				AppendStrings(s, "    <tr style=\"background-color: ", ColorTranslator.ToHtml(Colors.GetBackColor(row, odd)), "\"");
 
 				if (!string.IsNullOrEmpty(row.CssClass))
 					AppendStrings(s, " class=\"", row.CssClass, "\"");
@@ -1115,7 +1145,7 @@ namespace Zoom
 					if (row[col].Color == Color.Empty)
 						cellColor = "";
 					else
-						cellColor = " style=\"background-color: " + System.Drawing.ColorTranslator.ToHtml(Colors.GetBackColor(row, odd, row[col].Color)) + '"';
+						cellColor = " style=\"background-color: " + ColorTranslator.ToHtml(Colors.GetBackColor(row, odd, row[col].Color)) + '"';
 
 					if (Bars && /*!oneBar &&*/ row[col].Number != null && (row[col].ChartType != ChartType.None || row[col].ChartCell == row[col]))
 					{
@@ -1202,6 +1232,10 @@ namespace Zoom
 				return;
 
 			s.Append('\t', indent);
+
+			if (width > Width - x - 1)  // If we're at the extreme right edge of the report,
+				width = Width - x - 1;  // tuck in so we don't draw off the edge.
+
 			if (outline == default)
 			{
 				int len = s.Length;
@@ -1215,13 +1249,10 @@ namespace Zoom
 
 				s.Replace(".0", "", len, s.Length - len);
 				s.Append("fill:");
-				s.Append(System.Drawing.ColorTranslator.ToHtml(fill));
+				s.Append(ColorTranslator.ToHtml(fill));
 			}
 			else
 			{
-				if (width > Width - x - 1)  // If we're at the extreme right edge of the report,
-					width = Width - x - 1;  // tuck in so we don't draw off the edge.
-
 				int len = s.Length;
 				s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F1}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x - 0.5, y - 0.5, width + 1, height + 1);
 				s.Replace(".0", "", len, s.Length - len);
@@ -1231,11 +1262,11 @@ namespace Zoom
 				else
 				{
 					s.Append("fill:");
-					s.Append(System.Drawing.ColorTranslator.ToHtml(fill));
+					s.Append(ColorTranslator.ToHtml(fill));
 				}
 
 				s.Append(";stroke:");
-				s.Append(System.Drawing.ColorTranslator.ToHtml(outline));
+				s.Append(ColorTranslator.ToHtml(outline));
 			}
 
 			s.Append("\" />\n");
@@ -1246,7 +1277,7 @@ namespace Zoom
 		{
 			s.Append('\t', indent);
 			s.AppendFormat("<rect x=\"{0:F2}\" y=\"{1:F2}\" width=\"{2:F2}\" height=\"{3:F2}\" style=\"fill:", x, y, width, height);
-			s.Append(System.Drawing.ColorTranslator.ToHtml(fillColor));
+			s.Append(ColorTranslator.ToHtml(fillColor));
 			s.Append("\" />\n");
 		}
 
@@ -1283,7 +1314,7 @@ namespace Zoom
 			if (!string.IsNullOrEmpty(hyper) || fontColor != Color.Black)
 			{
 				s.Append(" fill=\"");
-				s.Append(!string.IsNullOrEmpty(hyper) && fontColor == Color.Black ? "Navy" : System.Drawing.ColorTranslator.ToHtml(fontColor));
+				s.Append(!string.IsNullOrEmpty(hyper) && fontColor == Color.Black ? "Navy" : ColorTranslator.ToHtml(fontColor));
 				s.Append('\"');
 			}
 
@@ -1307,7 +1338,7 @@ namespace Zoom
 
 			float textWidth = width;
 			if (pure)
-				textWidth = Math.Max(width, TextWidth(text, height));
+				textWidth = Math.Max(width, TextWidth(text, pure, height));
 
 			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (pure ? 0.681 : 0.75), fontColor, alignment, cssClass, pure ? null : hyper, fillWidth);
 			s.Append(htmlEncode ? WebUtility.HtmlEncode(text) : text);
@@ -1323,7 +1354,7 @@ namespace Zoom
 		/// <summary>Print text, but see if we can make the ultimate font size bigger by breaking the text into multiple lines, instead of just shrinking the text to fit on a single line.</summary>
 		void SvgMultilineText(StringBuilder s, int indent, int x, int y, int width, int rectHeight, int textHeight, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool pure = false)
 		{
-			var textWidth = TextWidth(text, textHeight);
+			var textWidth = TextWidth(text, pure, textHeight);
 			var oversize = textWidth / width;  // Is the text too wide to fit in the cell without shrinking to fit? If so, how much by?
 			if (oversize <= 1)  // Our text is not oversized for this width.
 				SvgText(s, indent, x, y, width, textHeight, fontColor, alignment, text, cssClass, hyper, pure, false);  // Just print it on one row.
@@ -1350,15 +1381,7 @@ namespace Zoom
 		/// <summary>Break text (at spaces) into several lines.</summary>
 		string[] BreakText(string text, int lines)
 		{
-			char[] textChars = text.ToCharArray();
-			int length = textChars.Length;
-
-			var spaces = new List<int>();
-			for (int n = 0; n < length; n++)
-				if (char.IsWhiteSpace(textChars[n]))
-					spaces.Add(n);
-
-			spaces.Add(text.Length);  // Add a dummy space at the end.
+			List<int> spaces = Spaces(text);
 
 			if (spaces.Count == 1)
 				return new string[1] { text };
@@ -1380,15 +1403,12 @@ namespace Zoom
 
 				lineBreaks.Add(spaces.Count - 1);  // Add dummy line break at end, pointing at final dummy space.
 
-				var spaceWidth = TextWidth(" ");
-
-				var wordWidths = new List<float>() { TextWidth(text.Substring(0, spaces[0])) };  // Width of each word in pixels, not including any leading/trailing whitespace.
-				for (int w = 1; w < spaces.Count; w++)
-					wordWidths.Add(TextWidth(text.Substring(spaces[w - 1] + 1, spaces[w] - spaces[w - 1] - 1)));
+				float spaceWidth = TextWidth(" ");
+				List<float> wordWidths = WordWidths(text, spaces);
 
 				var lineWidths = new List<float>();
 				for (int b = 0; b < lineBreaks.Count; b++)
-					lineWidths.Add(Length(spaces, lineBreaks, wordWidths, spaceWidth, b));
+					lineWidths.Add(LineWidth(lineBreaks, wordWidths, spaceWidth, b));
 
 				bool changed = true;
 				int passes = 0;
@@ -1438,15 +1458,49 @@ namespace Zoom
 			}
 		}
 
-		/// <summary>
-		/// Return the length of a line, in pixels, given a list of where spaces occur and a list of where line breaks occur.
-		/// </summary>
-		/// <param name="spaces">List of places where whitespace characters occur in the text.</param>
-		/// <param name="breaks">List of places where we are currently putting line breaks. These are indexes into spaces, not indexes into the text.</param>
+		/// <summary>Return indexes of whitespaces in a string, plus a dummy space at the position just past the end.</summary>
+		private static List<int> Spaces(string text)
+		{
+			var spaces = new List<int>();
+
+			if (string.IsNullOrEmpty(text))
+				return spaces;
+
+			char[] textChars = text.ToCharArray();
+			int length = textChars.Length;
+
+			for (int n = 0; n < length; n++)
+				if (char.IsWhiteSpace(textChars[n]))
+					spaces.Add(n);
+
+			spaces.Add(length);  // Add a dummy space at the end.
+
+			return spaces;
+		}
+
+		/// <summary>Width of each word in pixels, not including any leading/trailing whitespace.</summary>
+		private List<float> WordWidths(string text, List<int> spaces)
+		{
+			var wordWidths = new List<float>();
+
+			if (string.IsNullOrEmpty(text))
+				return wordWidths;
+
+			wordWidths.Add(TextWidth(text.Substring(0, spaces[0])));
+
+			for (int w = 1; w < spaces.Count; w++)
+				wordWidths.Add(TextWidth(text.Substring(spaces[w - 1] + 1, spaces[w] - spaces[w - 1] - 1)));
+
+			return wordWidths;
+		}
+
+		/// <summary>Return the width of a line, in pixels.</summary>
+		/// <param name="breaks">List of places where we are currently putting line breaks. These are indexes into wordWidths.</param>
 		/// <param name="wordWidths">Width (in pixels) of each word in the text.</param>
+		/// <param name="spaceWidth">Width (in pixels) of ' '.</param>
 		/// <param name="break2">Index (into breaks) of the ending break of the line whose length we are measuring. This line runs from break2 - 1 to break2.</param>
 		/// <returns></returns>
-		float Length(List<int> spaces, List<int> breaks, List<float> wordWidths, float spaceWidth, int break2)
+		float LineWidth(List<int> breaks, List<float> wordWidths, float spaceWidth, int break2)
 		{
 			int startWord = break2 == 0 ? 0 : breaks[break2 - 1] + 1;
 			int endWord = breaks[break2];
@@ -1459,7 +1513,7 @@ namespace Zoom
 			{
 				s.Append('\t', indent);
 				s.AppendFormat("<circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" style=\"fill:", x, y, radius);
-				s.Append(System.Drawing.ColorTranslator.ToHtml(fillColor));
+				s.Append(ColorTranslator.ToHtml(fillColor));
 				s.Append("\" />\n");
 			}
 		}
@@ -1478,19 +1532,8 @@ namespace Zoom
 					s.AppendFormat("{0:F1},{1:F1} ", points[i].Item1, y1);
 			}
 			s.Append("\" style=\"fill:");
-			s.Append(System.Drawing.ColorTranslator.ToHtml(fillColor));
+			s.Append(ColorTranslator.ToHtml(fillColor));
 			s.Append("\" />\n");
-		}
-
-		void SvgLine(StringBuilder s, int indent, double x1, double y1, double x2, double y2, double width, Color fillColor)
-		{
-			if (fillColor != Color.Empty)
-			{
-				s.Append('\t', indent);
-				s.AppendFormat("<line x1=\"{0:F1}\" y1=\"{1:F0}\" x2=\"{2:F1}\" y2=\"{3:F0}\" style=\"stroke-width:{4:F0};stroke-linecap:\"round\";stroke:", x1, y1, x2, y2, width);
-				s.Append(System.Drawing.ColorTranslator.ToHtml(fillColor));
-				s.Append("\" />\n");
-			}
 		}
 
 		enum TopBottomType { Left, Right, Both }; // Does the top of this arrow have an end from the left? An end to the right? One of each? What about the bottom of the arrow?
@@ -1573,7 +1616,7 @@ namespace Zoom
 					s.AppendFormat("h 1 q {0:F1},0 {1:F1},{2:F1} q {0:F1},{2:F1} {1:F1},{2:F1} h 1\" ", width / 4 - 1, width / 2 - 2, mid);
 
 				s.AppendFormat("fill=\"none\" stroke-width=\"{0:F1}\" stroke=\"", fullArrow);
-				s.Append(System.Drawing.ColorTranslator.ToHtml(c));
+				s.Append(ColorTranslator.ToHtml(c));
 				s.Append("\" /> ");
 
 				s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", left + width - fullArrow / 2F, RowMid(top, rightEnd.Row, rowHeight));
@@ -1670,7 +1713,7 @@ namespace Zoom
 					s.AppendFormat("c {0:F1},0 {0:F1},{2:F1} {1:F1},{2:F1} ", -halfArrowH, -halfArrowH * 2, (arrow.To.First().Width - arrow.From.First().Width) / 2);
 				s.Append("Z\" fill=\"");
 			}
-			s.Append(System.Drawing.ColorTranslator.ToHtml(c));
+			s.Append(ColorTranslator.ToHtml(c));
 			s.Append("\" />\n");
 		}
 
@@ -1682,7 +1725,7 @@ namespace Zoom
 
 			s.AppendFormat("<svg viewBox=\"0 0 {0} {1}\" width=\"{0}\" align=\"center\">\n", width, height);
 
-			SvgRect(s, 1, 1, 1, width - 1, rowHeight * 2, Colors.TitleBackColor);  // Paint title "row" background.
+			SvgRect(s, 1, 1, 1, width - 2, rowHeight * 2, Colors.TitleBackColor);  // Paint title "row" background.
 
 			if (!pure)
 			{
@@ -1702,38 +1745,15 @@ namespace Zoom
 			}
 		}
 
-		/// <summary>Returns the amount of vertical height the title and column headers will consume.</summary>
-		int SvgHeaderHeight(bool hasGroupHeadings, int rowHeight)
-		{
-			int rowTop = rowHeight * 2 + 2;
-			if (!Columns.Exists(col => !string.IsNullOrWhiteSpace(col.Text)))
-				return rowTop;
-
-			bool anyRotate = Columns.Exists(col => col.Rotate);
-
-			if (hasGroupHeadings)
-				rowTop += rowHeight + 1;
-
-			float tallest = Columns.DefaultIfEmpty(new ZColumn("")).Max(col => col.Rotate ? TextWidth(col.Text) : 0);
-			double headerHeight = !hasGroupHeadings && anyRotate ? (tallest + rowHeight) / Math.Sqrt(2) : rowHeight;
-
-			// If some columns have group headings, for any column that doesn't, we can grow the heading of that column upwards into the space that would have been used by the group heading. The "-rowHeight" bit below does this.
-			if (hasGroupHeadings && anyRotate)
-				headerHeight = Math.Max(headerHeight, Columns.Max(c => c.Rotate ? TextWidth(c.Text) + (string.IsNullOrWhiteSpace(c.GroupHeading) ? -rowHeight : 1) : rowHeight));
-
-			return rowTop + (int)headerHeight + 1;
-		}
-
 		/// <summary>Write the column header row(s). Returns the amount of vertical height it has consumed. Doesn't render the Title -- that's in SvgBegin().</summary>
-		int SvgHeader(StringBuilder s, bool hasGroupHeadings, int rowHeight, int left, List<float> widths, bool pure)
+		void SvgHeader(StringBuilder s, int left, int bottom, List<float> widths, bool pure)
 		{
-
-			int rowTop = rowHeight * 2 + 2;
 			if (!Columns.Exists(col => !string.IsNullOrWhiteSpace(col.Text)))
-				return rowTop;
+				return;
 
-			bool anyRotate = Columns.Exists(col => col.Rotate);
+			int top = RowHeight * 2 + 2;  // Skip down past the title.
 
+			bool hasGroupHeadings = HasGroupHeadings();
 			if (hasGroupHeadings)
 			{
 				int start = 0;
@@ -1744,42 +1764,69 @@ namespace Zoom
 						end++;
 
 					if (!string.IsNullOrWhiteSpace(Columns[start].GroupHeading))
-						SvgRectText(s, 1, widths.Take(start).Sum() + start + left, rowTop, widths.Skip(start).Take(end - start + 1).Sum() + end - start, rowHeight,
+						SvgRectText(s, 1, widths.Take(start).Sum() + start + left, top, widths.Skip(start).Take(end - start + 1).Sum() + end - start, RowHeight,
 									Colors.TitleFontColor, Colors.TitleBackColor, ZAlignment.Center, Columns[start].GroupHeading, pure);  // Paint group heading.
 
 					start = end + 1;
 				}
 
-				rowTop += rowHeight + 1;
+				top += RowHeight + 1;
 				s.Append('\n');
 			}
 
-			int headerHeight = SvgHeaderHeight(hasGroupHeadings, rowHeight) - rowTop - 1;
+			int height = bottom - top;
 			float x = left;
+			float text45Offset = float.MaxValue;
 
 			for (int col = 0; col < Columns.Count; col++)
 			{
 				var column = Columns[col];
-				int upset = hasGroupHeadings && string.IsNullOrWhiteSpace(column.GroupHeading) ? rowHeight + 1 : 0;  // If some columns have group headings, but this column doesn't, we can grow the heading of this column upwards into the space that would have been used by the group heading.
+				int upset = hasGroupHeadings && string.IsNullOrWhiteSpace(column.GroupHeading) ? RowHeight + 1 : 0;  // If some columns have group headings, but this column doesn't, we can grow the heading of this column upwards into the space that would have been used by the group heading.
 				Color backColor = column.Color == default ? Colors.TitleBackColor : column.Color;
 				Color textColor = column.Color == default ? Colors.TitleFontColor : backColor.GetBrightness() < 0.63 ? Color.White : Color.Black;
 				bool nextRotated = Columns.Valid(col + 1) && Columns[col + 1].Rotate;
 
 				// Paint column heading background.
 				if (hasGroupHeadings || (!column.Rotate && !nextRotated))
-					SvgRect(s, 1, x, rowTop - upset, widths[col], headerHeight + upset, backColor);  // Paint column heading rectangle for no rotate or 90 degrees rotate.
+					SvgRect(s, 1, x, top - upset, widths[col], height + upset, backColor);  // Paint column heading rectangle for no rotate or 90 degrees rotate.
 				else  // Various 45 degree rotation cases.
 				{
-					string format;
-					if (column.Rotate && !nextRotated)  // This column heading is rotated but next column heading is flat.
-						format = "\t<polygon points=\"{0:F0},{1:F0} {3:F0},{1:F0} {3:F0},{4:F0} {5:F0},{4:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left, then go right, down by headerHeight, left by widths[col], then let it close itself.
-					else if (column.Rotate)
-						format = "\t<polygon points=\"{0:F0},{1:F0} {2:F0},{1:F0} {3:F0},{4:F0} {5:F0},{4:F0}\" style=\"fill:";  // Paint a parallelogram. Start at top left, then go right by widths[col], down and right at 45 degrees by headerHeight,headerHeight, left by widths[col], then let it close itself.
-					else  // This column heading is flat but next column heading is rotated.
-						format = "\t<polygon points=\"{5:F0},{1:F0} {2:F0},{1:F0} {3:F0},{4:F0} {5:F0},{4:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left, then go right by widths[col], down and right at 45 degrees by headerHeight,headerHeight, left by widths[col], then let it close itself up.
+					float right = Math.Min(x + widths[col], Width - 1);
 
-					s.AppendFormat(format, x - headerHeight, rowTop, x + widths[col] - headerHeight, x + widths[col], rowTop + headerHeight, x);
-					s.Append(System.Drawing.ColorTranslator.ToHtml(backColor));
+					// Let's handle cases where the column headings need special shapes because this column and/or the next or previous columns are rotated 45 degrees.
+					// It's possible for column headings further away to impinge on the region we're painting for this one, but
+					// (a) this doesn't happen in any reports I actually generate; and (b) when it does, nothing messy occurs. So I don't bother to handle these.
+					string format;
+					if (column.Rotate && nextRotated)  // This column heading and next are both rotated: left and right sides are at 46 degrees.
+					{
+						if (right - height < 1)  // Top two points of a parallelogram would be off left edge of report.
+							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left; go down and right at 45 degrees to right edge of column; left by widths[col]; up and right at 45 degrees to left edge of report; then let it close itself.
+						else if (x - height < 1)  // Top left point of a parallelogram would be off left edge of report.
+							format = "\t<polygon points=\"1,{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" style=\"fill:";  // Paint a pentagon. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+						else
+							format = "\t<polygon points=\"{0:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" style=\"fill:";  // Paint a parallelogram. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+					}
+					else if (column.Rotate && !nextRotated)  // This column heading is rotated but next column heading is flat: left at 45 degrees, right vertical.
+					{
+						if (x - height < 1)  // Top left point would be off left edge of report.
+							format = "\t<polygon points=\"1,{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" style=\"fill:";  // Paint a pentagon. Start at top left; go right; down by headingsHeight; left by widths[col]; up and right at 45 degrees to left edge of report; close.
+						else
+							format = "\t<polygon points=\"{0:F0},{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left, then go right, down by headingsHeight, left by widths[col], then let it close itself.
+					}
+					else  // This column heading is flat but next column heading is rotated: left vertical, right at 45 degrees.
+					{
+						if (right - height < 1)  // We are constrained by next column's heading above us.
+							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} 1,{5:F0}\" style=\"fill:";  // Paint a triangle. Start at upper left; go down and right at 45 degrees to bottom; then left; close.
+						else
+							format = "\t<polygon points=\"{3:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left; go right; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+					}
+
+					// x positions:        0: top left; 1: top right;   2: bottom right; 3: bottom left;
+					s.AppendFormat(format, x - height,  right - height, right,           x,
+					// y positions: 4: header top; 5: bottom; 6 & 7: heights along the left edge which represent how much is truncated off the left edge.
+									top,           bottom,    bottom - x + 1, bottom - right + 1);
+
+					s.Append(ColorTranslator.ToHtml(backColor));
 					s.Append("\" />\n");
 				}
 
@@ -1789,12 +1836,13 @@ namespace Zoom
 					s.Append("\t<text alignment-baseline=\"middle\" ");
 
 					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
-									x + widths[col] / 2 - rowHeight / 4, rowTop + headerHeight - rowHeight / 4, headerHeight + upset, Math.Min(rowHeight * 3 / 4, widths[col]));
-					s.Append(System.Drawing.ColorTranslator.ToHtml(textColor));
+									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height + upset, Math.Min((RowHeight * (pure ? 0.7 : 0.75)), widths[col]));
+					s.Append(ColorTranslator.ToHtml(textColor));
 					s.Append("\">");
 
 					s.Append(WebUtility.HtmlEncode(column.Text));
 					s.Append("</text>\n");
+					text45Offset = float.MaxValue;
 				}
 				else if (!hasGroupHeadings && column.Rotate)  // Paint column heading text rotated 45 degrees.
 				{
@@ -1806,12 +1854,14 @@ namespace Zoom
 					// Draw text inside parallelogram.
 					s.Append("<text ");
 
-					//if (!pure && !string.IsNullOrEmpty(column.Hyper))
-					//	s.Append("text-decoration=\"underline\" ");
+					bool previousRotated = Columns.Valid(col - 1) && Columns[col - 1].Rotate;
+					float colWidth = previousRotated ? Math.Min(widths[col - 1], widths[col]) : widths[col];
+					float previousOffset = text45Offset;
+					text45Offset = widths[col] / 2 - (nextRotated ? RowHeight / 2F : 0);
 
 					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
-								   x + (widths[col] - rowHeight) / 2, rowTop + headerHeight - 3, headerHeight * 1.41 - rowHeight * 3 / 4, rowHeight * 3 / 4);
-					s.Append(System.Drawing.ColorTranslator.ToHtml(textColor));
+								   x + Math.Min(previousOffset, text45Offset), bottom - 3, height * 1.41 - RowHeight * 3 / 4, RowHeight * 3 / 4);
+					s.Append(ColorTranslator.ToHtml(textColor));
 					s.Append("\">");
 
 					s.Append(WebUtility.HtmlEncode(column.Text));
@@ -1822,15 +1872,16 @@ namespace Zoom
 					s.Append("\n");
 				}
 				else  // Paint column heading text flat.
-					SvgMultilineText(s, 1, (int)x, rowTop + (int)headerHeight - rowHeight, (int)widths[col] - (nextRotated && !hasGroupHeadings ? rowHeight : 0), headerHeight + upset, rowHeight,
+				{
+					SvgMultilineText(s, 1, (int)x, bottom - RowHeight, (int)widths[col] - (nextRotated && !hasGroupHeadings ? RowHeight : 0), height + upset, RowHeight,
 						textColor, column.Alignment, column.Text, null, column.Hyper, pure);
 
+					text45Offset = float.MaxValue;
+				}
 				x += widths[col] + 1;
 			}
 
-			rowTop += headerHeight + 1;
 			s.Append('\n');
-			return rowTop;
 		}
 
 		/// <summary>value, scaleMin and scaleMax are all in the before-scaling ordinate system. outputWidth gives the range of the after-scaling ordinate system.</summary>
@@ -2116,16 +2167,16 @@ namespace Zoom
 			return (bool)hasGroupHeadings;
 		}
 
-
 		Graphics graphics = null;
 		Font font = null;
 		/// <summary>Width of text in pixels, independent of scaling of current monitor.</summary>
-		float TextWidth(string text, int height = RowHeight)
+		float TextWidth(string text, bool pure = false, int height = RowHeight)
 		{
 			if (graphics == null)
 			{
 				graphics = Graphics.FromImage(new Bitmap(1000, 20));
-				font = new Font("Arial", 11);
+
+				font = new Font(pure ? "Microsoft Sans Serif" : "Arial", 11);
 			}
 
 			float width = graphics.MeasureString(text, font, 1000).Width / graphics.DpiX * 96;
@@ -2145,12 +2196,11 @@ namespace Zoom
 			var widths = new List<float>();  // Width of each column in pixels. "float", because MeasureString().Width returns a float.
 			var mins = new List<double>();   // Minimum numeric value in each column, or if all numbers are positive, 0.
 			var maxs = new List<double>();   // Maximum numeric value in each column.
-			Widths(widths, mins, maxs, out int maxPoints);
+			int headerHeight = Metrics(widths, mins, maxs, out int maxPoints, pure);
 			Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG -- the sum of each column, plus pixels for spacing left, right and between.
 			double max = maxs.DefaultIfEmpty(1).Max();
 
 			int left = 1;
-			int headerHeight = SvgHeaderHeight(HasGroupHeadings(), RowHeight);
 			int arrowTop = headerHeight;
 			Height = headerHeight + Rows.Count * (RowHeight + 1);
 			int multiColumns = MultiColumnOK && aspectRatio.HasValue ? Math.Max((int)Math.Sqrt((double)aspectRatio / Width * Height), 1) : 1;
@@ -2161,8 +2211,8 @@ namespace Zoom
 			SvgBegin(sb, RowHeight, (int)(Width * 1.1 * multiColumns - Width * 0.1), Height, pure);
 			for (int col = 0; col < multiColumns; col++)
 			{
-				int thisLeft = (int)(left + Width * 1.1 * col);
-				SvgHeader(sb, HasGroupHeadings(), RowHeight, thisLeft, widths, pure);
+				int thisLeft = (int)(left + Width * 1.1 * col);				
+				SvgHeader(sb, thisLeft, headerHeight - 1, widths, pure);
 				int rowTop = headerHeight;
 				bool odd = true;
 				for (int row = rowsPerCol * col; row < rowsPerCol * (col + 1); row++)
@@ -2180,14 +2230,18 @@ namespace Zoom
 
 			Width = (int)(Width * 1.1 * multiColumns - Width * 0.1);
 
-			sb.Append("</svg>\n");
+			sb.Length -= 1;  // Remove trailing \n
+			sb.Append("</svg>");
 
 			if (!pure && !string.IsNullOrEmpty(HtmlDescription))
-				AppendStrings(sb, "<p>", HtmlDescription, "</p>\n");
+				AppendStrings(sb, "\n<p>", HtmlDescription, "</p>\n");
 			else if (!pure && !string.IsNullOrEmpty(Description))
-				AppendStrings(sb, "<p>", Description.Replace("\n", "<br/>\n"), "</p>\n");
+				AppendStrings(sb, "\n<p>", Description.Replace("\n", "<br/>\n"), "</p>\n");
+
 			if (!pure)
-				sb.Append("</div>");
+				sb.Append("</div>\n");
+
+			sb.Append('\n');
 		}
 
 		public override string ToString()
@@ -2236,8 +2290,6 @@ namespace Zoom
 		readonly ZReportColors colors;
 		public ZReportColors Colors { get { return colors; } }
 		
-//		int HeightUsed { get; set; }
-
 		public ZoomReports(string title = null)
 		{
 			Title = title;
@@ -2300,31 +2352,36 @@ namespace Zoom
 			return sb.ToString();
 		}
 
-		public string ToHtml()
+		void HtmlBegin(StringBuilder sb)
 		{
-			StringBuilder sb = new StringBuilder();
 			sb.Append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"/><title>");
 			if (!string.IsNullOrEmpty(Title))
 				sb.Append(WebUtility.HtmlEncode(Title));
 			else if (Count > 0)
 				sb.Append(WebUtility.HtmlEncode(this[0].Title));
-			sb.Append("</title>");
+			sb.Append("</title>\n");
 
-			sb.Append("\n  <style type=\"text/css\">\n");
-			sb.Append("    .back   { background: #eef; color: black; }\n");
-			sb.Append("    @media (prefers-color-scheme: dark) {\n");
-			sb.Append("      .back { background: #112; color: white; }\n");
-			sb.Append("    }\n");
+			sb.Append("  <style type=\"text/css\">\n");
+			sb.Append("\t.back   { background: #eef; color: black; }\n");
+			sb.Append("\t@media (prefers-color-scheme: dark) {\n");
+			sb.Append("\t  .back { background: #112; color: white; }\n");
+			sb.Append("\t}\n");
+		}
+
+		public string ToHtml()
+		{
+			StringBuilder sb = new StringBuilder();
+			HtmlBegin(sb);
 
 			if (Bars)
 			{
-				sb.Append("    .barcontainer { position:relative }\n");
-				sb.Append("    .bar { padding-bottom: 18px; background-color: #DFDFDF }\n");
-				sb.Append("    .bartext { position: absolute; top: 0px; left: 0px; text-align: right; width: 100% }\n");
+				sb.Append("\t.barcontainer { position:relative }\n");
+				sb.Append("\t.bar { padding-bottom: 18px; background-color: #DFDFDF }\n");
+				sb.Append("\t.bartext { position: absolute; top: 0px; left: 0px; text-align: right; width: 100% }\n");
 
 				foreach (var c in BarCellColors())
-					sb.AppendFormat("    .bar{0:X2}{1:X2}{2:X2} {{ padding-bottom: 18px; background-color: {3} }}\n", 
-					                c.R, c.G, c.B, System.Drawing.ColorTranslator.ToHtml(c));
+					sb.AppendFormat("\t.bar{0:X2}{1:X2}{2:X2} {{ padding-bottom: 18px; background-color: {3} }}\n", 
+					                c.R, c.G, c.B, ColorTranslator.ToHtml(c));
 			}
 			sb.Append("  </style>\n");
 
@@ -2346,7 +2403,7 @@ namespace Zoom
 			public int Height;
 		}
 
-		readonly List<List<ReportWithSize>> images = new List<List<ReportWithSize>>();  // Each List<Bitmap> represents one page worth of reports.
+		readonly List<List<ReportWithSize>> images = new List<List<ReportWithSize>>();  // Each List<ReportWithSize> represents one page worth of reports.
 		int pageNumber = 0;
 		public PrintDocument ToPrint()
 		{
@@ -2373,8 +2430,9 @@ namespace Zoom
 						{
 							Bitmap = r.ToBitmap((bounds.Width * ev.PageSettings.PrinterResolution.X / 100), (bounds.Height * ev.PageSettings.PrinterResolution.Y / 100))
 						};
+						// ZoomReport Height and Width are only available _after_ it is rendered.
 						image.Height = r.Height;
-						image.Width = r.Width;  // ZoomReport Height and Width are only available _after_ it is rendered.
+						image.Width = r.Width;
 						page.Add(image);
 					}
 					else if (report is ZoomSeparator)
@@ -2417,19 +2475,9 @@ namespace Zoom
 		public string ToSvg()
 		{
 			StringBuilder sb = new StringBuilder();
-			sb.Append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"/><title>");
+			HtmlBegin(sb);
 
-			if (!string.IsNullOrEmpty(Title))
-				sb.Append(WebUtility.HtmlEncode(Title));
-			else if (Count > 0)
-				sb.Append(WebUtility.HtmlEncode(this[0].Title));
-			sb.Append("</title>");
-
-			sb.Append("\n  <style type=\"text/css\">\n");
-			sb.Append("    .back   { background: #eef; color: black; }\n");
-			sb.Append("    @media (prefers-color-scheme: dark) {\n");
-			sb.Append("      .back { background: #112; color: white; }\n");
-			sb.Append("    }\n");
+			sb.Append("\tsvg { box-shadow: 0 4px 20px rgba(88,88,88,0.6) }\n");
 			sb.Append("  </style>\n");
 
 			sb.Append("</head><body class=\"back\">\n");

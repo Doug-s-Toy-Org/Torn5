@@ -71,7 +71,7 @@ namespace Torn
 				return;
 			}
 
-			gameColumns.Add(report.AddColumn(new ZColumn("game".CountPluralise(thisRound.Games), ZAlignment.Center, thisRound.Title)));
+			gameColumns.Add(report.AddColumn(new ZColumn(thisRound.Title, ZAlignment.Center) { Rotate = true } ));
 
 			var arrowColumn = report.AddColumn(new ZColumn("", ZAlignment.Center, ""));
 			var arrow = new Arrow();  // This arrow shows teams leaving this round, and skipping ahead, going to next round or repechage, or being eliminated.
