@@ -115,6 +115,10 @@ namespace Torn5.Controls
 			if (numericPyramidRounds.Value >= 3)
 				Pyramid.Rounds.Add(pyramidRound3);
 
+			pyramidRound1.Rounds = (int)numericPyramidRounds.Value;
+			pyramidRound2.Rounds = (int)numericPyramidRounds.Value;
+			pyramidRound3.Rounds = (int)numericPyramidRounds.Value;
+
 			RefreshPyramidFixture();
 		}
 
@@ -134,7 +138,7 @@ namespace Torn5.Controls
 
 		private void NumericPyramidDesiredTeamsPerGameValueChanged(object sender, EventArgs e)
 		{
-			for (int i = 0; i < Pyramid.Rounds.Count - 1; i++)
+			for (int i = 0; i < Pyramid.Rounds.Count; i++)
 				Pyramid.Rounds[i].DesiredTeamsPerGame = (int)numericPyramidDesiredTeamsPerGame.Value;
 		}
 	}

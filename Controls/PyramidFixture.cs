@@ -1,7 +1,9 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.Text;
 using System.Windows.Forms;
+using Torn;
 
 namespace Torn5.Controls
 {
@@ -15,6 +17,13 @@ namespace Torn5.Controls
 				checkBoxRepechage.Text = " Repêchage " + round.ToString();
 				fixtureRound.RoundNumber = value;
 				fixtureRepechage.RoundNumber = value;
+			}
+		}
+
+		public int Rounds { get => fixtureRound.Rounds;
+			set
+			{
+				fixtureRound.Rounds = value; FixtureRepechage.Rounds = value;
 			}
 		}
 
@@ -56,16 +65,47 @@ namespace Torn5.Controls
 
 		public string Description()
 		{
-			string s = "Round " + Round + ": ";
-			if (RoundGamesPerTeam != 1)
-				s += "You play " + RoundGamesPerTeam + " games. ";
-			s += "Top " + RoundAdvance + " teams advance to Round " + (Round + 1) + ". Remaining " + RepechageTeams + " to Repêchage " + Round + ".\r\n";
-			s += "Repêchage " + Round + ": ";
-			if (RoundGamesPerTeam != 1)
-				s += "You play 1 game. ";
-			s += "Top " + RepechageAdvance + " teams advance to Round " + (Round + 1) + ". Remaining " + (TeamsIn - RoundAdvance - RepechageAdvance) + " eliminated.\r\n";
+			string nextRound = round == Rounds ? "Finals" : "Round " + (round + 1).ToString();
 
-			return s;
+			var s = new StringBuilder();
+			s.Append("Round " + Round + ": ");
+			if (RoundGamesPerTeam != 1)
+				s.Append("You play " + RoundGamesPerTeam + " games. ");
+			s.Append("Top " + RoundAdvance + " teams ");
+			TopWhat(s, fixtureRound);
+			s.Append("advance to " + nextRound + ".\r\nRemaining " + RepechageTeams + " to Repêchage " + Round + ".\r\n");
+			s.Append("Repêchage " + Round + ": ");
+			if (RoundGamesPerTeam != 1)
+				s.Append("You play 1 game. ");
+			s.Append("Top " + RepechageAdvance + " teams ");
+			TopWhat(s, fixtureRepechage);
+			s.Append("advance to " + nextRound + ".\r\nRemaining " + (TeamsIn - RoundAdvance - RepechageAdvance) + " eliminated.\r\n");
+
+			return s.ToString();
+		}
+
+		void TopWhat(StringBuilder s, PyramidHalfFixture r)
+		{
+			if ((round == 1 && r == fixtureRound) || r.GamesPerTeam > 1)  // Unseeded, and so shouldn't compare within each game? Or more than one game per team, and so can't compare within each game?
+			{
+				s.Append("(overall) ");
+				return;
+			}
+
+			s.AppendFormat("(top {0:N0} from each game", r.Advance / r.Games);
+
+			if (r.Advance % r.Games != 0)
+			{
+				s.Append(" plus ");
+
+				if (r.Advance % r.Games == 1)
+					s.Append("the");
+				else
+					s.Append(r.Advance % r.Games);
+
+				s.AppendFormat(" best {0} places", (r.Advance / r.Games + 1).Ordinate());
+			}
+			s.Append(") ");
 		}
 
 		private void HalfFixtureChanged(object sender, System.EventArgs e)

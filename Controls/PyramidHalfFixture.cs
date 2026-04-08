@@ -34,6 +34,8 @@ namespace Torn5.Controls
 			}
 		}
 
+		public int Rounds { get; set; } = 3;
+
 		void RefreshTitle()
 		{
 			if (isRound)

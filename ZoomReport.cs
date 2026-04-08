@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -108,6 +107,9 @@ namespace Zoom
 		public double Width { get; set; }
 		/// <summary>If true, look to see if this From end can be moved leftwards into empty cells, or this To end can be moved rightwards into empty cells.</summary>
 		public bool Expand { get; set; }
+
+		/// <summary>If set, paint a number on this arrow end.</summary>
+		public int? Number { get; set; }
 
 		public ZArrowEnd(int row, double width)
 		{
@@ -693,11 +695,11 @@ namespace Zoom
 		/// <param name="maxPoints">Largest number of Data points in any chart in any cell.</param>
 		/// <param name="maxLines">Number of lines of text used by the column heading that wraps onto the most lines, plus 1 if that column has a GroupHeading.</param>
 		/// <returns>Vertical height the title and column headers will consume (including the blank pixel below the headers).</returns>
-		int Metrics(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints, bool pure)
+		int Metrics(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints)
 		{
 			maxPoints = 0;
 			int maxLines = 1;
-			float spaceWidth = TextWidth(" ", pure);
+			float spaceWidth = TextWidth(" ");
 			const string egFormat = ".\u00D710\u207B\u2079";
 
 			for (int col = 0; col < Columns.Count; col++)
@@ -842,6 +844,8 @@ namespace Zoom
 		}
 
 		SvgDocument document;
+		bool _pure;  // true if this is to be rendered to a bitmap by SvgDocument.Draw(), as opposed to saving out for rendering by a web browser.
+
 		/// <summary>Render a report to bitmap. If report has different aspect ratio to width/height, then returned bitmap will be either narrower than width, or shorter than height.</summary>
 		/// <param name="width">Maximum width to render.</param>
 		/// <param name="height">Maximum height to render.</param>
@@ -850,11 +854,8 @@ namespace Zoom
 		public Bitmap ToBitmap(int width, int height, bool force = false)
 		{
 			if (force || document == null)
-				using (StringWriter sw = new StringWriter())
-				{
-					sw.Write(ToSvg(1.0 * width / height));
-					document = SvgDocument.FromSvg<SvgDocument>(sw.ToString());
-				}
+				document = SvgDocument.FromSvg<SvgDocument>(ToSvg(1.0 * width / height));
+
 			double aspectRatio = document.ViewBox.Width / document.ViewBox.Height;
 
 			if (aspectRatio > 1.0 * width / height)
@@ -874,11 +875,7 @@ namespace Zoom
 		public Bitmap ToBitmap(float scale)
 		{
 			if (document == null)
-				using (StringWriter sw = new StringWriter())
-				{
-					sw.Write(ToSvg());
-					document = SvgDocument.FromSvg<SvgDocument>(sw.ToString());
-				}
+				document = SvgDocument.FromSvg<SvgDocument>(ToSvg(true));
 
 			document.Width = new SvgUnit(SvgUnitType.Pixel, document.ViewBox.Width * scale);
 			document.Height = new SvgUnit(SvgUnitType.Pixel, document.ViewBox.Height * scale);
@@ -1220,10 +1217,10 @@ namespace Zoom
 		}
 
 		// Write a <rect> tag, and a <text> tag on top of it.
-		void SvgRectText(StringBuilder s, int indent, double x, double y, double width, double height, Color fontColor, Color backColor, ZAlignment alignment, string text, bool pure)
+		void SvgRectText(StringBuilder s, int indent, double x, double y, double width, double height, Color fontColor, Color backColor, ZAlignment alignment, string text)
 		{
 			SvgRect(s, indent, x, y, width, height, backColor);
-			SvgText(s, indent, (int)x, (int)y, (int)width, (int)height, fontColor, alignment, text, null, null, pure);
+			SvgText(s, indent, (int)x, (int)y, (int)width, (int)height, fontColor, alignment, text, null, null);
 		}
 
 		void SvgRect(StringBuilder s, int indent, double x, double y, double width, double height, Color fill, Color outline = default)
@@ -1331,33 +1328,33 @@ namespace Zoom
 			s.Append('\n');
 		}
 
-		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool pure = false, bool fillWidth = false, bool htmlEncode = true)
+		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool fillWidth = false, bool htmlEncode = true)
 		{
 			if (string.IsNullOrEmpty(text))
 				return;
 
 			float textWidth = width;
-			if (pure)
-				textWidth = Math.Max(width, TextWidth(text, pure, height));
+			if (_pure)
+				textWidth = Math.Max(width, TextWidth(text, height));
 
-			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (pure ? 0.681 : 0.75), fontColor, alignment, cssClass, pure ? null : hyper, fillWidth);
+			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (_pure ? 0.681 : 0.75), fontColor, alignment, cssClass, _pure ? null : hyper, fillWidth);
 			s.Append(htmlEncode ? WebUtility.HtmlEncode(text) : text);
-			SvgEndText(s, pure ? null : hyper);
+			SvgEndText(s, _pure ? null : hyper);
 		}
 
 		/// <summary>Formats the value of a cell then calls the other overload.</summary>
-		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell, bool pure)
+		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell)
 		{
-			SvgText(s, indent, x, y, width, height, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, cell.OutputText(OutputFormat.Svg), cell.CssClass, cell.Hyper, pure, column.FillWidth, false);
+			SvgText(s, indent, x, y, width, height, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, cell.OutputText(OutputFormat.Svg), cell.CssClass, cell.Hyper, column.FillWidth, false);
 		}
 
 		/// <summary>Print text, but see if we can make the ultimate font size bigger by breaking the text into multiple lines, instead of just shrinking the text to fit on a single line.</summary>
-		void SvgMultilineText(StringBuilder s, int indent, int x, int y, int width, int rectHeight, int textHeight, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool pure = false)
+		void SvgMultilineText(StringBuilder s, int indent, int x, int y, int width, int rectHeight, int textHeight, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null)
 		{
-			var textWidth = TextWidth(text, pure, textHeight);
+			var textWidth = TextWidth(text, textHeight);
 			var oversize = textWidth / width;  // Is the text too wide to fit in the cell without shrinking to fit? If so, how much by?
 			if (oversize <= 1)  // Our text is not oversized for this width.
-				SvgText(s, indent, x, y, width, textHeight, fontColor, alignment, text, cssClass, hyper, pure, false);  // Just print it on one row.
+				SvgText(s, indent, x, y, width, textHeight, fontColor, alignment, text, cssClass, hyper, false);  // Just print it on one row.
 			else  // Text won't fit on one line without shrinking.
 			{
 				int linesToUse = (int)Math.Ceiling(oversize);  // Number of lines we would like to break the text into, to avoid having to shrink the text.
@@ -1374,7 +1371,7 @@ namespace Zoom
 
 				lines = BreakText(text, linesToUse);
 				for (int i = 0; i < lines.Length; i++)
-					SvgText(s, indent, x, y + textHeight + (i - lines.Length) * lineHeight, width, lineHeight, fontColor, alignment, lines[i], cssClass, hyper, pure, false);
+					SvgText(s, indent, x, y + textHeight + (i - lines.Length) * lineHeight, width, lineHeight, fontColor, alignment, lines[i], cssClass, hyper, false);
 			}
 		}
 
@@ -1691,12 +1688,35 @@ namespace Zoom
 						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {0:F1},{1:F1} ", halfArrow, -halfArrow);
 					}
 
-					// Paint a right end arrowhead, starting at its bottom left: right, down, up/right, up/left, down, left.
+					// Don't need to draw an arrowhead if this arrow has Expand set and there's a matching From arrow end in a future arrow, with no cells in between this arrow end and that arrow end.
+					// Search for a matching arrow end for Expand.
+					bool found = false;
+					if (end.Expand)
+						for (int col2 = col + 1; col2 < Columns.Count && !found; col2++)
+							foreach (var arrow2 in Columns[col].Arrows)
+								if (arrow2.From.Any(e => e.Row == end.Row))
+								{
+									found = true;
+									for (int cc = col + 1; cc < col2; cc++)
+										found &= Rows[end.Row][cc].Empty();
+
+									if (found)
+										break;
+								}
+
 					s.AppendFormat("H {0:F1} ", FindArrowRight(end, col, widths) - halfArrow);
-					s.AppendFormat("v {0:F1} ", halfArrow);
-					s.AppendFormat("l {0:F1},{1:F1} ", halfArrow * 2, -halfArrow * 2);
-					s.AppendFormat("l {0:F1},{0:F1} ", -halfArrow * 2);
-					s.AppendFormat("v {0:F1} ", halfArrow);
+
+					if (found)
+						s.AppendFormat("v {0:F1} ", -halfArrow * 2);
+					else
+					{
+						// Paint a right end arrowhead, starting at its bottom left: down, up/right, up/left, down.
+						s.AppendFormat("v {0:F1} ", halfArrow);
+						s.AppendFormat("l {0:F1},{1:F1} ", halfArrow * 2, -halfArrow * 2);
+						s.AppendFormat("l {0:F1},{0:F1} ", -halfArrow * 2);
+						s.AppendFormat("v {0:F1} ", halfArrow);
+					}
+
 					s.AppendFormat("H {0:F1} ", centre + halfArrowH + halfArrow);
 
 					if (end.Row != topRow)
@@ -1715,29 +1735,82 @@ namespace Zoom
 			}
 			s.Append(ColorTranslator.ToHtml(c));
 			s.Append("\" />\n");
+
+			foreach (var end in arrow.From.Where(e => e.Number != null))
+			{
+				var left = FindArrowLeft(end, col, widths);
+				float right = widths.Take(col + (end.Expand ? 0 : 1)).Sum(w => w + 1);
+				SvgArrowNumber(s, left, right, top, end);
+			}
+
+			foreach (var end in arrow.To.Where(e => e.Number != null))
+			{
+				var right = FindArrowRight(end, col, widths);
+				float left = widths.Take(col + (end.Expand ? 1 : 0)).Sum(w => w + 1);
+				SvgArrowNumber(s, left, right, top, end);
+			}
+		}
+
+		bool filterEmitted = false;
+		void SvgArrowNumber(StringBuilder s, float left, float right, float top, ZArrowEnd end)
+		{
+			string pureFilter = @"
+	<filter id=""blur"">
+		<feGaussianBlur in=""SourceGraphic"" stdDeviation=""1"" />
+	</filter>
+";
+
+			string filter = @"
+	<filter id=""outline"">
+		<feMorphology in=""SourceAlpha"" operator=""dilate"" radius=""1"" result=""A""></feMorphology>
+		<feFlood flood-color=""#FFF"" flood-opacity=""1"" result=""B""></feFlood>
+		<feComposite in=""B"" in2=""A"" operator=""in"" result=""C""></feComposite>
+		<feMerge>
+			<feMergeNode in=""C"" />
+			<feMergeNode in=""SourceGraphic"" />
+		</feMerge>
+	</filter>
+";
+			if (!filterEmitted)
+			{
+				s.Append(_pure ? pureFilter : filter);  // SvgDocument.Draw() doesn't implement many filters, including feFlood, so when _pure == true, use feGaussianBlur instead...
+				filterEmitted = true;
+			}
+			if (_pure)  // ...and then emit white text blurred twice (to intensify it) and then black text on top of that. And then accept that "white" is actually a bit grey.
+			{
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"{0:F0}\" y=\"{1:F0}\" font-size=\"{2:F0}\" fill=\"White\" filter=\"url(#blur)\">{3:N0}</text>\n",
+					left + (right - left) / 2, top + (end.Row + 0.67) * RowHeight, RowHeight * 0.5, end.Number);
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"{0:F0}\" y=\"{1:F0}\" font-size=\"{2:F0}\" fill=\"White\" filter=\"url(#blur)\">{3:N0}</text>\n",
+					left + (right - left) / 2, top + (end.Row + 0.67) * RowHeight, RowHeight * 0.5, end.Number);
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"{0:F0}\" y=\"{1:F0}\" font-size=\"{2:F0}\" >{3:N0}</text>\n",
+					left + (right - left) / 2, top + (end.Row + 0.67) * RowHeight, RowHeight * 0.5, end.Number);
+			}
+			else
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"{0:F0}\" y=\"{1:F0}\" font-size=\"{2:F0}\" filter=\"url(#outline)\">{3:N0}</text>\n",
+					left + (right - left) / 2, top + (end.Row + 0.67) * RowHeight, RowHeight * 0.5, end.Number);
 		}
 
 		/// <summary>Write the opening svg tag and the title row.</summary>
-		void SvgBegin(StringBuilder s, int rowHeight, int width, int height, bool pure)
+		void SvgBegin(StringBuilder s, int rowHeight, int width, int height)
 		{
-			if (!pure)
+			if (!_pure)
 				s.AppendFormat("<div>");
 
 			s.AppendFormat("<svg viewBox=\"0 0 {0} {1}\" width=\"{0}\" align=\"center\">\n", width, height);
 
 			SvgRect(s, 1, 1, 1, width - 2, rowHeight * 2, Colors.TitleBackColor);  // Paint title "row" background.
 
-			if (!pure)
+			if (!_pure)
 			{
 				// Add '-' and '+' zoom button text.
 				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Navy\">&#160;+&#160;</text>\n" +
 							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Navy\">&#160;&#8722;&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
 			}
 
-			SvgMultilineText(s, 1, 1, 1, width - 2, rowHeight * 2, rowHeight * 2, Colors.TitleFontColor, ZAlignment.Center, Title, null, TitleHyper, pure);  // Paint title "row" text.
+			SvgMultilineText(s, 1, 1, 1, width - 2, rowHeight * 2, rowHeight * 2, Colors.TitleFontColor, ZAlignment.Center, Title, null, TitleHyper);  // Paint title "row" text.
 			s.Append('\n');
 
-			if (!pure)
+			if (!_pure)
 			{
 				// Add '-' and '+' zoom buttons (with transparent text, so the text added above appears behind the report title text).
 				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill-opacity=\"0\" onclick=\"this.parentNode.setAttribute('width', Math.min(this.parentNode.getAttribute('width') * 1.42, document.documentElement.clientWidth - 2))\">&#160;+&#160;</text>\n" +
@@ -1746,7 +1819,7 @@ namespace Zoom
 		}
 
 		/// <summary>Write the column header row(s). Returns the amount of vertical height it has consumed. Doesn't render the Title -- that's in SvgBegin().</summary>
-		void SvgHeader(StringBuilder s, int left, int bottom, List<float> widths, bool pure)
+		void SvgHeader(StringBuilder s, int left, int bottom, List<float> widths)
 		{
 			if (!Columns.Exists(col => !string.IsNullOrWhiteSpace(col.Text)))
 				return;
@@ -1765,7 +1838,7 @@ namespace Zoom
 
 					if (!string.IsNullOrWhiteSpace(Columns[start].GroupHeading))
 						SvgRectText(s, 1, widths.Take(start).Sum() + start + left, top, widths.Skip(start).Take(end - start + 1).Sum() + end - start, RowHeight,
-									Colors.TitleFontColor, Colors.TitleBackColor, ZAlignment.Center, Columns[start].GroupHeading, pure);  // Paint group heading.
+									Colors.TitleFontColor, Colors.TitleBackColor, ZAlignment.Center, Columns[start].GroupHeading);  // Paint group heading.
 
 					start = end + 1;
 				}
@@ -1836,7 +1909,7 @@ namespace Zoom
 					s.Append("\t<text alignment-baseline=\"middle\" ");
 
 					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
-									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height + upset, Math.Min((RowHeight * (pure ? 0.7 : 0.75)), widths[col]));
+									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height + upset, Math.Min((RowHeight * (_pure ? 0.681 : 0.75)), widths[col]));
 					s.Append(ColorTranslator.ToHtml(textColor));
 					s.Append("\">");
 
@@ -1848,7 +1921,7 @@ namespace Zoom
 				{
 					s.Append("\t");
 
-					if (!pure && !string.IsNullOrEmpty(column.Hyper))
+					if (!_pure && !string.IsNullOrEmpty(column.Hyper))
 						AppendStrings(s, "<a href=\"", column.Hyper, "\">");
 
 					// Draw text inside parallelogram.
@@ -1867,14 +1940,14 @@ namespace Zoom
 					s.Append(WebUtility.HtmlEncode(column.Text));
 					s.Append("</text>");
 
-					if (!pure && !string.IsNullOrEmpty(column.Hyper))
+					if (!_pure && !string.IsNullOrEmpty(column.Hyper))
 						s.Append("</a>");
 					s.Append("\n");
 				}
 				else  // Paint column heading text flat.
 				{
 					SvgMultilineText(s, 1, (int)x, bottom - RowHeight, (int)widths[col] - (nextRotated && !hasGroupHeadings ? RowHeight : 0), height + upset, RowHeight,
-						textColor, column.Alignment, column.Text, null, column.Hyper, pure);
+						textColor, column.Alignment, column.Text, null, column.Hyper);
 
 					text45Offset = float.MaxValue;
 				}
@@ -2098,7 +2171,7 @@ namespace Zoom
 		}
 
 		/// <summary>Write a single table row.</summary>
-		void SvgRow(StringBuilder s, int top, int height, int left, List<float> widths, List<double> mins, List<double> maxs, int maxPoints, int width, ZRow row, bool odd, bool pure)
+		void SvgRow(StringBuilder s, int top, int height, int left, List<float> widths, List<double> mins, List<double> maxs, int maxPoints, int width, ZRow row, bool odd)
 		{
 			SvgRect(s, 1, left, top, width, height, Colors.GetBackColor(row, odd));  // Paint the background for the whole row.
 
@@ -2132,13 +2205,15 @@ namespace Zoom
 			float x = left;
 			for (int col = 0; col < Columns.Count && col < row.Count; col++)
 			{
-				SvgText(s, 1, (int)x, top, (int)widths[col], height, Columns[col], row[col], pure);  // Write a data cell.
+				SvgText(s, 1, (int)x, top, (int)widths[col], height, Columns[col], row[col]);  // Write a data cell.
 
 				x += widths[col] + 1;
 			}
 			s.Append('\n');
 		}
 
+		/// <summary>Render report to SVG.</summary>
+		/// <param name="pure">true if this is to be rendered to a bitmap by SvgDocument.Draw(), as opposed to saving out for rendering by a web browser.</param>
 		public override string ToSvg(bool pure = false)
 		{
 			StringBuilder sb = new StringBuilder();
@@ -2170,13 +2245,13 @@ namespace Zoom
 		Graphics graphics = null;
 		Font font = null;
 		/// <summary>Width of text in pixels, independent of scaling of current monitor.</summary>
-		float TextWidth(string text, bool pure = false, int height = RowHeight)
+		float TextWidth(string text, int height = RowHeight)
 		{
 			if (graphics == null)
 			{
 				graphics = Graphics.FromImage(new Bitmap(1000, 20));
 
-				font = new Font(pure ? "Microsoft Sans Serif" : "Arial", 11);
+				font = new Font(_pure ? "Microsoft Sans Serif" : "Arial", 11);
 			}
 
 			float width = graphics.MeasureString(text, font, 1000).Width / graphics.DpiX * 96;
@@ -2193,10 +2268,12 @@ namespace Zoom
 		/// This writes an <svg> tag -- it does not include <head> or <body> tags etc.
 		public override void ToSvg(StringBuilder sb, double? aspectRatio, bool pure = false)
 		{
+			_pure = pure;
+			filterEmitted = false;
 			var widths = new List<float>();  // Width of each column in pixels. "float", because MeasureString().Width returns a float.
 			var mins = new List<double>();   // Minimum numeric value in each column, or if all numbers are positive, 0.
 			var maxs = new List<double>();   // Maximum numeric value in each column.
-			int headerHeight = Metrics(widths, mins, maxs, out int maxPoints, pure);
+			int headerHeight = Metrics(widths, mins, maxs, out int maxPoints);
 			Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG -- the sum of each column, plus pixels for spacing left, right and between.
 			double max = maxs.DefaultIfEmpty(1).Max();
 
@@ -2207,17 +2284,16 @@ namespace Zoom
 			int rowsPerCol = (int)Math.Ceiling((double)Rows.Count / multiColumns);
 			Height = headerHeight + rowsPerCol * (RowHeight + 1);
 
-
-			SvgBegin(sb, RowHeight, (int)(Width * 1.1 * multiColumns - Width * 0.1), Height, pure);
+			SvgBegin(sb, RowHeight, (int)(Width * 1.1 * multiColumns - Width * 0.1), Height);
 			for (int col = 0; col < multiColumns; col++)
 			{
 				int thisLeft = (int)(left + Width * 1.1 * col);				
-				SvgHeader(sb, thisLeft, headerHeight - 1, widths, pure);
+				SvgHeader(sb, thisLeft, headerHeight - 1, widths);
 				int rowTop = headerHeight;
 				bool odd = true;
 				for (int row = rowsPerCol * col; row < rowsPerCol * (col + 1); row++)
 				{
-					SvgRow(sb, rowTop, RowHeight, thisLeft, widths, mins, maxs, maxPoints, Width, row < Rows.Count ? Rows[row] : new ZRow(), odd, pure);
+					SvgRow(sb, rowTop, RowHeight, thisLeft, widths, mins, maxs, maxPoints, Width, row < Rows.Count ? Rows[row] : new ZRow(), odd);
 
 					rowTop += RowHeight + 1;
 					odd = !odd;
