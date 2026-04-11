@@ -252,7 +252,7 @@ namespace Zoom
 		{
 		}
 
-        public ZCell(string text = "", Color color = default, ZCell barCell = null)
+		public ZCell(string text = "", Color color = default, ZCell barCell = null)
 		{
 			Text = text;
 			Color = color;
@@ -1230,8 +1230,8 @@ namespace Zoom
 
 			s.Append('\t', indent);
 
-			if (width > Width - x - 1)  // If we're at the extreme right edge of the report,
-				width = Width - x - 1;  // tuck in so we don't draw off the edge.
+			if (width > Right - x - 1)  // If we're at the extreme right edge of the report,
+				width = Right - x - 1;  // tuck in so we don't draw off the edge.
 
 			if (outline == default)
 			{
@@ -1864,7 +1864,7 @@ namespace Zoom
 					SvgRect(s, 1, x, top - upset, widths[col], height + upset, backColor);  // Paint column heading rectangle for no rotate or 90 degrees rotate.
 				else  // Various 45 degree rotation cases.
 				{
-					float right = Math.Min(x + widths[col], Width - 1);
+					float right = Math.Min(x + widths[col], Right - 1);
 
 					// Let's handle cases where the column headings need special shapes because this column and/or the next or previous columns are rotated 45 degrees.
 					// It's possible for column headings further away to impinge on the region we're painting for this one, but
@@ -2264,6 +2264,9 @@ namespace Zoom
 		internal int Height;
 		/// <summary>Width of report in internal SVG "pixels". Only valid after ToSvg() has been called.</summary>
 		internal int Width;
+		/// <summary>If .multiColumns == 1, this is the same as Width. If not, it is the right edge of the group of columns we're currently drawing.</summary>
+		internal int Right;
+
 
 		/// This writes an <svg> tag -- it does not include <head> or <body> tags etc.
 		public override void ToSvg(StringBuilder sb, double? aspectRatio, bool pure = false)
@@ -2280,17 +2283,21 @@ namespace Zoom
 			int left = 1;
 			int arrowTop = headerHeight;
 			Height = headerHeight + Rows.Count * (RowHeight + 1);
-			int multiColumns = MultiColumnOK && aspectRatio.HasValue ? Math.Max((int)Math.Sqrt((double)aspectRatio / Width * Height), 1) : 1;
+			int multiColumns = MultiColumnOK && aspectRatio is double ar ? Math.Max((int)Math.Round(Math.Sqrt(ar / Width * Height)), 1) : 1;
 			int rowsPerCol = (int)Math.Ceiling((double)Rows.Count / multiColumns);
 			Height = headerHeight + rowsPerCol * (RowHeight + 1);
+			Right = (int)(Width * 1.1 * multiColumns - Width * 0.1);
 
-			SvgBegin(sb, RowHeight, (int)(Width * 1.1 * multiColumns - Width * 0.1), Height);
+			SvgBegin(sb, RowHeight, Right, Height);
+
 			for (int col = 0; col < multiColumns; col++)
 			{
-				int thisLeft = (int)(left + Width * 1.1 * col);				
+				int thisLeft = (int)(left + Width * 1.1 * col);
+				Right = thisLeft + Width;
 				SvgHeader(sb, thisLeft, headerHeight - 1, widths);
 				int rowTop = headerHeight;
 				bool odd = true;
+
 				for (int row = rowsPerCol * col; row < rowsPerCol * (col + 1); row++)
 				{
 					SvgRow(sb, rowTop, RowHeight, thisLeft, widths, mins, maxs, maxPoints, Width, row < Rows.Count ? Rows[row] : new ZRow(), odd);
