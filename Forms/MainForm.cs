@@ -631,6 +631,7 @@ namespace Torn.UI
 				}
 
 				pd.DocumentName = holder.League.Title;
+				printDialog.Document = pd;
 				if (printDialog.ShowDialog() == DialogResult.OK)
 					pd.Print();
 			}

@@ -120,6 +120,7 @@ namespace Torn5.Controls
 		private void ButtonPrintClick(object sender, EventArgs e)
 		{
 			var pd = DisplayReport.Report.ToPrint();
+			printDialog.Document = pd;
 			if (printDialog.ShowDialog() == DialogResult.OK)
 				pd.Print();
 		}
@@ -159,7 +160,7 @@ namespace Torn5.Controls
 			byte[] sendBytesEnd = Encoding.ASCII.GetBytes(emptyIndex + "\x00");
 			udp.Send(sendBytesEnd, sendBytesEnd.Length, groupEP);
 		}
-    }
+	}
 	public static class Extensions
 	{
 		public static IEnumerable<string> Split(this string str, int n)
