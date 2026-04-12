@@ -473,13 +473,6 @@ namespace Zoom
 		{
 			return Color.FromArgb(color.R * 9 / 11, color.G * 9 / 11, color.B * 9 / 11);
 		}
-		
-		public static Color Mix(Color color1, Color color2, double mix)
-		{
-			return Color.FromArgb((int)(color1.R * mix + color2.R * (1 - mix)),
-			                      (int)(color1.G * mix + color2.G * (1 - mix)),
-			                      (int)(color1.B * mix + color2.B * (1 - mix)));
-		}
 
 		public static Color AddDark(Color color1, Color? color2)
 		{

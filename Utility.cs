@@ -89,6 +89,14 @@ namespace Torn
 				return Color.FromArgb(255, v, p, q);
 		}
 
+
+		public static Color MixColors(Color color1, Color color2, double mix)
+		{
+			return Color.FromArgb((int)(color1.R * mix + color2.R * (1 - mix)),
+			                      (int)(color1.G * mix + color2.G * (1 - mix)),
+			                      (int)(color1.B * mix + color2.B * (1 - mix)));
+		}
+
 		public static string GetString(this XmlNode node, string name, string defaultValue = null)
 		{
 			var child = node.SelectSingleNode(name);
