@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
@@ -37,20 +38,20 @@ namespace Torn.UI
 			List<string> reports = new List<string>
 			{
 				"Team Ladder",
-				"Multi Ladder",
+				"Multi Ladder (uses game descriptions)",
 				"Teams vs teams",
 				"Solo Ladder",
 				"Game by game (good for 3 team games)",
 				"Game grid (good for many team games)",
 				"Game grid condensed",
 				"Detailed Games",
-				"Ascension",
+				"Ascension (for semifinals)",
 				"Pyramid",
 				"Pyramid condensed",
-				"Colours",
-				"Term Report",
-				"Sanity Check",
-				"Everything",
+				"Colours (performance of each colour)",
+				"Term Report (terminations, warnings, etc.)",
+				"Sanity Check (try me!)",
+				"Everything (good for data export)",
 			};
 			listBoxReportType.Items.AddRange(reports.ToArray());
 			League.Load();
@@ -285,9 +286,42 @@ namespace Torn.UI
 			secretClicked++;
 			if(secretClicked == 5)
 			{
-				listBoxReportType.Items.Add("Packs");
+				listBoxReportType.Items.Add("Packs (Student's t test)");
 				listBoxReportType.Items.Add("Pack Hits");
 			}
+		}
+
+		void ListBoxReportTypeDrawItem(object sender, DrawItemEventArgs e)
+		{
+			e.DrawBackground();
+			if (e.Index >= 0)
+			{
+				string text = listBoxReportType.Items[e.Index].ToString();
+				int bracketPos = text.IndexOf('(');
+				string first = bracketPos > -1 ? text.Substring(0, bracketPos - 1) : text;
+				e.Graphics.DrawString(first, e.Font, new SolidBrush(e.ForeColor), e.Bounds);
+
+				if (bracketPos > -1)
+				{
+					string second = text.Substring(bracketPos);
+					var firstWidth = (int)e.Graphics.MeasureString(first, e.Font).Width;
+					var color = Utility.MixColors(e.ForeColor, e.BackColor, 0.5);
+					var rect = new Rectangle(e.Bounds.X + firstWidth, e.Bounds.Y, e.Bounds.Width - firstWidth, e.Bounds.Height);
+					e.Graphics.DrawString(second, e.Font, new SolidBrush(color), rect);
+				}
+			}
+			e.DrawFocusRectangle();
+		}
+
+		float previousScale = 1;
+		protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+		{
+			base.ScaleControl(factor, specified);
+
+			float scale = factor.Width;
+			if (scale != previousScale)
+				listBoxReportType.ItemHeight = (int)Math.Ceiling(listBoxReportType.GetItemHeight(0) * scale / previousScale);
+			previousScale = scale;
 		}
 	}
 }

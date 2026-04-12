@@ -446,10 +446,12 @@ namespace Torn.UI
 			// 
 			// listBoxReportType
 			// 
+			this.listBoxReportType.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
 			this.listBoxReportType.Location = new System.Drawing.Point(62, 12);
 			this.listBoxReportType.Name = "listBoxReportType";
 			this.listBoxReportType.Size = new System.Drawing.Size(218, 225);
 			this.listBoxReportType.TabIndex = 1;
+			this.listBoxReportType.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.ListBoxReportTypeDrawItem);
 			this.listBoxReportType.SelectedIndexChanged += new System.EventHandler(this.ListBoxReportTypeSelectedIndexChanged);
 			this.listBoxReportType.DoubleClick += new System.EventHandler(this.ListBoxReportType_DoubleClick);
 			// 
