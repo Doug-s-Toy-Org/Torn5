@@ -184,15 +184,17 @@ namespace Torn.Report
 
 				foreach (Colour c in coloursUsed)
 					if (colourTotals[c].Count > rank)
-						row.Add(new ZCell(colourTotals[c][rank].ToString(), c.ToColor()));
+						row.Add(BlankZero(colourTotals[c][rank], ChartType.Bar, c.ToColor()));
 					else
-						row.Add(new ZCell("0", c.ToColor()));
-
-				var sameWidths = new List<ZColumn>();
-				for (int i = 1; i < report.Columns.Count; i++)
-					sameWidths.Add(report.Columns[i]);
-				report.SameWidths.Add(sameWidths);
+						row.Add(new ZCell("", c.ToColor()));
 			}
+
+			var sameWidths = new List<ZColumn>();
+			for (int i = 1; i < report.Columns.Count; i++)
+				sameWidths.Add(report.Columns[i]);
+			report.SameWidths.Add(sameWidths);
+
+			report.MaxChartByColumn = false;
 
 			if (rt.Settings.Contains("Description"))
 				report.Description = "This report shows the total number of firsts, seconds and thirds that were scored by each colour.";
@@ -1076,16 +1078,13 @@ namespace Torn.Report
 		/// <summary>Show hyperlinks to games. One row per day; one game per cell.</summary>
 		public static ZoomReport GamesToc(League league, bool includeSecret, ReportTemplate rt)
 		{
-			ZoomReport report = new ZoomReport("Table of Contents");
+			ZoomReport report = new ZoomReport("Table of Contents: Games");
 			report.Columns.Add(new ZColumn("", ZAlignment.Right));
 
 			List<Game> games = Games(league, includeSecret, rt);
 			games.Sort();
 
 			var dates = games.Select(g => g.Time.Date).Distinct().ToList();
-			if (dates.Count == 1)
-				report.Title += ": Games on " + dates[0].ToShortDateString();
-
 			var gameGroups = new List<List<Game>>(); // Groups of games. Games in a group will all be on the same day and have the same title. No group is empty.
 
 			// Populate gameGroups.
@@ -1242,7 +1241,7 @@ namespace Torn.Report
 				{
 					// Rank this round based on score and/or victory points accumulated to date.
 
-					report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average score", ZAlignment.Float, groups[group]));
+					report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average Score", ZAlignment.Float, groups[group]));
 					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]) { Rotate = true });
 					report.AddColumn(new ZColumn());  // This column is for arrows.
 
@@ -2492,7 +2491,7 @@ namespace Torn.Report
 			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
 			ZoomReport report = new ZoomReport(ReportTitle("Solo Ladder", league.Title, rt),
-											   ",Player,Team,Average Score," + (showZeroed ? "Average Non-Zeroed Score," : "") + "TR\u00D7SR,Tag Ratio,Score Ratio,Tags +,Tags -,Rank,Destroys,Denies,Got Denied,Yellow Card,Red Card,Eliminated,Games,Dropped,Grade,Comments,Longitudinal",
+											   "Rank,Player,Team,Average Score," + (showZeroed ? "Average Non-Zeroed Score," : "") + "TR\u00D7SR,Tag Ratio,Score Ratio,Tags +,Tags -,Av Rank,Destroys,Denies,Got Denied,Yellow Card,Red Card,Eliminated,Games,Dropped,Grade,Comments,Longitudinal",
 											   "center,left,left,integer," + (showZeroed ? "integer," : "") + "float,float,float,float,float,float,integer,integer,integer,integer,integer,integer,integer,integer,integer,left,left",
 											   ",,," + (showZeroed ? "," : "") + ",Ratios,Ratios,Ratios,Tags,Tags,,Base,Base,Base,Penalties,Penalties,,,,,,")
 			{
@@ -2500,6 +2499,7 @@ namespace Torn.Report
 				MultiColumnOK = true
 			};
 
+			report.Columns.First(c => c.Text == "Rank").Rotate = true;
 			report.Columns.First(c => c.Text == "Eliminated").Rotate = true;
 			report.Columns.First(c => c.Text == "Games").Rotate = true;
 			report.Columns.First(c => c.Text == "Dropped").Rotate = true;
@@ -2810,9 +2810,9 @@ namespace Torn.Report
 			double victoryPointsMin = games.Min(g => g.Teams.Min(t => t.Points));
 			double victoryPointsRange = games.Max(g => g.Teams.Max(t => t.Points)) - victoryPointsMin;
 
-			report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average score", ZAlignment.Float));
+			report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average Score", ZAlignment.Float));
 			if(showZeroed)
-				report.AddColumn(new ZColumn("Average Non-Zeroed score", ZAlignment.Float));
+				report.AddColumn(new ZColumn("Average Non-Zeroed Score", ZAlignment.Float));
 			report.AddColumn(new ZColumn("Games", ZAlignment.Integer));
 
 			if (rt.Drops != null && rt.Drops.HasDrops())

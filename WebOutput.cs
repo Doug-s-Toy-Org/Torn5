@@ -349,7 +349,7 @@ namespace Torn.Report
 			// The final few lines of Javascript set off an initial request for game date/time, in order to get that first xhrLatest.onreadystatechange to fire.
 			// We also svg.setAttribute('width') so that the scoreboard SVG mostly fills the browser window -- full width minus 2 pixels, or 90% of height (to leave room for extra text at the bottom).
 			reports.Add(new ZoomHtmlInclusion(@"</div>
-<br/><a href=\'index.html\'>Index</a><div>
+<br/><a href=\index.html>Index</a><div>
 <script>
 var latest = '(none)';
 var xhrLatest = new XMLHttpRequest();
