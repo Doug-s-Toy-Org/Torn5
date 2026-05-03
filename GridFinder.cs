@@ -1560,12 +1560,12 @@ namespace Torn.Grids
 
 		public int FirstGame(int teamIndex, int startGame, int endGame)
 		{
-			return this.FindIndex(startGame, endGame - startGame + 1, x => x[teamIndex]);
+			return this.FindIndex(startGame, Math.Min(endGame, Count - 1) - startGame + 1, x => x[teamIndex]);
 		}
 
 		public int LastGame(int teamIndex, int startGame, int endGame)
 		{
-			return this.FindLastIndex(endGame, endGame - startGame, x => x[teamIndex]);
+			return this.FindLastIndex(endGame, Math.Min(endGame, Count - 1) - startGame, x => x[teamIndex]);
 		}
 
 		///<summary>
