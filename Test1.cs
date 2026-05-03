@@ -428,6 +428,8 @@ namespace TornWeb
 				Assert.That(method.Invoke(report, new object[] { "one two three four", 2 }), Is.EqualTo(new string[] { "one two", "three four" }));
 				Assert.That(method.Invoke(report, new object[] { "one two three verylongwordgoeshereandgoesonforquiteabit", 2 }), Is.EqualTo(new string[] { "one two three", "verylongwordgoeshereandgoesonforquiteabit" }));
 				Assert.That(method.Invoke(report, new object[] { "verylongwordgoeshereandgoesonforquiteabit two three four", 2 }), Is.EqualTo(new string[] { "verylongwordgoeshereandgoesonforquiteabit", "two three four" }));
+				Assert.That(method.Invoke(report, new object[] { "ZLTAC Teams 2026 Round Robin Colour Performance from 28/02/2026 to 3/03/2026", 3 }), Is.EqualTo(new string[] { "ZLTAC Teams 2026 Round", "Robin Colour Performance", "from 28/02/2026 to 3/03/2026" }));
+				Assert.That(method.Invoke(report, new object[] { "ZLTAC Teams 2026 Round Robin Colour Performance from 28/02/2026 to 3/03/2026", 4 }), Is.EqualTo(new string[] { "ZLTAC Teams 2026", "Round Robin Colour", "Performance from", "28/02/2026 to 3/03/2026" }));
 			});
 		}
 

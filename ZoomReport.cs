@@ -687,13 +687,16 @@ namespace Zoom
 		/// <param name="maxs">Highest value in each column (in either the cells themselves or in Data points in those cells).</param>
 		/// <param name="maxPoints">Largest number of Data points in any chart in any cell.</param>
 		/// <param name="maxLines">Number of lines of text used by the column heading that wraps onto the most lines, plus 1 if that column has a GroupHeading.</param>
-		/// <returns>Vertical height the title and column headers will consume (including the blank pixel below the headers).</returns>
-		int Metrics(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints)
+		/// <returns>Vertical height the title will consume, and vertical height the column headers will consume (including the blank pixel below the headers).</returns>
+		(int, int) Metrics(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints)
 		{
 			maxPoints = 0;
-			int maxLines = 1;
 			float spaceWidth = TextWidth(" ");
 			const string egFormat = ".\u00D710\u207B\u2079";
+
+			double headingsHeight = RowHeight;
+			bool hasGroupHeadings = HasGroupHeadings();
+			bool anyRotate = Columns.Exists(col => col.Rotate);
 
 			for (int col = 0; col < Columns.Count; col++)
 			{
@@ -706,18 +709,6 @@ namespace Zoom
 				double max = 0.0;
 				string numberFormat = "";
 				bool hasNumber = false;
-
-				List<int> spaces = null;
-				List<float> wordWidths = null;
-				float titleWidth;
-				if (column.Rotate)
-					titleWidth = RowHeight;
-				else
-				{
-					spaces = Spaces(column.Text);
-					wordWidths = WordWidths(column.Text, spaces);
-					titleWidth = wordWidths.Any() ? wordWidths.Max() : 0;
-				}
 
 				for (int row = 0; row < Rows.Count; row++)
 				{
@@ -765,6 +756,7 @@ namespace Zoom
 					}
 				}
 
+				float thisColumnWidth;
 				if (hasNumber)
 				{
 					double furthestFromZero = max > -min ? max : min;
@@ -774,28 +766,45 @@ namespace Zoom
 					else if (double.IsInfinity(max) && !string.IsNullOrEmpty(numberFormat) && numberFormat.Length > 1 && numberFormat[0] == 'P' && stringMax.Length < 4)  // Deal with "infinity percent" case.
 						stringMax = 9.99.ToString(numberFormat);
 
-					float widestNumber = TextWidth(stringMax);
-
-					widths.Add(Math.Max(titleWidth, widestNumber));
+					thisColumnWidth = TextWidth(stringMax);
 				}
 				else
 				{
-					float cellWidth = widest > 2 * total / count ?  // Are there are a few pathologically wide fields?
-							   total / count * 1.4f :        // Just use the average, plus some padding.
-							   widest;
-
-					widths.Add(Math.Max(titleWidth, cellWidth));
+					thisColumnWidth = widest > 2 * total / count ?  // Are there are a few pathologically wide fields?
+										total / count * 1.4f :        // Just use the average, plus some padding.
+										widest;
 				}
 
 				mins.Add(min);
 				maxs.Add(max);
 
-				if (!column.Rotate)
+				// Height / width of column title:
+				List<int> spaces = null;
+				List<float> wordWidths = null;
+				double thisTitleHeight = RowHeight;
+
+				if (column.Rotate)
 				{
-					var titleLineWidth = wordWidths.Sum() + (spaces.Count - 1) * spaceWidth;
-					if (widths.Last() < titleLineWidth)
-						maxLines = Math.Max(maxLines, Math.Min(wordWidths.Count, (int)Math.Ceiling(titleLineWidth / widths.Last())) + (string.IsNullOrEmpty(column.GroupHeading) ? 0 : 1));
+					thisColumnWidth = Math.Max(thisColumnWidth, RowHeight);
+
+					if (hasGroupHeadings)
+						thisTitleHeight = TextWidth(column.Text) + (string.IsNullOrWhiteSpace(column.GroupHeading) ? 0 : RowHeight + 1);  // Text rotated 90 degrees.
+					else
+						thisTitleHeight = (TextWidth(column.Text) + RowHeight) / Math.Sqrt(2);  // Text rotated 45 degrees.
 				}
+				else
+				{
+					spaces = Spaces(column.Text);
+					wordWidths = WordWidths(column.Text, spaces);
+					thisColumnWidth = Math.Max(thisColumnWidth, wordWidths.Any() ? wordWidths.Max() : 0);
+
+					var titleLineWidth = wordWidths.Sum() + (spaces.Count - 1) * spaceWidth;
+					if (thisColumnWidth < titleLineWidth)
+						thisTitleHeight = Math.Min(wordWidths.Count, (int)Math.Ceiling(titleLineWidth / thisColumnWidth)) * TextHeight + TextHeight / 3.0 + (string.IsNullOrEmpty(column.GroupHeading) ? 0 : RowHeight + 1);
+				}
+
+				headingsHeight = Math.Max(headingsHeight, thisTitleHeight);
+				widths.Add(thisColumnWidth);
 			}
 
 			foreach (var sw in SameWidths)
@@ -809,25 +818,11 @@ namespace Zoom
 			}
 
 			// Calculate vertical height the title and column headers will consume.
-			int titleHeight = RowHeight * 2 + 2;  // The + 2 is for the one-pixel spaces above and below the title rectangle.
+			int titleHeight = RowHeight * 2 + 2;  // The + 2 is for the one-pixel spaces above and below the title rectangle. This is a placeholder title height, and may be changed by SvgBegin().
 			if (!Columns.Exists(col => !string.IsNullOrWhiteSpace(col.Text)))
-				return titleHeight;
+				return (titleHeight, 0);
 
-			bool hasGroupHeadings = HasGroupHeadings();
-			bool anyRotate = Columns.Exists(col => col.Rotate);
-			double headingsHeight = 0;
-
-			if (anyRotate)
-			{
-				if (hasGroupHeadings)
-					headingsHeight = Columns.Where(c => c.Rotate).Max(c => TextWidth(c.Text) + (string.IsNullOrWhiteSpace(c.GroupHeading) ? 0 : RowHeight + 1));
-				else
-					headingsHeight = Columns.Where(c => c.Rotate).Max(c => TextWidth(c.Text) + RowHeight) / Math.Sqrt(2);  // This case is where rotated columns are rotated 45 degrees.
-			}
-
-			headingsHeight = Math.Max(headingsHeight, RowHeight * maxLines);
-
-			return titleHeight + (int)Math.Round(headingsHeight) + (hasGroupHeadings ? 2 : 1);  // The + 2 or 1 is for the one-pixel space between the column headings and the first data row of the table; and optionally for the spaces between the group headings and column headings.
+			return (titleHeight, (int)Math.Round(headingsHeight) + 1);  // The + 1 is for the one-pixel space between the column headings and the first data row of the table.
 		}
 
 		public override IEnumerable<Color> BarCellColors()
@@ -1213,7 +1208,7 @@ namespace Zoom
 		void SvgRectText(StringBuilder s, int indent, double x, double y, double width, double height, Color fontColor, Color backColor, ZAlignment alignment, string text)
 		{
 			SvgRect(s, indent, x, y, width, height, backColor);
-			SvgText(s, indent, (int)x, (int)y, (int)width, (int)height, fontColor, alignment, text, null, null);
+			SvgText(s, indent, (int)x, (int)y, (int)width, (int)(height * 0.75), fontColor, alignment, text, null, null);
 		}
 
 		void SvgRect(StringBuilder s, int indent, double x, double y, double width, double height, Color fill, Color outline = default)
@@ -1271,7 +1266,7 @@ namespace Zoom
 			s.Append("\" />\n");
 		}
 
-		void SvgBeginText(StringBuilder s, int indent, int x, int y, int width, int height, double fontSize, Color fontColor, ZAlignment alignment, string cssClass, string hyper, bool fillWidth)
+		void SvgBeginText(StringBuilder s, int indent, int x, int y, int width, double fontSize, Color fontColor, ZAlignment alignment, string cssClass, string hyper, bool fillWidth)
 		{
 			s.Append('\t', indent);
 			if (!string.IsNullOrEmpty(hyper))
@@ -1299,7 +1294,7 @@ namespace Zoom
 					s.AppendFormat("text-anchor=\"end\" x=\"{0}\"", x + width - 1);
 				break;
 			}
-			s.AppendFormat(" y=\"{0}\" width=\"{1}\" font-size=\"{2:G2}\"", y + height * 3 / 4, width, fontSize);
+			s.AppendFormat(" y=\"{0}\" width=\"{1}\" font-size=\"{2:G2}\"", y + fontSize, width, fontSize);
 
 			if (!string.IsNullOrEmpty(hyper) || fontColor != Color.Black)
 			{
@@ -1321,16 +1316,14 @@ namespace Zoom
 			s.Append('\n');
 		}
 
-		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool fillWidth = false, bool htmlEncode = true)
+		void SvgText(StringBuilder s, int indent, int x, int y, int width, int fontSize, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool fillWidth = false, bool htmlEncode = true)
 		{
-			if (string.IsNullOrEmpty(text))
+			if (string.IsNullOrEmpty(text) || fontSize <= 0)
 				return;
 
-			float textWidth = width;
-			if (_pure)
-				textWidth = Math.Max(width, TextWidth(text, height));
+			float textWidth = _pure ? Math.Max(width, TextWidth(text, fontSize)) : width;
 
-			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (_pure ? 0.681 : 0.75), fontColor, alignment, cssClass, _pure ? null : hyper, fillWidth);
+			SvgBeginText(s, indent, x, y, width, width / textWidth * fontSize * (_pure ? 0.9 : 1), fontColor, alignment, cssClass, _pure ? null : hyper, fillWidth);
 			s.Append(htmlEncode ? WebUtility.HtmlEncode(text) : text);
 			SvgEndText(s, _pure ? null : hyper);
 		}
@@ -1338,43 +1331,55 @@ namespace Zoom
 		/// <summary>Formats the value of a cell then calls the other overload.</summary>
 		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell)
 		{
-			SvgText(s, indent, x, y, width, height, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, cell.OutputText(OutputFormat.Svg), cell.CssClass, cell.Hyper, column.FillWidth, false);
+			SvgText(s, indent, x, y, width, height * 3 / 4, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, cell.OutputText(OutputFormat.Svg), cell.CssClass, cell.Hyper, column.FillWidth, false);
 		}
 
 		/// <summary>Print text, but see if we can make the ultimate font size bigger by breaking the text into multiple lines, instead of just shrinking the text to fit on a single line.</summary>
 		void SvgMultilineText(StringBuilder s, int indent, int x, int y, int width, int rectHeight, int textHeight, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null)
 		{
 			var textWidth = TextWidth(text, textHeight);
-			var oversize = textWidth / width;  // Is the text too wide to fit in the cell without shrinking to fit? If so, how much by?
-			if (oversize <= 1)  // Our text is not oversized for this width.
-				SvgText(s, indent, x, y, width, textHeight, fontColor, alignment, text, cssClass, hyper, false);  // Just print it on one row.
+			var oversizeRatio = textWidth / width;  // Is the text too wide to fit in the cell without shrinking to fit? If so, how much by?
+			int baseline = y + rectHeight - textHeight / 3;  // Space up one third of a line to leave room for descenders (gjpqy) and room to "breathe".
+
+			if (oversizeRatio <= 1)  // Our text is not oversized for this width.
+				SvgText(s, indent, x, baseline - textHeight, width, textHeight, fontColor, alignment, text, cssClass, hyper, false);  // Just print it on one row.
 			else  // Text won't fit on one line without shrinking.
 			{
-				int linesToUse = (int)Math.Ceiling(oversize);  // Number of lines we would like to break the text into, to avoid having to shrink the text.
-				int lineHeight = textHeight;
-				string[] lines;
+				int linesToUse = (int)Math.Ceiling(oversizeRatio);  // Number of lines we would like to break the text into, to avoid having to shrink the text.
+				int linesAvailable = (rectHeight - textHeight / 3) / textHeight;
+				float lineHeight = textHeight;
 
-				if (Math.Ceiling(oversize) > rectHeight / textHeight) // The rect we're fitting into is not tall enough to directly fit the number of lines we want to break the text into.
+				if (Math.Ceiling(oversizeRatio) > linesAvailable) // The rect we're fitting into is not tall enough to directly fit the number of lines we want to break the text into.
 				{
-					var shrinkRatio = Math.Sqrt(oversize);
-					var linestoUseByRectHeight = (int)Math.Max(shrinkRatio * rectHeight / textHeight, 1);
-					linesToUse = (int)Math.Max(Math.Min(shrinkRatio, linestoUseByRectHeight), rectHeight / textHeight);
-					lineHeight = Math.Min(textHeight, rectHeight / linesToUse);
+					var shrinkRatio = Math.Sqrt(oversizeRatio);
+					int linestoUseByRectHeight = (int)Math.Max(shrinkRatio * rectHeight / textHeight, 1);
+					linesToUse = Math.Max(Math.Max(Math.Min((int)shrinkRatio, linestoUseByRectHeight), rectHeight / textHeight), 1);
+					lineHeight = Math.Min(textHeight, (float)rectHeight / linesToUse);
 				}
 
-				lines = BreakText(text, linesToUse);
+				(string[] lines, _) = BreakText(text, linesToUse);
 				for (int i = 0; i < lines.Length; i++)
-					SvgText(s, indent, x, y + textHeight + (i - lines.Length) * lineHeight, width, lineHeight, fontColor, alignment, lines[i], cssClass, hyper, false);
+					SvgText(s, indent, x, baseline + (i - lines.Length) * textHeight, width, textHeight, fontColor, alignment, lines[i], cssClass, hyper, false);
 			}
 		}
 
+		/// <summary>Print text on multiple lines.</summary>
+		void SvgMultilineText(StringBuilder s, int indent, int x, int bottom, int width, float textHeight, Color fontColor, ZAlignment alignment, string[] text, string cssClass = null, string hyper = null)
+		{
+			int baseline = bottom - (int)textHeight / 3;  // Space up one third of a line to leave room for descenders (gjpqy) and room to "breathe".
+
+			for (int i = 0; i < text.Length; i++)
+				SvgText(s, indent, x, (int)(baseline + (i - text.Length) * textHeight), width, (int)textHeight, fontColor, alignment, text[i], cssClass, hyper, false);
+		}
+
 		/// <summary>Break text (at spaces) into several lines.</summary>
-		string[] BreakText(string text, int lines)
+		/// <returns>Array containing text broken into lines, and width of the widest line.</returns>
+		(string[], float) BreakText(string text, int lines)
 		{
 			List<int> spaces = Spaces(text);
 
 			if (spaces.Count == 1)
-				return new string[1] { text };
+				return (new string[1] { text }, TextWidth(text));
 			else if (spaces.Count - 1 < lines)  // Not enough spaces (or the exact correct number of spaces) -- just break the text at every space.
 			{
 				var strings = new string[spaces.Count];
@@ -1383,68 +1388,48 @@ namespace Zoom
 				for (int i = 1; i < spaces.Count; i++)
 					strings[i] = text.Substring(spaces[i - 1] + 1, spaces[i] - spaces[i - 1] - 1);
 
-				return strings;
+				return (strings, WordWidths(text, spaces).Max());
 			}
 			else  // We've got more spaces than we need -- gotta go through and pick which ones we want.
 			{
-				var lineBreaks = new List<int>();  // Pointers into the spaces list. We initialise this with rough guesses, and refine later.
-				for (int i = 0; i < lines - 1; i++)
-					lineBreaks.Add((int)Math.Round(1.0 * i / lines * (spaces.Count - 1)));
-
-				lineBreaks.Add(spaces.Count - 1);  // Add dummy line break at end, pointing at final dummy space.
-
 				float spaceWidth = TextWidth(" ");
 				List<float> wordWidths = WordWidths(text, spaces);
 
+				var lineBreaks = new List<int>();  // Pointers into the spaces list.
 				var lineWidths = new List<float>();
-				for (int b = 0; b < lineBreaks.Count; b++)
-					lineWidths.Add(LineWidth(lineBreaks, wordWidths, spaceWidth, b));
 
-				bool changed = true;
-				int passes = 0;
-				while (changed && passes < 100)  // Keep doing this until we make a pass through without making any changes.
+				float targetWidth = (wordWidths.Sum() + spaceWidth * (wordWidths.Count - 1)) / lines;
+				int endWord = 0;
+				for (int i = 0; i < lines - 1; i++)
 				{
-					changed = false;
-					passes++;
+					float lineWidth = wordWidths[endWord];
+					while (lineWidth < targetWidth &&  // Stop looping if this line is already wider than target. (Going a bit beyond target is OK, as some lines will be longer than average. But going more than one word beyond target is never optimal.)
+						endWord < wordWidths.Count - 1)  // Stop looping if we've reached the word _before_ the last word. (This leaves the last word to fill the last line).
+					{
+						float nextWordWidth = spaceWidth + wordWidths[endWord + 1];
+						if (lineWidth + nextWordWidth / 2 > targetWidth)  // Adding the next word would move us further away from targetWidth.
+							break;
 
-					// If moving a break left or right makes the lines before and after that break more equal, do it.
-					for (int i = 0; i < lineWidths.Count - 1; i++)
-						while (true)
-						{
-							int direction = Math.Sign(lineWidths[i + 1] - lineWidths[i]);  // First line is longer: try moving line break leftward; direction = -1. Second line is longer: try moving line break rightward; direction = +1. Same length: direction = 0.
+						endWord++;
+						lineWidth += spaceWidth + wordWidths[endWord];
+					}
 
-							if (direction == 0)
-								break;
+					lineBreaks.Add(endWord);
+					lineWidths.Add(lineWidth);
 
-							int newBreak = lineBreaks[i] + direction;
-							if (!spaces.Valid(newBreak) || !spaces.Valid(i + direction) || newBreak == lineBreaks[i + direction])  // Oops -- we have reached the start/end of the text or the line break that starts/ends this line, so adjusting to here would make this line zero length.
-								break;
-
-							var currentWidthDifference = Math.Abs(lineWidths[i] - lineWidths[i + 1]);
-							var wordWidth = wordWidths[lineBreaks[i] + direction];
-							var newWidthDifference = Math.Abs(lineWidths[i] - lineWidths[i + 1] + (wordWidth * direction - spaceWidth) * 2);
-
-							if (newWidthDifference < currentWidthDifference)
-							{
-								lineBreaks[i] = newBreak;
-								lineWidths[i] += (wordWidth + spaceWidth) * direction;
-								lineWidths[i + 1] -= (wordWidth + spaceWidth) * direction;
-								changed = true;
-							}
-							else
-								break;
-						}
+					targetWidth = (wordWidths.Skip(endWord + 1).Sum() + spaceWidth * (wordWidths.Count - endWord - 2)) / (lines - i - 1);
+					endWord++;
 				}
 
-				if (passes > spaces.Count * 2 || passes > 30)
-					Console.WriteLine("BreakText passes: " + passes + ". Text: " + text);
+				lineBreaks.Add(spaces.Count - 1);  // Add dummy line break at end, pointing at final dummy space.
+				lineWidths.Add(targetWidth);
 
 				var strings = new string[lines];
 				strings[0] = text.Substring(0, spaces[lineBreaks[0]]);
 				for (int i = 1; i < strings.Length; i++)
 					strings[i] = text.Substring(spaces[lineBreaks[i - 1]] + 1, spaces[lineBreaks[i]] - spaces[lineBreaks[i - 1]] - 1);
 
-				return strings;
+				return (strings, lineWidths.Max());
 			}
 		}
 
@@ -1482,19 +1467,6 @@ namespace Zoom
 				wordWidths.Add(TextWidth(text.Substring(spaces[w - 1] + 1, spaces[w] - spaces[w - 1] - 1)));
 
 			return wordWidths;
-		}
-
-		/// <summary>Return the width of a line, in pixels.</summary>
-		/// <param name="breaks">List of places where we are currently putting line breaks. These are indexes into wordWidths.</param>
-		/// <param name="wordWidths">Width (in pixels) of each word in the text.</param>
-		/// <param name="spaceWidth">Width (in pixels) of ' '.</param>
-		/// <param name="break2">Index (into breaks) of the ending break of the line whose length we are measuring. This line runs from break2 - 1 to break2.</param>
-		/// <returns></returns>
-		float LineWidth(List<int> breaks, List<float> wordWidths, float spaceWidth, int break2)
-		{
-			int startWord = break2 == 0 ? 0 : breaks[break2 - 1] + 1;
-			int endWord = breaks[break2];
-			return wordWidths.GetRange(startWord, endWord - startWord + 1).Sum() + spaceWidth * (endWord - startWord - 1);
 		}
 
 		void SvgCircle(StringBuilder s, int indent, double x, double y, double radius, Color fillColor)
@@ -1783,41 +1755,71 @@ namespace Zoom
 					left + (right - left) / 2, top + (end.Row + 0.67) * RowHeight, RowHeight * 0.5, end.Number);
 		}
 
+		/// <summary>Determine how many lines to break report title into.</summary>
+		/// <returns>Array containing text broken into lines, and height of text that will fit.</returns>
+		(string[], float) ScaleTitle(int width)
+		{
+			float textWidth = TextWidth(Title, TextHeight * 2);  // Desired title text size is double regular text size.
+			float oversizeRatio = textWidth / width;
+			int desiredLines = (int)Math.Ceiling(oversizeRatio);
+			int linesToUse = desiredLines <= 3 ? desiredLines : desiredLines <= 7 ? desiredLines / 2 + 1 : desiredLines / 2;  // If the title wants a lot of lines, let's restrict that down a bit.
+			(string[] lines, float widest) = BreakText(Title, linesToUse);
+			float scaling = width / widest * (_pure ? 1f : 1.1f);  // Scale so that the widest line of the title will neatly fill the full width
+			float lineHeight = TextHeight * Math.Min(scaling, 2);  // but limit to at most double regular text size.
+
+			return (lines, lineHeight);
+		}
+
 		/// <summary>Write the opening svg tag and the title row.</summary>
-		void SvgBegin(StringBuilder s, int rowHeight, int width, int height)
+		/// <param name="s"></param>
+		/// <param name="width">Width of entire report (including any multicolumns).</param>
+		/// <param name="height">Height of entire report.</param>
+		/// <returns>Height consumed by the title, including the blank pixels above and below the title.</returns>
+		int SvgBegin(StringBuilder s, int width, ref int height)
 		{
 			if (!_pure)
 				s.AppendFormat("<div>");
 
+			(string[] lines, float lineHeight) = ScaleTitle(width - 4);
+			int titleHeight = (int)Math.Ceiling(lines.Length * lineHeight + lineHeight / 3);
+			height += titleHeight - 44;
+			int zoomButtonY = (int)((lines.Length == 1 ? RowHeight : lineHeight) * 3 / 2 + 1);
+
 			s.AppendFormat("<svg viewBox=\"0 0 {0} {1}\" width=\"{0}\" align=\"center\">\n", width, height);
 
-			SvgRect(s, 1, 1, 1, width - 2, rowHeight * 2, Colors.TitleBackColor);  // Paint title "row" background.
+			SvgRect(s, 1, 1, 1, width - 2, titleHeight, Colors.TitleBackColor);  // Paint title "row" background.
 
 			if (!_pure)
 			{
 				// Add '-' and '+' zoom button text.
-				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Navy\">&#160;+&#160;</text>\n" +
-							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill=\"Navy\">&#160;&#8722;&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0:F0}\" width=\"30\" font-size=\"22\" fill=\"Navy\">&#160;+&#160;</text>\n" +
+							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0:F0}\" width=\"30\" font-size=\"22\" fill=\"Navy\">&#160;&#8722;&#160;</text>\n", zoomButtonY);
 			}
 
-			SvgMultilineText(s, 1, 1, 1, width - 2, rowHeight * 2, rowHeight * 2, Colors.TitleFontColor, ZAlignment.Center, Title, null, TitleHyper);  // Paint title "row" text.
+			SvgMultilineText(s, 1, 2, titleHeight, width - 4, lineHeight, Colors.TitleFontColor, ZAlignment.Center, lines, null, TitleHyper);  // Paint title "row" text.
 			s.Append('\n');
 
 			if (!_pure)
 			{
 				// Add '-' and '+' zoom buttons (with transparent text, so the text added above appears behind the report title text).
-				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill-opacity=\"0\" onclick=\"this.parentNode.setAttribute('width', Math.min(this.parentNode.getAttribute('width') * 1.42, document.documentElement.clientWidth - 2))\">&#160;+&#160;</text>\n" +
-							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0}\" width=\"30\" height=\"{1}\" font-size=\"22\" fill-opacity=\"0\" onclick=\"this.parentNode.setAttribute('width', this.parentNode.getAttribute('width') / 1.42)\">&#160;&#8722;&#160;</text>\n", rowHeight * 3 / 2 + 1, rowHeight * 2);
+				s.AppendFormat("\t<text text-anchor=\"middle\" x=\"15\" y=\"{0:F0}\" width=\"30\" font-size=\"22\" fill-opacity=\"0\" onclick=\"this.parentNode.setAttribute('width', Math.min(this.parentNode.getAttribute('width') * 1.42, document.documentElement.clientWidth - 2))\">&#160;+&#160;</text>\n" +
+							   "\t<text text-anchor=\"middle\" x=\"45\" y=\"{0:F0}\" width=\"30\" font-size=\"22\" fill-opacity=\"0\" onclick=\"this.parentNode.setAttribute('width', this.parentNode.getAttribute('width') / 1.42)\">&#160;&#8722;&#160;</text>\n", zoomButtonY);
 			}
+
+			return titleHeight + 2;
 		}
 
 		/// <summary>Write the column header row(s). Returns the amount of vertical height it has consumed. Doesn't render the Title -- that's in SvgBegin().</summary>
-		void SvgHeader(StringBuilder s, int left, int bottom, List<float> widths)
+		/// <param name="left">If multiColumn > 1, this is the left edge of _this_ set of column headers.</param>
+		/// <param name="top">Top of this header section.</param>
+		/// <param name="height">Height of this header section, not including the one-pixel gap below it to separate it from the first data row.</param>
+		/// <param name="widths">Widths of all columns.</param>
+		void SvgHeader(StringBuilder s, int left, int top, int height, List<float> widths)
 		{
 			if (!Columns.Exists(col => !string.IsNullOrWhiteSpace(col.Text)))
 				return;
 
-			int top = RowHeight * 2 + 2;  // Skip down past the title.
+			int bottom = top + height;
 
 			bool hasGroupHeadings = HasGroupHeadings();
 			if (hasGroupHeadings)
@@ -1836,25 +1838,23 @@ namespace Zoom
 					start = end + 1;
 				}
 
-				top += RowHeight + 1;
 				s.Append('\n');
 			}
 
-			int height = bottom - top;
 			float x = left;
 			float text45Offset = float.MaxValue;
 
 			for (int col = 0; col < Columns.Count; col++)
 			{
 				var column = Columns[col];
-				int upset = hasGroupHeadings && string.IsNullOrWhiteSpace(column.GroupHeading) ? RowHeight + 1 : 0;  // If some columns have group headings, but this column doesn't, we can grow the heading of this column upwards into the space that would have been used by the group heading.
+				int headSpace = string.IsNullOrWhiteSpace(column.GroupHeading) ? 0 : RowHeight + 1;  // If this column has a group heading, its top is lower.
 				Color backColor = column.Color == default ? Colors.TitleBackColor : column.Color;
 				Color textColor = column.Color == default ? Colors.TitleFontColor : backColor.GetBrightness() < 0.63 ? Color.White : Color.Black;
 				bool nextRotated = Columns.Valid(col + 1) && Columns[col + 1].Rotate;
 
 				// Paint column heading background.
 				if (hasGroupHeadings || (!column.Rotate && !nextRotated))
-					SvgRect(s, 1, x, top - upset, widths[col], height + upset, backColor);  // Paint column heading rectangle for no rotate or 90 degrees rotate.
+					SvgRect(s, 1, x, top + headSpace, widths[col], height - headSpace, backColor);  // Paint column heading rectangle for no rotate or 90 degrees rotate.
 				else  // Various 45 degree rotation cases.
 				{
 					float right = Math.Min(x + widths[col], Right - 1);
@@ -1902,7 +1902,7 @@ namespace Zoom
 					s.Append("\t<text alignment-baseline=\"middle\" ");
 
 					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
-									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height + upset, Math.Min((RowHeight * (_pure ? 0.681 : 0.75)), widths[col]));
+									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height, Math.Min((RowHeight * (_pure ? 0.681 : 0.75)), widths[col]));
 					s.Append(ColorTranslator.ToHtml(textColor));
 					s.Append("\">");
 
@@ -1939,7 +1939,7 @@ namespace Zoom
 				}
 				else  // Paint column heading text flat.
 				{
-					SvgMultilineText(s, 1, (int)x, bottom - RowHeight, (int)widths[col] - (nextRotated && !hasGroupHeadings ? RowHeight : 0), height + upset, RowHeight,
+					SvgMultilineText(s, 1, (int)x, top + headSpace, (int)widths[col] - (nextRotated && !hasGroupHeadings ? RowHeight : 0), height - headSpace, TextHeight,
 						textColor, column.Alignment, column.Text, null, column.Hyper);
 
 					text45Offset = float.MaxValue;
@@ -2067,9 +2067,9 @@ namespace Zoom
 
 				if (lastRow)  // Write some tiny numbers at the bottom of the row, showing the minimum and maximum values within the Data, and the bin size of each bar.
 				{
-					SvgText(s, 1, (int)left, (int)(top + height * 0.8), (int)width, height / 5, Color.Black, ZAlignment.Left, chartMin.ToString());
-					SvgText(s, 1, (int)(left + Math.Min(width * 1 / bins, 2)), (int)(top + height * 0.8), (int)width, height / 5, Color.Black, ZAlignment.Left, valuesPerBin.ToString());
-					SvgText(s, 1, (int)left, (int)(top + height * 0.8), (int)Math.Round(width), height / 5, Color.Black, ZAlignment.Right, chartMax.ToString());
+					SvgText(s, 1, (int)left, (int)(top + height * 0.8), (int)width, height / 6, Color.Black, ZAlignment.Left, chartMin.ToString());
+					SvgText(s, 1, (int)(left + Math.Min(width * 1 / bins, 2)), (int)(top + height * 0.8), (int)width, height / 6, Color.Black, ZAlignment.Left, valuesPerBin.ToString());
+					SvgText(s, 1, (int)left, (int)(top + height * 0.8), (int)Math.Round(width), height / 6, Color.Black, ZAlignment.Right, chartMax.ToString());
 				}
 			}
 
@@ -2235,23 +2235,47 @@ namespace Zoom
 			return (bool)hasGroupHeadings;
 		}
 
+		/*												WHHYYYY?????????
+		 *													An essay
+		 *
+		 *	In the very first draft of this code, I used an 11-point font to measure how much width text would 
+		 *	take up, in order to set column widths. And I (eventually) set RowHeight to 22, "enough to fit 
+		 *	default-sized text". That was trial and error: if I used 22 as row height, and text height was 
+		 *	three quarters of that, then the widths I has calculated using 11-point text were about correct.
+		 *
+		 *	Now I've changed TextWidth() to use the same height that I'm targeting for the final rendering of the 
+		 *	font, and I find that I have to scale widths down by about 0.648. Which is to say, about 11/17ths.
+		 *
+		 *	At the same time I removed other scalings from the code, and I had expected that all the scalings would 
+		 *	cancel out to nothing: that I was multiplying here, dividing there, and once I simplified all of that I 
+		 *	wouldn't need any scaling at all. But I do. And I don't know why.
+		 *
+		 *	Part of it is the difference between points and pixels: I'm specifying font-size="17" without any units, 
+		 *	which means the units are pixels, and 1 px = 0.75 pt, so 17 pixels is 12.75 point. Which is closer to 11 
+		 *	point. But still different.
+		*/
+
+		internal const int RowHeight = 22;  // See above essay.
+		internal const int TextHeight = 17;  // Three-quarters of RowHeight, rounded up. This leaves room for descenders (like in gjpqy), and room to "breathe" around the text.
+		internal const float ScaleFromWindows96dpiPixelsToSvgUnits = 0.648f;  // See above essay.
+
 		Graphics graphics = null;
 		Font font = null;
 		/// <summary>Width of text in pixels, independent of scaling of current monitor.</summary>
-		float TextWidth(string text, int height = RowHeight)
+		float TextWidth(string text, int height = TextHeight)
 		{
 			if (graphics == null)
 			{
-				graphics = Graphics.FromImage(new Bitmap(1000, 20));
+				var bitmap = new Bitmap(TextHeight * 100, TextHeight);
+				bitmap.SetResolution(96, 96);
+				graphics = Graphics.FromImage(bitmap);
 
-				font = new Font(_pure ? "Microsoft Sans Serif" : "Arial", 11);
+				font = new Font("Microsoft Sans Serif", TextHeight);
 			}
 
-			float width = graphics.MeasureString(text, font, 1000).Width / graphics.DpiX * 96;
-			return width * height / RowHeight;
+			float width = graphics.MeasureString(text, font, new SizeF(TextHeight * 100, TextHeight)).Width * ScaleFromWindows96dpiPixelsToSvgUnits;
+			return width * height / TextHeight;
 		}
-
-		internal const int RowHeight = 22;  // This is enough to fit default-sized text.
 
 		/// <summary>Height of report in internal SVG "pixels". Only valid after ToSvg() has been called.</summary>
 		internal int Height;
@@ -2269,26 +2293,26 @@ namespace Zoom
 			var widths = new List<float>();  // Width of each column in pixels. "float", because MeasureString().Width returns a float.
 			var mins = new List<double>();   // Minimum numeric value in each column, or if all numbers are positive, 0.
 			var maxs = new List<double>();   // Maximum numeric value in each column.
-			int headerHeight = Metrics(widths, mins, maxs, out int maxPoints);
+			(int titleHeight, int headerHeight) = Metrics(widths, mins, maxs, out int maxPoints);
 			Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG -- the sum of each column, plus pixels for spacing left, right and between.
 			double max = maxs.DefaultIfEmpty(1).Max();
 
 			int left = 1;
-			int arrowTop = headerHeight;
-			Height = headerHeight + Rows.Count * (RowHeight + 1);
+			Height = titleHeight + headerHeight + Rows.Count * (RowHeight + 1);
 			int multiColumns = MultiColumnOK && aspectRatio is double ar ? Math.Max((int)Math.Round(Math.Sqrt(ar / Width * Height)), 1) : 1;
 			int rowsPerCol = (int)Math.Ceiling((double)Rows.Count / multiColumns);
-			Height = headerHeight + rowsPerCol * (RowHeight + 1);
+			Height = titleHeight + headerHeight + rowsPerCol * (RowHeight + 1);
 			Right = (int)(Width * 1.1 * multiColumns - Width * 0.1);
 
-			SvgBegin(sb, RowHeight, Right, Height);
+			titleHeight = SvgBegin(sb, Right, ref Height);
+			int arrowTop = titleHeight + headerHeight;
 
 			for (int col = 0; col < multiColumns; col++)
 			{
 				int thisLeft = (int)(left + Width * 1.1 * col);
 				Right = thisLeft + Width;
-				SvgHeader(sb, thisLeft, headerHeight - 1, widths);
-				int rowTop = headerHeight;
+				SvgHeader(sb, thisLeft, titleHeight, headerHeight - 1, widths);
+				int rowTop = titleHeight + headerHeight;
 				bool odd = true;
 
 				for (int row = rowsPerCol * col; row < rowsPerCol * (col + 1); row++)
