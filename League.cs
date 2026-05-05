@@ -1361,14 +1361,14 @@ namespace Torn
 		/// <summary>True if any game in this league has victory points.</summary>
 		public bool IsPoints()
 		{
-			return IsPoints(games);
+			lock (games)
+				return IsPoints(games);
 		}
 
 		/// <summary>True if any game in the list has victory points.</summary>
 		public bool IsPoints(List<Game> games)
 		{
-			lock (games)
-				return games.Any(g => g.IsPoints());
+			return games.Any(g => g.IsPoints());
 		}
 
 		int NextTeamId()

@@ -1175,14 +1175,15 @@ namespace Torn.Report
 			{
 				string groupName = groups[group]?.ToLower() ?? "";
 
-				bool isPoints = league.IsPoints() && !(groupName.Contains("final") && !groupName.Contains("semi"));
-				int columnsThisGroup = isPoints ? 5 : 4;
-
 				if ((groupName.Contains("final") && !groupName.Contains("semi")) || groupName.StartsWith("rep ") || groupName.Contains("repechage") || groupName.Contains("repêchage") || 
 						previousGroupName.StartsWith("rep ") || previousGroupName.Contains("repechage") || previousGroupName.Contains("repêchage"))
 					groupGames.Clear();  // Disregard previous results -- use only results from this round to rank.
 
 				var thisGroupGames = games.Where(g => g.Title == groups[group]).ToList();
+
+				bool isPoints = league.IsPoints(thisGroupGames);
+				int columnsThisGroup = isPoints ? 5 : 4;
+
 				groupGames.AddRange(thisGroupGames);
 
 				teamColumn = report.AddColumn(new ZColumn("Team", ZAlignment.Left, groups[group]));
@@ -1219,7 +1220,6 @@ namespace Torn.Report
 						ZRow ascensionRow = ascension.Rows[team];
 						ZRow row = report.Rows[team + offset];
 						ZCell teamCell = row.AddCell(ascensionRow[1]);  // Team
-						row.Add(new ZCell());  // Blank spacer
 
 						var placings = new List<string>();
 						var teamId = league.LeagueTeam(teamCell.Text).TeamId;
@@ -3706,7 +3706,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 					foreach (var team in game.Teams)  // Check that every team in "game" is in "current". ("current" can be a superset of "game" if e.g. a team has dropped out due to injury.)
 						matched &= games[current].Teams.Any(t => t.TeamId == team.TeamId);
 
-				if (matched)  // If all teams in this game are in all subsequent finals games,
+				if (matched)  // If all teams in subsequent finals games are in this game,
 					finals.Add(games[current]); // add this game to finals.
 
 				current--;
