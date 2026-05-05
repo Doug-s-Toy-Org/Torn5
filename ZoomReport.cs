@@ -1294,7 +1294,7 @@ namespace Zoom
 					s.AppendFormat("text-anchor=\"end\" x=\"{0}\"", x + width - 1);
 				break;
 			}
-			s.AppendFormat(" y=\"{0}\" width=\"{1}\" font-size=\"{2:G2}\"", y + fontSize, width, fontSize);
+			s.AppendFormat(" y=\"{0}\" width=\"{1}\" font-size=\"{2:G2}\"", y, width, fontSize);
 
 			if (!string.IsNullOrEmpty(hyper) || fontColor != Color.Black)
 			{
@@ -1323,7 +1323,7 @@ namespace Zoom
 
 			float textWidth = _pure ? Math.Max(width, TextWidth(text, fontSize)) : width;
 
-			SvgBeginText(s, indent, x, y, width, width / textWidth * fontSize * (_pure ? 0.9 : 1), fontColor, alignment, cssClass, _pure ? null : hyper, fillWidth);
+			SvgBeginText(s, indent, x, y + fontSize, width, width / textWidth * fontSize * (_pure ? 0.9 : 1), fontColor, alignment, cssClass, _pure ? null : hyper, fillWidth);
 			s.Append(htmlEncode ? WebUtility.HtmlEncode(text) : text);
 			SvgEndText(s, _pure ? null : hyper);
 		}
