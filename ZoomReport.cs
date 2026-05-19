@@ -907,7 +907,7 @@ namespace Zoom
 					if (string.IsNullOrEmpty(cell.Text))
 					{
 						// If the cell is otherwise empty, and it contains the start of an arrow that has one From and one To, 
-						var arrows = Columns[j].Arrows.FindAll(a => a.From.Count == 1 && a.To.Count == 1 && a.From[0].Row == i);
+						var arrows = Columns[j].Arrows?.FindAll(a => a.From.Count == 1 && a.To.Count == 1 && a.From[0].Row == i);
 						if (arrows.Count == 1)
 							s.Append(arrows[0].To[0].Row - arrows[0].From[0].Row);  // output a number that shows how many rows the arrow goes up/down.
 					}
@@ -1378,7 +1378,7 @@ namespace Zoom
 		{
 			List<int> spaces = Spaces(text);
 
-			if (spaces.Count == 1)
+			if (spaces.Count <= 1)
 				return (new string[1] { text }, TextWidth(text));
 			else if (spaces.Count - 1 < lines)  // Not enough spaces (or the exact correct number of spaces) -- just break the text at every space.
 			{
