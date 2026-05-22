@@ -149,6 +149,7 @@ namespace Torn.UI
 
 				if (holder.Fixture.Games.Any())  // If that generate succeeded,
 				{
+					SetFixtureTitle(holder.Fixture, numericGamesPerTeam.Value == 4 && teams.Count == 9, numericGamesPerTeam.Value == 4 && teams.Count == 36);
 					RefreshReports();
 					gridFinder.SetupFromFixture(holder.Fixture);  // set us up to improve it.
 				}
@@ -176,6 +177,8 @@ namespace Torn.UI
 				if (gridFinder.Changed)
 				{
 					gridFinder.Changed = false;
+
+					SetFixtureTitle(holder.Fixture, gridFinder.RoundRobinness > 0.9, gridFinder.ScoreScalers.CascadeDifficulty != 0 || gridFinder.ScoreScalers.SameDifficulty != 0);
 					RefreshReports();
 				}
 				textBoxScore.Text = gridFinder.Details;
@@ -183,6 +186,21 @@ namespace Torn.UI
 			}
 
 			return gridFinder.Changed;
+		}
+
+		/// <summary>
+		/// Set the title of this fixture, which will be used as the title of the report showing the fixture,
+		/// to show whether this fixture is reasonably close to being a perfect round robin, or is seeded 
+		/// (either for cascade difficulty or for equal difficulty), or is unseeded.
+		/// </summary>
+		private void SetFixtureTitle(Fixture fixture, bool roundRobin, bool seeded)
+		{
+			string fixtureType = roundRobin ? "Round Robin" : seeded ? "Seeded" : "Unseeded";
+
+			bool oneDay = fixture.Games.Any() && fixture.Games.First().Time.Date == fixture.Games.Last().Time.Date;
+			string dateText = oneDay ? " " + fixture.Games.First().Time.ToShortDateString() : "";
+
+			fixture.Title = fixtureType + " fixtures for " + holder.League.Title + dateText;
 		}
 
 		private void PopulateColours()
@@ -270,6 +288,9 @@ namespace Torn.UI
 
 		private void RefreshReports()
 		{
+			if (!holder.Fixture.Games.Any())
+				return;
+
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
 

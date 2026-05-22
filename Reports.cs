@@ -262,9 +262,8 @@ namespace Torn.Report
 		public static ZoomReport FixtureGrid(Fixture fixture, League league)
 		{
 			bool multiDay = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
-			string dateText = multiDay || fixture.Games.Count == 0 ? "" : " " + fixture.Games.First().Time.ToShortDateString();
 
-			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + dateText, "Team", "left")
+			ZoomReport report = new ZoomReport(fixture.Title, "Team", "left")
 			{
 				CssClass = "fixturegrid"
 			};
@@ -327,10 +326,9 @@ namespace Torn.Report
 		/// <summary>Fixtures. Each row is a game. CSS stuff is consumed by Javascript added in WebOutput.cs' ReportPages.FixturePage.</summary>
 		public static ZoomReport FixtureList(Fixture fixture, League league)
 		{
-		bool hasMultipleDates = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
-			string dateText = hasMultipleDates || fixture.Games.Count == 0 ? "" : " " + fixture.Games.First().Time.ToShortDateString();
+			bool hasMultipleDates = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
 
-			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + dateText, "Time", "left")
+			ZoomReport report = new ZoomReport(fixture.Title, "Time", "left")
 			{
 				CssClass = "fixturelist",
 				MultiColumnOK = true
@@ -400,9 +398,8 @@ namespace Torn.Report
 		public static ZoomReport FixtureCombined(Fixture fixture, League league)
 		{
 			bool multiDay = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
-			string dateText = multiDay || fixture.Games.Count == 0 ? "" : " " + fixture.Games.First().Time.ToShortDateString();
 
-			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + dateText, "Time", "left")
+			ZoomReport report = new ZoomReport(fixture.Title, "Time", "left")
 			{
 				CssClass = "fixturelist",
 				MultiColumnOK = true

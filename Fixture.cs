@@ -11,6 +11,7 @@ namespace Torn
 	/// </summary>
 	public class Fixture
 	{
+		public string Title { get; set; }
 		public FixtureTeams Teams { get; set; }
 		public FixtureGames Games { get; set; }
 

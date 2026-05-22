@@ -16,6 +16,7 @@ namespace Torn.Grids
 		public bool Rings;
 		public bool Changed = false;
 		public string Details;
+		public double RoundRobinness = 0.0;
 
 		private Plays existingPlays;
 		private Improver oneImprover;  // Used for non-threaded non-parallel testing.
@@ -127,6 +128,7 @@ namespace Torn.Grids
 			ToFixtureGames(best, fixture);
 			var result = oneImprover.Scored();
 			Details = (result.ScoreString + errors.ToString() + result.Details);
+			RoundRobinness = result.RoundRobinness;
 		}
 
 		/// <summary>Improve a team fixture via hill-climbing.</summary>
@@ -181,6 +183,7 @@ namespace Torn.Grids
 			best = result;
 			ToFixtureGames(result, fixture);
 			Details = result.ScoreString + errors.ToString() + result.Details;
+			RoundRobinness = result.RoundRobinness;
 			Changed = true;
 		}
 
@@ -695,7 +698,7 @@ namespace Torn.Grids
 				}
 			} while (DateTime.Now < finish);
 
-			return changed ? new GamesResult() { PlayGames = PlayGames.Clone(), RefGames = RefGames.Clone(), Score = Score, ScoreString = ScoreString(), Details = Details() } : null;
+			return changed ? new GamesResult() { PlayGames = PlayGames.Clone(), RefGames = RefGames.Clone(), Score = Score, ScoreString = ScoreString(), Details = Details(), RoundRobinness = plays.RoundRobinness() } : null;
 		}
 
 		/// <summary>Return a GamesResult showing the score and details of this set of games, but don't try to make improvements.</summary>
@@ -703,7 +706,7 @@ namespace Torn.Grids
 		{
 			Score = ScoreGames(PlayGames, RefGames);
 			lastSuccessTime = DateTime.Now;
-			return new GamesResult() { PlayGames = PlayGames.Clone(), RefGames = RefGames.Clone(), Score = Score, ScoreString = ScoreString(), Details = Details() };
+			return new GamesResult() { PlayGames = PlayGames.Clone(), RefGames = RefGames.Clone(), Score = Score, ScoreString = ScoreString(), Details = Details(), RoundRobinness = plays.RoundRobinness() };
 		}
 
 		/// <summary>Swap teams around.</summary>
@@ -1701,6 +1704,23 @@ namespace Torn.Grids
 		}
 
 		public int Size => this.Count;
+
+		/// <summary>Rate how much this fixture is like a round robin. 1.0 means every team plays every other the the same number of times.</summary>
+		public double RoundRobinness()
+		{
+			int mean = (int)Math.Round(Average());
+			int hits = 0;
+			int misses = 0;
+
+			for (int team1 = 0; team1 < Size; team1++)
+				for (int team2 = team1 + 1; team2 < Size; team2++)
+					if (this[team1][team2] == mean)
+						hits++;
+					else
+						misses++;
+
+			return 1.0 * hits / (hits + misses);
+		}
 	}
 
 	/// <summary>All the things needed to initialise an Improver.</summary>
@@ -1724,6 +1744,7 @@ namespace Torn.Grids
 		public double Score = double.MaxValue;
 		public string ScoreString;
 		public string Details;
+		public double RoundRobinness;
 	}
 
 	/// <summary>Holds settings for hill-climbing to find "good" possible fixtures.
