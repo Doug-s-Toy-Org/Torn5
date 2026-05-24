@@ -2112,14 +2112,14 @@ namespace Torn
 			return p.Any() ? p.Sum(x => x.Points) : 0;
 		}
 
-		public List<LeagueTeam> GetTeamLadder()
+		public List<LeagueTeam> GetTeamLadder(bool includeSecret = false)
 		{
 			lock (teams)
-				return teams.OrderByDescending(x => TotalPoints(x, false)).ThenByDescending(x => AverageScore(x, false)).ToList();
+				return teams.OrderByDescending(x => TotalPoints(x, includeSecret)).ThenByDescending(x => AverageScore(x, includeSecret)).ToList();
 		}
 
 		public List<LeagueTeam> GetTeamLadderScaled()
-		{
+			           {
 			lock (teams)
 				return teams.OrderByDescending(x => AveragePoints(x, false)).ThenByDescending(x => AverageScore(x, false)).ToList();
 		}
