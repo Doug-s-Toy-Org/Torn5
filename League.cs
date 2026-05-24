@@ -643,6 +643,11 @@ namespace Torn
 			return Teams.SelectMany(t => t.Players).ToList();
 		}
 
+		public int PlayerCount()
+		{
+			return Teams.Select(t => t.Players.Count).Sum();
+		}
+
 		/// <summary>All players whose packs started, even players not finally assigned onto a team.</summary>
 		public List<GamePlayer> AllPlayers()
 		{

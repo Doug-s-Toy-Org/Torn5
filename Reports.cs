@@ -1626,13 +1626,8 @@ namespace Torn.Report
 
 			report.MaxChartByColumn = true;
 
-			var totals = new GamePlayer();
-			double totalScore = 0;
-			int totalCount = 0;
-			int totalGames = 0;
-			double totalTagRatio = 0;
-
-			foreach (GamePlayer gamePlayer in league.Played(player))
+			var played = league.Played(player);
+			foreach (GamePlayer gamePlayer in played)
 			{
 				// Add a row for each game the player played.
 				ZRow row = new ZRow();
@@ -1655,48 +1650,18 @@ namespace Torn.Report
 				if (teams.Count > 1)
 					row.Add(TeamCell(league.LeagueTeam(gamePlayer)));
 
-				FillDetails(row, gamePlayer, color, game == null ? double.NaN : (double)game.TotalScore() / game.Players().Count);
-
-				totals.Score += gamePlayer.Score;
-				totals.HitsBy += gamePlayer.HitsBy;
-				totals.HitsOn += gamePlayer.HitsOn;
-				totals.BaseHits += gamePlayer.BaseHits;
-				totals.BaseDestroys += gamePlayer.BaseDestroys;
-				totals.BaseDenies += gamePlayer.BaseDenies;
-				totals.BaseDenied += gamePlayer.BaseDenied;
-				totals.YellowCards += gamePlayer.YellowCards;
-				totals.RedCards += gamePlayer.RedCards;
-				totalScore += game == null ? 0 : game.TotalScore();
-				totalCount += game == null ? 1 : game.Players().Count;
-				totalTagRatio += game == null ? 0 : (((double)gamePlayer.HitsBy / (double)gamePlayer.HitsOn));
-				totalGames += 1;
+				FillDetails(row, gamePlayer, color, game == null ? double.NaN : game.TotalScore() / game.PlayerCount());
 
 				report.Rows.Add(row);
 			}
 
 			// Add an overall average row.
-			ZRow totalRow = new ZRow
+			ZRow averageRow = new ZRow()
 			{
-				new ZCell("Average of " + league.Played(player).Count().ToString() + " games")
+				new ZCell("Average of " + played.Count().ToString() + " games")
 			};
-			if (teams.Count > 1)
-				totalRow.Add(new ZCell());  // Team name
-
-			var played = league.Played(player);
-			if (played.Any())
-			{
-				totalRow.Add(new ZCell(league.Played(player).Average(gp => gp.Rank), ChartType.Bar, "N1"));
-				totals.Score /= played.Count;
-			}
-			else
-			{
-				totalRow.Add(new ZCell());
-				totals.Score = 0;
-			}
-
-			FillDetails(totalRow, totals, default, (double)totalScore / totalCount, (double)totalTagRatio / totalGames);
-
-			report.Rows.Add(totalRow);
+			FillAverages(report, averageRow);
+			report.Rows.Add(averageRow);
 
 			report.RemoveZeroColumns();
 			return report;
@@ -3305,7 +3270,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				if (count == 0)
 					averageRow.Add(new ZCell());
 				else if (format == "N0" && total / count < 100)
-					averageRow.Add(new ZCell(total / count, ChartType.Bar, "N1"));
+					averageRow.Add(new ZCell(total / count, ChartType.Bar, "G2"));
 				else
 					averageRow.Add(new ZCell(total / count, ChartType.Bar, format));
 			}
@@ -3507,7 +3472,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			return bitmap;
 		}
 
-		/// <summary>Within a given row, divide the value in the cell titled numerator by the value in the cell titled denominator and put it into the cell titled result.</summary>
+		/// <summary>Within a given row, divide the value in the numerator column by the value in the denominator column and put it into the result column.</summary>
 		static void DoRatio(ZoomReport report, ZRow row, string numerator, string denominator, string result)
 		{
 			double? numeratorValue = report.Cell(row, numerator)?.Number;
