@@ -283,6 +283,49 @@ namespace TornWeb
 			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Lotr), Is.EqualTo(4.0), "1000 - tied 1st/2nd/3rd A");
 			Assert.That(league.CalculatePoints(firstGame.Teams[3], GroupPlayersBy.Lotr), Is.EqualTo(4.0), "1000 - tied 1st/2nd/3rd B");
 			Assert.That(league.CalculatePoints(firstGame.Teams[4], GroupPlayersBy.Lotr), Is.EqualTo(4.0), "1000 - tied 1st/2nd/3rd C");
+
+			league.VictoryPointsProportional = 9.0;
+
+			Assert.That(league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Alias), Is.EqualTo(12.0), "VictoryPointsProportional 1st");
+			Assert.That(league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Alias), Is.EqualTo(0.0), "VictoryPointsProportional 5th");
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), Is.EqualTo(3.0), "VictoryPointsProportional tied 2nd/3rd/4th");
+
+			league.VictoryPointsProportional = 0.0;
+			league.HalfVps = true;
+			firstGame.Teams[2].Players[0].SetIsEliminated(true);
+			firstGame.Teams[3].Players[0].SetIsEliminated(true);
+			firstGame.Teams[4].Players[0].SetIsEliminated(true);
+
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), Is.EqualTo(1.0), "HalfVps");
+
+			league.HalfVps = false;
+			league.ZeroVps = true;
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), Is.EqualTo(0.0), "ZeroVps");
+
+			league.SweepBonus = 10;
+			Assert.That(league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Alias), Is.EqualTo(6.0), "no sweep bonus");
+			firstGame.Teams[1].Players[0].SetIsEliminated(true);
+			firstGame.Teams[1].Players[1].SetIsEliminated(true);
+			Assert.That(league.CalculatePoints(firstGame.Teams[0], GroupPlayersBy.Alias), Is.EqualTo(16.0), "sweep bonus");
+
+			// Add tests for HitsTieBreak, ZeroedTieBreak.
+			league.ZeroVps = false;
+			league.ZeroElimed = true;
+			foreach (var gameTeam in firstGame.Teams)
+				gameTeam.Score = league.CalculateScore(gameTeam);
+
+			Assert.That(league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Alias), Is.EqualTo(1.5), "Team 2 tied 2nd/3rd/4th/5th");
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), Is.EqualTo(1.5), "Team 3 tied 2nd/3rd/4th/5th");
+
+			league.ZeroedTieBreak = true;
+			Assert.That(league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Alias), Is.EqualTo(0.0), "Team 2 loses ZeroedTieBreak");
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), Is.EqualTo(2.0), "Teams 3,4,5 win ZeroedTieBreak");
+
+			league.ZeroedTieBreak = false;
+			league.HitsTieBreak = true;
+			firstGame.Teams[1].Players[0].HitsBy = 1;
+			Assert.That(league.CalculatePoints(firstGame.Teams[1], GroupPlayersBy.Alias), Is.EqualTo(4.0), "Team 2 wins HitsTieBreak");
+			Assert.That(league.CalculatePoints(firstGame.Teams[2], GroupPlayersBy.Alias), Is.EqualTo(2.0 / 3), "Teams 3,4,5 lose HitsTieBreak");
 		}
 
 		LaserGameServer stubServer;

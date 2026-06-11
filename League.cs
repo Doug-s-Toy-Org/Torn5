@@ -370,20 +370,7 @@ namespace Torn
 
 		public double GetZeroedScore()
 		{
-			double score = 0;
-			foreach(GamePlayer player in players)
-			{
-				Console.WriteLine("ZeroedScore " + player.PlayerId + " " + player.ZeroedScore + " " + player.Score);
-				if(player.ZeroedScore != null && player.ZeroedScore != 0)
-				{
-					score += (double)player.ZeroedScore;
-				} else
-				{
-					score += player.Score;
-				}
-				Console.WriteLine(score);
-			}
-			return score;
+			return players.Sum(gp => gp.GetZeroedScore());
 		}
 
 		public GameTeam Clone()
@@ -495,24 +482,14 @@ namespace Torn
 
 		public double GetZeroedScore()
 		{
-			if(ZeroedScore != null && ZeroedScore != 0)
-			{
-				return (double)ZeroedScore;
-			}
-			return Score;
- 		}
+			return ZeroedScore != null && ZeroedScore != 0 ? (double)ZeroedScore : Score;
+		}
 
 		public void SetIsEliminated(bool isElimed)
 		{
-			if(isElimed)
-			{
-				IsEliminated = true;
-				ZeroedScore = ZeroedScore == null ? Score : ZeroedScore;
-			} else
-			{
-				IsEliminated = false;
-				ZeroedScore = null;
-			}
+			IsEliminated = isElimed;
+
+			ZeroedScore = isElimed ? (ZeroedScore ?? Score) : (double?)null;
 		}
 
 		public void AddTermRecord(TermRecord termRecord)
@@ -830,16 +807,31 @@ namespace Torn
 
 		public Collection<double> VictoryPoints { get { return victoryPoints; } }
 
+		/// <summary>If teams are tied on score, should we resolve the tie by whichever team has the most hits?</summary>
 		public bool HitsTieBreak { get; set; }
+		
+		/// <summary>For elimination games, if teams are tied on score, should we resolve the tie based on what teams' scores would have been if none of the players had their scores zeroed because they were eliminated?</summary>
 		public bool ZeroedTieBreak { get; set; }
+
+		/// <summary>For elimination games, if a player is eliminated, should we zero their score?</summary>
 		public bool ZeroElimed { get; set; }
+
+		/// <summary>For elimination games, if a team is eliminated, should we zero their victory points?</summary>
 		public bool ZeroVps { get; set; }
+
+		/// <summary>For elimination games, if a team is eliminated, should we halve their victory points?</summary>
 		public bool HalfVps { get; set; }
 
+		/// <summary>Does the team with the player with the highest score get extra victory points?</summary>
 		public double VictoryPointsHighScore { get; set; }
+
+		/// <summary>For elimination games, if every team _except_ this one is eliminated, does this team get extra victory points?</summary>
 		public int SweepBonus { get; set; }
+
+		/// <summary>Victory points allocated to all teams in a game proportional to their score: if this is set to 100 and the team scores are 50k, 30k and 20k, the proportional points awarded would be 50, 30 and 20.</summary>
 		public double VictoryPointsProportional { get; set; }
 
+		/// <summary>If true, we will automatically calculate a team percentage handicap based on the team's players' grades.</summary>
 		public bool IsAutoHandicap { get; set; }
 
 		public List<Grade> Grades { get; set; }
@@ -2215,57 +2207,54 @@ namespace Torn
 			return new Handicap(cap, HandicapStyle.Percent).Apply(score);
 		}
 
+		/// <summary>Calculate Victory Points for a team in a game.</summary>
 		public double CalculatePoints(GameTeam gameTeam, GroupPlayersBy groupPlayersBy)
 		{
 			Game game = Game(gameTeam);
 			if (game != null)
 			{
+				bool thisTeamEliminated = !gameTeam.Players.Any(gp => !gp.IsEliminated);
+
+				if (thisTeamEliminated && ZeroVps)
+					return gameTeam.PointsAdjustment;
+
 				List<GameTeam> teams = (groupPlayersBy == GroupPlayersBy.Lotr ?  // For Lord of the Ring we want just "teams" of this colour. For other modes, we want all teams. 
 				                     game.Teams.Where(t => t.Colour == gameTeam.Colour) : game.Teams).OrderBy(x => -x.Score).ToList();
 
-				List<GameTeam> nonElimedTeams = teams.Where(team =>
-				{
-					bool isSwept = true;
-					foreach (var player in team.Players)
-					{
-						if (!player.IsEliminated)
-						{
-							isSwept = false;
-						}
-					}
-					return !isSwept;
+				List<GameTeam> nonEliminatedTeams = teams.Where(gt => gt.Players.Any(gp => !gp.IsEliminated)).ToList();
 
-				}).ToList();
-
-				List<GameTeam> relevantTeams = ZeroVps ? nonElimedTeams : teams;
-
-				bool hasSwept = nonElimedTeams.Count() == 1 && nonElimedTeams[0].TeamId == gameTeam.TeamId;
-
-				//Console.WriteLine("Tie Break " + ZeroedTieBreak);
+				List<GameTeam> relevantTeams = ZeroVps ? nonEliminatedTeams : teams;
 
 				if (HitsTieBreak)
-				{
 					relevantTeams = relevantTeams.OrderBy(x => -x.Score).ThenBy(x => -x.GetHitsBy()).ToList();
-				} else if (ZeroedTieBreak)
-				{
+				else if (ZeroedTieBreak)
 					relevantTeams = relevantTeams.OrderBy(x => -x.Score).ThenBy(x => -x.GetZeroedScore()).ToList();
-				}
-				var ties = relevantTeams.Where(t => (t.Score == gameTeam.Score) && ((HitsTieBreak && t.GetHitsBy() == gameTeam.GetHitsBy()) || !HitsTieBreak) && ((ZeroedTieBreak && t.GetZeroedScore() == gameTeam.GetZeroedScore()) || !ZeroedTieBreak));  // If there are ties, this list will contain the tied teams. If not, it will contain just this team.
 
-				if (ties.Count() == 0) { return 0; }
+				// Calculate victory points the team gains for their rank in the game.
+				// If there are ties, average the victory points for all teams involved in the tie.
+				// This list will contain the tied teams, or just this team if there's no tie.
+				var ties = relevantTeams.Where(t => (t.Score == gameTeam.Score) && (!HitsTieBreak || t.GetHitsBy() == gameTeam.GetHitsBy()) && (!ZeroedTieBreak || t.GetZeroedScore() == gameTeam.GetZeroedScore()));
 
 				double totalPoints = 0;
 				foreach (var team in ties)
 				{
 					int index = relevantTeams.IndexOf(team);
 
-					bool isSwept = !nonElimedTeams.Contains(team);
-					bool halfPoints = isSwept && HalfVps;
-
 					if (victoryPoints.Valid(index))
-						totalPoints += Math.Floor(halfPoints ? victoryPoints[index] / 2: victoryPoints[index]);
+						totalPoints += victoryPoints[index];
 				}
-				return totalPoints / ties.Count() + gameTeam.PointsAdjustment + (hasSwept ? SweepBonus : 0);  // If there are ties, average the victory points for all teams involved in the tie.
+
+				double rankPoints = ties.Count() == 0 ? 0 : totalPoints / ties.Count();
+
+				if (thisTeamEliminated && HalfVps)
+					rankPoints /= 2;
+
+				double totalScore = teams.Sum(gt => gt.Score);
+				double proportionalPoints = totalScore == 0 ? 0 : gameTeam.Score / totalScore * VictoryPointsProportional;
+
+				double sweepPoints = nonEliminatedTeams.Count() == 1 && !thisTeamEliminated ? SweepBonus : 0;
+
+				return gameTeam.PointsAdjustment + rankPoints + proportionalPoints + sweepPoints;
 			}
 
 			return 0;

@@ -52,6 +52,7 @@ namespace Torn.UI
 			labelHighScore.Enabled = victoryPoints.Checked;
 			numericHighScore.Enabled = victoryPoints.Checked;
 			numericHighScore.Value = (decimal)League.VictoryPointsHighScore;
+			numericProportional.Value = (decimal)League.VictoryPointsProportional;
 
 			sweepBonus.Enabled = victoryPoints.Checked;
 			sweepBonus.Value = (decimal)League.SweepBonus;
@@ -366,18 +367,18 @@ namespace Torn.UI
 					var label = new Label
 					{
 						Text = "Points for " + (victory.Count + 1).Ordinate(),
-						Left = 32,
-						Top = 72 + victory.Count * 26,
+						Left = 3,
+						Top = 3 + victory.Count * 26,
 						Width = 79,
-						Parent = leaguePage
+						Parent = panelVPs
 					};
 
 					var victoryBox = new NumericUpDown
 					{
-						Left = 112,
-						Top = 70 + victory.Count * 26,
+						Left = 83,
+						Top = 1 + victory.Count * 26,
 						Width = 60,
-						Parent = leaguePage,
+						Parent = panelVPs,
 						Tag = i,
 						Value = 0
 					};
@@ -420,6 +421,11 @@ namespace Torn.UI
 		private void NumericHighScore_ValueChanged(object sender, EventArgs e)
 		{
 			League.VictoryPointsHighScore = (double)numericHighScore.Value;
+		}
+
+		private void NumericProportionalValueChanged(object sender, EventArgs e)
+		{
+			League.VictoryPointsProportional = (double)numericProportional.Value;
 		}
 
 		void RadioButtonHandicapCheckedChanged(object sender, EventArgs e)

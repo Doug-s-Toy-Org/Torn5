@@ -51,21 +51,20 @@ namespace Torn.UI
 			this.panelRight = new System.Windows.Forms.Panel();
 			this.temTab = new System.Windows.Forms.TabControl();
 			this.leaguePage = new System.Windows.Forms.TabPage();
-			this.halfVps = new System.Windows.Forms.CheckBox();
-			this.label11 = new System.Windows.Forms.Label();
-			this.zeroedTieBreak = new System.Windows.Forms.CheckBox();
-			this.sweepBonus = new System.Windows.Forms.NumericUpDown();
-			this.label10 = new System.Windows.Forms.Label();
-			this.zeroVps = new System.Windows.Forms.CheckBox();
+			this.numericProportional = new System.Windows.Forms.NumericUpDown();
+			this.labelProportional = new System.Windows.Forms.Label();
+			this.panelVPs = new System.Windows.Forms.Panel();
+			this.groupBox4 = new System.Windows.Forms.GroupBox();
 			this.zeroElimed = new System.Windows.Forms.CheckBox();
+			this.sweepBonus = new System.Windows.Forms.NumericUpDown();
+			this.halfVps = new System.Windows.Forms.CheckBox();
+			this.label10 = new System.Windows.Forms.Label();
+			this.label11 = new System.Windows.Forms.Label();
+			this.zeroVps = new System.Windows.Forms.CheckBox();
+			this.zeroedTieBreak = new System.Windows.Forms.CheckBox();
 			this.hitsTieBreak = new System.Windows.Forms.CheckBox();
 			this.numericHighScore = new System.Windows.Forms.NumericUpDown();
 			this.labelHighScore = new System.Windows.Forms.Label();
-			this.groupBoxHandicapStyle = new System.Windows.Forms.GroupBox();
-			this.radioButtonMinus = new System.Windows.Forms.RadioButton();
-			this.radioButtonPlus = new System.Windows.Forms.RadioButton();
-			this.radioButtonNone = new System.Windows.Forms.RadioButton();
-			this.radioButtonPercent = new System.Windows.Forms.RadioButton();
 			this.victoryPoints = new System.Windows.Forms.RadioButton();
 			this.totalScore = new System.Windows.Forms.RadioButton();
 			this.label1 = new System.Windows.Forms.Label();
@@ -75,6 +74,11 @@ namespace Torn.UI
 			this.colScore = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
 			this.colRankorPoints = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
 			this.HandicapPage = new System.Windows.Forms.TabPage();
+			this.groupBoxHandicapStyle = new System.Windows.Forms.GroupBox();
+			this.radioButtonMinus = new System.Windows.Forms.RadioButton();
+			this.radioButtonPlus = new System.Windows.Forms.RadioButton();
+			this.radioButtonNone = new System.Windows.Forms.RadioButton();
+			this.radioButtonPercent = new System.Windows.Forms.RadioButton();
 			this.manualTeamCap = new System.Windows.Forms.NumericUpDown();
 			this.manualTeamCapLabel = new System.Windows.Forms.Label();
 			this.playerGradeAlias = new System.Windows.Forms.Label();
@@ -115,11 +119,13 @@ namespace Torn.UI
 			this.panelRight.SuspendLayout();
 			this.temTab.SuspendLayout();
 			this.leaguePage.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericProportional)).BeginInit();
+			this.groupBox4.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.sweepBonus)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericHighScore)).BeginInit();
-			this.groupBoxHandicapStyle.SuspendLayout();
 			this.scoresPage.SuspendLayout();
 			this.HandicapPage.SuspendLayout();
+			this.groupBoxHandicapStyle.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.manualTeamCap)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.extraGBonus)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.extraAPenalty)).BeginInit();
@@ -341,17 +347,12 @@ namespace Torn.UI
 			// 
 			// leaguePage
 			// 
-			this.leaguePage.Controls.Add(this.halfVps);
-			this.leaguePage.Controls.Add(this.label11);
-			this.leaguePage.Controls.Add(this.zeroedTieBreak);
-			this.leaguePage.Controls.Add(this.sweepBonus);
-			this.leaguePage.Controls.Add(this.label10);
-			this.leaguePage.Controls.Add(this.zeroVps);
-			this.leaguePage.Controls.Add(this.zeroElimed);
-			this.leaguePage.Controls.Add(this.hitsTieBreak);
+			this.leaguePage.Controls.Add(this.numericProportional);
+			this.leaguePage.Controls.Add(this.labelProportional);
+			this.leaguePage.Controls.Add(this.panelVPs);
+			this.leaguePage.Controls.Add(this.groupBox4);
 			this.leaguePage.Controls.Add(this.numericHighScore);
 			this.leaguePage.Controls.Add(this.labelHighScore);
-			this.leaguePage.Controls.Add(this.groupBoxHandicapStyle);
 			this.leaguePage.Controls.Add(this.victoryPoints);
 			this.leaguePage.Controls.Add(this.totalScore);
 			this.leaguePage.Controls.Add(this.label1);
@@ -363,87 +364,128 @@ namespace Torn.UI
 			this.leaguePage.Text = "League";
 			this.leaguePage.UseVisualStyleBackColor = true;
 			// 
-			// halfVps
+			// numericProportional
 			// 
-			this.halfVps.AutoSize = true;
-			this.halfVps.Enabled = false;
-			this.halfVps.Location = new System.Drawing.Point(175, 54);
-			this.halfVps.Name = "halfVps";
-			this.halfVps.Size = new System.Drawing.Size(146, 17);
-			this.halfVps.TabIndex = 7;
-			this.halfVps.Text = "Half VPs for Elimed Team";
-			this.halfVps.UseVisualStyleBackColor = true;
-			this.halfVps.CheckedChanged += new System.EventHandler(this.halfElimed_CheckedChanged);
+			this.numericProportional.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+			this.numericProportional.Location = new System.Drawing.Point(89, 286);
+			this.numericProportional.Name = "numericProportional";
+			this.numericProportional.Size = new System.Drawing.Size(60, 20);
+			this.numericProportional.TabIndex = 17;
+			this.numericProportional.ValueChanged += new System.EventHandler(this.NumericProportionalValueChanged);
 			// 
-			// label11
+			// labelProportional
 			// 
-			this.label11.AutoSize = true;
-			this.label11.Location = new System.Drawing.Point(117, 30);
-			this.label11.Name = "label11";
-			this.label11.Size = new System.Drawing.Size(53, 13);
-			this.label11.TabIndex = 3;
-			this.label11.Text = "Tie-Break";
+			this.labelProportional.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+			this.labelProportional.AutoSize = true;
+			this.labelProportional.Location = new System.Drawing.Point(9, 288);
+			this.labelProportional.Name = "labelProportional";
+			this.labelProportional.Size = new System.Drawing.Size(63, 13);
+			this.labelProportional.TabIndex = 16;
+			this.labelProportional.Text = "Proportional";
 			// 
-			// zeroedTieBreak
+			// panelVPs
 			// 
-			this.zeroedTieBreak.AutoSize = true;
-			this.zeroedTieBreak.Enabled = false;
-			this.zeroedTieBreak.Location = new System.Drawing.Point(225, 29);
-			this.zeroedTieBreak.Name = "zeroedTieBreak";
-			this.zeroedTieBreak.Size = new System.Drawing.Size(83, 17);
-			this.zeroedTieBreak.TabIndex = 6;
-			this.zeroedTieBreak.Text = "Non-Zeroed";
-			this.zeroedTieBreak.UseVisualStyleBackColor = true;
-			this.zeroedTieBreak.CheckedChanged += new System.EventHandler(this.zeroedTieBreak_CheckedChanged);
+			this.panelVPs.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+			this.panelVPs.AutoScroll = true;
+			this.panelVPs.Location = new System.Drawing.Point(6, 70);
+			this.panelVPs.Name = "panelVPs";
+			this.panelVPs.Size = new System.Drawing.Size(162, 188);
+			this.panelVPs.TabIndex = 15;
+			// 
+			// groupBox4
+			// 
+			this.groupBox4.Controls.Add(this.zeroElimed);
+			this.groupBox4.Controls.Add(this.sweepBonus);
+			this.groupBox4.Controls.Add(this.halfVps);
+			this.groupBox4.Controls.Add(this.label10);
+			this.groupBox4.Controls.Add(this.label11);
+			this.groupBox4.Controls.Add(this.zeroVps);
+			this.groupBox4.Controls.Add(this.zeroedTieBreak);
+			this.groupBox4.Controls.Add(this.hitsTieBreak);
+			this.groupBox4.Location = new System.Drawing.Point(174, 8);
+			this.groupBox4.Name = "groupBox4";
+			this.groupBox4.Size = new System.Drawing.Size(149, 225);
+			this.groupBox4.TabIndex = 14;
+			this.groupBox4.TabStop = false;
+			this.groupBox4.Text = "Elimination";
+			// 
+			// zeroElimed
+			// 
+			this.zeroElimed.Location = new System.Drawing.Point(6, 19);
+			this.zeroElimed.Name = "zeroElimed";
+			this.zeroElimed.Size = new System.Drawing.Size(137, 34);
+			this.zeroElimed.TabIndex = 4;
+			this.zeroElimed.Text = "Zero Score\nfor eliminated player";
+			this.zeroElimed.UseVisualStyleBackColor = true;
+			this.zeroElimed.CheckedChanged += new System.EventHandler(this.zeroElimed_CheckedChanged);
 			// 
 			// sweepBonus
 			// 
-			this.sweepBonus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.sweepBonus.Enabled = false;
-			this.sweepBonus.Location = new System.Drawing.Point(239, 232);
+			this.sweepBonus.Location = new System.Drawing.Point(74, 198);
 			this.sweepBonus.Name = "sweepBonus";
 			this.sweepBonus.Size = new System.Drawing.Size(60, 20);
 			this.sweepBonus.TabIndex = 12;
 			this.sweepBonus.ValueChanged += new System.EventHandler(this.sweepBonus_ValueChanged);
 			// 
+			// halfVps
+			// 
+			this.halfVps.Enabled = false;
+			this.halfVps.Location = new System.Drawing.Point(6, 118);
+			this.halfVps.Name = "halfVps";
+			this.halfVps.Size = new System.Drawing.Size(137, 34);
+			this.halfVps.TabIndex = 7;
+			this.halfVps.Text = "Half victory points\nfor eliminated team";
+			this.halfVps.UseVisualStyleBackColor = true;
+			this.halfVps.CheckedChanged += new System.EventHandler(this.halfElimed_CheckedChanged);
+			// 
 			// label10
 			// 
-			this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.label10.AutoSize = true;
-			this.label10.Location = new System.Drawing.Point(177, 234);
+			this.label10.Location = new System.Drawing.Point(6, 200);
 			this.label10.Name = "label10";
-			this.label10.Size = new System.Drawing.Size(56, 13);
+			this.label10.Size = new System.Drawing.Size(62, 13);
 			this.label10.TabIndex = 11;
-			this.label10.Text = "For sweep";
+			this.label10.Text = "Sweep VPs";
+			// 
+			// label11
+			// 
+			this.label11.AutoSize = true;
+			this.label11.Location = new System.Drawing.Point(3, 56);
+			this.label11.Name = "label11";
+			this.label11.Size = new System.Drawing.Size(68, 13);
+			this.label11.TabIndex = 3;
+			this.label11.Text = "Tie-Break on";
 			// 
 			// zeroVps
 			// 
-			this.zeroVps.AutoSize = true;
 			this.zeroVps.Enabled = false;
-			this.zeroVps.Location = new System.Drawing.Point(175, 77);
+			this.zeroVps.Location = new System.Drawing.Point(6, 158);
 			this.zeroVps.Name = "zeroVps";
-			this.zeroVps.Size = new System.Drawing.Size(144, 17);
+			this.zeroVps.Size = new System.Drawing.Size(137, 34);
 			this.zeroVps.TabIndex = 8;
-			this.zeroVps.Text = "Zero VPs for elimed team";
+			this.zeroVps.Text = "Zero victory points\nfor eliminated team";
 			this.zeroVps.UseVisualStyleBackColor = true;
 			this.zeroVps.CheckedChanged += new System.EventHandler(this.zeroVps_CheckedChanged);
 			// 
-			// zeroElimed
+			// zeroedTieBreak
 			// 
-			this.zeroElimed.AutoSize = true;
-			this.zeroElimed.Location = new System.Drawing.Point(175, 7);
-			this.zeroElimed.Name = "zeroElimed";
-			this.zeroElimed.Size = new System.Drawing.Size(158, 17);
-			this.zeroElimed.TabIndex = 4;
-			this.zeroElimed.Text = "Zero Score for elimed player";
-			this.zeroElimed.UseVisualStyleBackColor = true;
-			this.zeroElimed.CheckedChanged += new System.EventHandler(this.zeroElimed_CheckedChanged);
+			this.zeroedTieBreak.AutoSize = true;
+			this.zeroedTieBreak.Enabled = false;
+			this.zeroedTieBreak.Location = new System.Drawing.Point(24, 95);
+			this.zeroedTieBreak.Name = "zeroedTieBreak";
+			this.zeroedTieBreak.Size = new System.Drawing.Size(110, 17);
+			this.zeroedTieBreak.TabIndex = 6;
+			this.zeroedTieBreak.Text = "Non-zeroed score";
+			this.zeroedTieBreak.UseVisualStyleBackColor = true;
+			this.zeroedTieBreak.CheckedChanged += new System.EventHandler(this.zeroedTieBreak_CheckedChanged);
 			// 
 			// hitsTieBreak
 			// 
 			this.hitsTieBreak.AutoSize = true;
 			this.hitsTieBreak.Enabled = false;
-			this.hitsTieBreak.Location = new System.Drawing.Point(175, 29);
+			this.hitsTieBreak.Location = new System.Drawing.Point(24, 72);
 			this.hitsTieBreak.Name = "hitsTieBreak";
 			this.hitsTieBreak.Size = new System.Drawing.Size(44, 17);
 			this.hitsTieBreak.TabIndex = 5;
@@ -454,7 +496,7 @@ namespace Torn.UI
 			// numericHighScore
 			// 
 			this.numericHighScore.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.numericHighScore.Location = new System.Drawing.Point(110, 232);
+			this.numericHighScore.Location = new System.Drawing.Point(89, 260);
 			this.numericHighScore.Name = "numericHighScore";
 			this.numericHighScore.Size = new System.Drawing.Size(60, 20);
 			this.numericHighScore.TabIndex = 10;
@@ -464,21 +506,119 @@ namespace Torn.UI
 			// 
 			this.labelHighScore.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.labelHighScore.AutoSize = true;
-			this.labelHighScore.Location = new System.Drawing.Point(32, 234);
+			this.labelHighScore.Location = new System.Drawing.Point(9, 262);
 			this.labelHighScore.Name = "labelHighScore";
 			this.labelHighScore.Size = new System.Drawing.Size(74, 13);
 			this.labelHighScore.TabIndex = 9;
 			this.labelHighScore.Text = "For high score";
 			// 
+			// victoryPoints
+			// 
+			this.victoryPoints.Location = new System.Drawing.Point(16, 44);
+			this.victoryPoints.Name = "victoryPoints";
+			this.victoryPoints.Size = new System.Drawing.Size(104, 24);
+			this.victoryPoints.TabIndex = 2;
+			this.victoryPoints.Text = "victory points";
+			this.victoryPoints.UseVisualStyleBackColor = true;
+			this.victoryPoints.CheckedChanged += new System.EventHandler(this.RankCheckedChanged);
+			// 
+			// totalScore
+			// 
+			this.totalScore.Checked = true;
+			this.totalScore.Location = new System.Drawing.Point(16, 24);
+			this.totalScore.Name = "totalScore";
+			this.totalScore.Size = new System.Drawing.Size(104, 24);
+			this.totalScore.TabIndex = 1;
+			this.totalScore.TabStop = true;
+			this.totalScore.Text = "total score";
+			this.totalScore.UseVisualStyleBackColor = true;
+			this.totalScore.CheckedChanged += new System.EventHandler(this.RankCheckedChanged);
+			// 
+			// label1
+			// 
+			this.label1.AutoSize = true;
+			this.label1.Location = new System.Drawing.Point(8, 8);
+			this.label1.Name = "label1";
+			this.label1.Size = new System.Drawing.Size(114, 13);
+			this.label1.TabIndex = 0;
+			this.label1.Text = "Rank teams based on:";
+			// 
+			// scoresPage
+			// 
+			this.scoresPage.Controls.Add(this.listViewScores);
+			this.scoresPage.Location = new System.Drawing.Point(4, 22);
+			this.scoresPage.Name = "scoresPage";
+			this.scoresPage.Padding = new System.Windows.Forms.Padding(3);
+			this.scoresPage.Size = new System.Drawing.Size(329, 312);
+			this.scoresPage.TabIndex = 1;
+			this.scoresPage.Text = "Scores";
+			this.scoresPage.UseVisualStyleBackColor = true;
+			// 
+			// listViewScores
+			// 
+			this.listViewScores.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.colGame,
+            this.colScore,
+            this.colRankorPoints});
+			this.listViewScores.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.listViewScores.FullRowSelect = true;
+			this.listViewScores.HideSelection = false;
+			this.listViewScores.Location = new System.Drawing.Point(3, 3);
+			this.listViewScores.Name = "listViewScores";
+			this.listViewScores.Size = new System.Drawing.Size(323, 306);
+			this.listViewScores.TabIndex = 0;
+			this.listViewScores.UseCompatibleStateImageBehavior = false;
+			this.listViewScores.View = System.Windows.Forms.View.Details;
+			// 
+			// colGame
+			// 
+			this.colGame.Text = "Game";
+			this.colGame.Width = 130;
+			// 
+			// colScore
+			// 
+			this.colScore.Text = "Score";
+			this.colScore.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+			// 
+			// colRankorPoints
+			// 
+			this.colRankorPoints.Text = "Points";
+			this.colRankorPoints.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+			this.colRankorPoints.Width = 44;
+			// 
+			// HandicapPage
+			// 
+			this.HandicapPage.Controls.Add(this.groupBoxHandicapStyle);
+			this.HandicapPage.Controls.Add(this.manualTeamCap);
+			this.HandicapPage.Controls.Add(this.manualTeamCapLabel);
+			this.HandicapPage.Controls.Add(this.playerGradeAlias);
+			this.HandicapPage.Controls.Add(this.playerGradeBox);
+			this.HandicapPage.Controls.Add(this.extraGBonus);
+			this.HandicapPage.Controls.Add(this.extraGBonusLabel);
+			this.HandicapPage.Controls.Add(this.extraAPenalty);
+			this.HandicapPage.Controls.Add(this.label8);
+			this.HandicapPage.Controls.Add(this.missingPlayerPenalty);
+			this.HandicapPage.Controls.Add(this.label7);
+			this.HandicapPage.Controls.Add(this.label6);
+			this.HandicapPage.Controls.Add(this.teamSize);
+			this.HandicapPage.Controls.Add(this.automaticHandicapEnabled);
+			this.HandicapPage.Location = new System.Drawing.Point(4, 22);
+			this.HandicapPage.Name = "HandicapPage";
+			this.HandicapPage.Padding = new System.Windows.Forms.Padding(3);
+			this.HandicapPage.Size = new System.Drawing.Size(329, 312);
+			this.HandicapPage.TabIndex = 3;
+			this.HandicapPage.Text = "Handicap";
+			this.HandicapPage.UseVisualStyleBackColor = true;
+			// 
 			// groupBoxHandicapStyle
 			// 
-			this.groupBoxHandicapStyle.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+			this.groupBoxHandicapStyle.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.groupBoxHandicapStyle.Controls.Add(this.radioButtonMinus);
 			this.groupBoxHandicapStyle.Controls.Add(this.radioButtonPlus);
 			this.groupBoxHandicapStyle.Controls.Add(this.radioButtonNone);
 			this.groupBoxHandicapStyle.Controls.Add(this.radioButtonPercent);
-			this.groupBoxHandicapStyle.Location = new System.Drawing.Point(6, 258);
+			this.groupBoxHandicapStyle.Location = new System.Drawing.Point(6, 6);
 			this.groupBoxHandicapStyle.Name = "groupBoxHandicapStyle";
 			this.groupBoxHandicapStyle.Size = new System.Drawing.Size(317, 50);
 			this.groupBoxHandicapStyle.TabIndex = 13;
@@ -529,106 +669,9 @@ namespace Torn.UI
 			this.radioButtonPercent.UseVisualStyleBackColor = true;
 			this.radioButtonPercent.CheckedChanged += new System.EventHandler(this.RadioButtonHandicapCheckedChanged);
 			// 
-			// victoryPoints
-			// 
-			this.victoryPoints.Location = new System.Drawing.Point(16, 44);
-			this.victoryPoints.Name = "victoryPoints";
-			this.victoryPoints.Size = new System.Drawing.Size(104, 24);
-			this.victoryPoints.TabIndex = 2;
-			this.victoryPoints.Text = "victory points";
-			this.victoryPoints.UseVisualStyleBackColor = true;
-			this.victoryPoints.CheckedChanged += new System.EventHandler(this.RankCheckedChanged);
-			// 
-			// totalScore
-			// 
-			this.totalScore.Checked = true;
-			this.totalScore.Location = new System.Drawing.Point(16, 24);
-			this.totalScore.Name = "totalScore";
-			this.totalScore.Size = new System.Drawing.Size(104, 24);
-			this.totalScore.TabIndex = 1;
-			this.totalScore.TabStop = true;
-			this.totalScore.Text = "total score";
-			this.totalScore.UseVisualStyleBackColor = true;
-			this.totalScore.CheckedChanged += new System.EventHandler(this.RankCheckedChanged);
-			// 
-			// label1
-			// 
-			this.label1.AutoSize = true;
-			this.label1.Location = new System.Drawing.Point(8, 8);
-			this.label1.Name = "label1";
-			this.label1.Size = new System.Drawing.Size(114, 13);
-			this.label1.TabIndex = 0;
-			this.label1.Text = "Rank teams based on:";
-			// 
-			// scoresPage
-			// 
-			this.scoresPage.Controls.Add(this.listViewScores);
-			this.scoresPage.Location = new System.Drawing.Point(4, 22);
-			this.scoresPage.Name = "scoresPage";
-			this.scoresPage.Padding = new System.Windows.Forms.Padding(3);
-			this.scoresPage.Size = new System.Drawing.Size(329, 328);
-			this.scoresPage.TabIndex = 1;
-			this.scoresPage.Text = "Scores";
-			this.scoresPage.UseVisualStyleBackColor = true;
-			// 
-			// listViewScores
-			// 
-			this.listViewScores.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.colGame,
-            this.colScore,
-            this.colRankorPoints});
-			this.listViewScores.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.listViewScores.FullRowSelect = true;
-			this.listViewScores.HideSelection = false;
-			this.listViewScores.Location = new System.Drawing.Point(3, 3);
-			this.listViewScores.Name = "listViewScores";
-			this.listViewScores.Size = new System.Drawing.Size(323, 322);
-			this.listViewScores.TabIndex = 0;
-			this.listViewScores.UseCompatibleStateImageBehavior = false;
-			this.listViewScores.View = System.Windows.Forms.View.Details;
-			// 
-			// colGame
-			// 
-			this.colGame.Text = "Game";
-			this.colGame.Width = 130;
-			// 
-			// colScore
-			// 
-			this.colScore.Text = "Score";
-			this.colScore.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-			// 
-			// colRankorPoints
-			// 
-			this.colRankorPoints.Text = "Points";
-			this.colRankorPoints.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-			this.colRankorPoints.Width = 44;
-			// 
-			// HandicapPage
-			// 
-			this.HandicapPage.Controls.Add(this.manualTeamCap);
-			this.HandicapPage.Controls.Add(this.manualTeamCapLabel);
-			this.HandicapPage.Controls.Add(this.playerGradeAlias);
-			this.HandicapPage.Controls.Add(this.playerGradeBox);
-			this.HandicapPage.Controls.Add(this.extraGBonus);
-			this.HandicapPage.Controls.Add(this.extraGBonusLabel);
-			this.HandicapPage.Controls.Add(this.extraAPenalty);
-			this.HandicapPage.Controls.Add(this.label8);
-			this.HandicapPage.Controls.Add(this.missingPlayerPenalty);
-			this.HandicapPage.Controls.Add(this.label7);
-			this.HandicapPage.Controls.Add(this.label6);
-			this.HandicapPage.Controls.Add(this.teamSize);
-			this.HandicapPage.Controls.Add(this.automaticHandicapEnabled);
-			this.HandicapPage.Location = new System.Drawing.Point(4, 22);
-			this.HandicapPage.Name = "HandicapPage";
-			this.HandicapPage.Padding = new System.Windows.Forms.Padding(3);
-			this.HandicapPage.Size = new System.Drawing.Size(329, 328);
-			this.HandicapPage.TabIndex = 3;
-			this.HandicapPage.Text = "Handicap";
-			this.HandicapPage.UseVisualStyleBackColor = true;
-			// 
 			// manualTeamCap
 			// 
-			this.manualTeamCap.Location = new System.Drawing.Point(64, 177);
+			this.manualTeamCap.Location = new System.Drawing.Point(64, 217);
 			this.manualTeamCap.Maximum = new decimal(new int[] {
             1000,
             0,
@@ -648,7 +691,7 @@ namespace Torn.UI
 			// manualTeamCapLabel
 			// 
 			this.manualTeamCapLabel.AutoSize = true;
-			this.manualTeamCapLabel.Location = new System.Drawing.Point(61, 161);
+			this.manualTeamCapLabel.Location = new System.Drawing.Point(61, 201);
 			this.manualTeamCapLabel.Name = "manualTeamCapLabel";
 			this.manualTeamCapLabel.Size = new System.Drawing.Size(83, 13);
 			this.manualTeamCapLabel.TabIndex = 9;
@@ -658,7 +701,7 @@ namespace Torn.UI
 			// playerGradeAlias
 			// 
 			this.playerGradeAlias.AutoSize = true;
-			this.playerGradeAlias.Location = new System.Drawing.Point(61, 220);
+			this.playerGradeAlias.Location = new System.Drawing.Point(61, 250);
 			this.playerGradeAlias.Name = "playerGradeAlias";
 			this.playerGradeAlias.Size = new System.Drawing.Size(73, 13);
 			this.playerGradeAlias.TabIndex = 11;
@@ -669,7 +712,7 @@ namespace Torn.UI
 			// 
 			this.playerGradeBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.playerGradeBox.FormattingEnabled = true;
-			this.playerGradeBox.Location = new System.Drawing.Point(64, 236);
+			this.playerGradeBox.Location = new System.Drawing.Point(64, 266);
 			this.playerGradeBox.Name = "playerGradeBox";
 			this.playerGradeBox.Size = new System.Drawing.Size(121, 21);
 			this.playerGradeBox.TabIndex = 12;
@@ -679,7 +722,7 @@ namespace Torn.UI
 			// extraGBonus
 			// 
 			this.extraGBonus.Enabled = false;
-			this.extraGBonus.Location = new System.Drawing.Point(169, 118);
+			this.extraGBonus.Location = new System.Drawing.Point(169, 168);
 			this.extraGBonus.Maximum = new decimal(new int[] {
             0,
             0,
@@ -703,7 +746,7 @@ namespace Torn.UI
 			// extraGBonusLabel
 			// 
 			this.extraGBonusLabel.AutoSize = true;
-			this.extraGBonusLabel.Location = new System.Drawing.Point(39, 125);
+			this.extraGBonusLabel.Location = new System.Drawing.Point(39, 175);
 			this.extraGBonusLabel.Name = "extraGBonusLabel";
 			this.extraGBonusLabel.Size = new System.Drawing.Size(75, 13);
 			this.extraGBonusLabel.TabIndex = 7;
@@ -712,7 +755,7 @@ namespace Torn.UI
 			// extraAPenalty
 			// 
 			this.extraAPenalty.Enabled = false;
-			this.extraAPenalty.Location = new System.Drawing.Point(169, 92);
+			this.extraAPenalty.Location = new System.Drawing.Point(169, 142);
 			this.extraAPenalty.Name = "extraAPenalty";
 			this.extraAPenalty.Size = new System.Drawing.Size(37, 20);
 			this.extraAPenalty.TabIndex = 6;
@@ -726,7 +769,7 @@ namespace Torn.UI
 			// label8
 			// 
 			this.label8.AutoSize = true;
-			this.label8.Location = new System.Drawing.Point(39, 99);
+			this.label8.Location = new System.Drawing.Point(39, 149);
 			this.label8.Name = "label8";
 			this.label8.Size = new System.Drawing.Size(79, 13);
 			this.label8.TabIndex = 5;
@@ -735,7 +778,7 @@ namespace Torn.UI
 			// missingPlayerPenalty
 			// 
 			this.missingPlayerPenalty.Enabled = false;
-			this.missingPlayerPenalty.Location = new System.Drawing.Point(169, 66);
+			this.missingPlayerPenalty.Location = new System.Drawing.Point(169, 116);
 			this.missingPlayerPenalty.Name = "missingPlayerPenalty";
 			this.missingPlayerPenalty.Size = new System.Drawing.Size(37, 20);
 			this.missingPlayerPenalty.TabIndex = 4;
@@ -749,7 +792,7 @@ namespace Torn.UI
 			// label7
 			// 
 			this.label7.AutoSize = true;
-			this.label7.Location = new System.Drawing.Point(39, 73);
+			this.label7.Location = new System.Drawing.Point(39, 123);
 			this.label7.Name = "label7";
 			this.label7.Size = new System.Drawing.Size(112, 13);
 			this.label7.TabIndex = 3;
@@ -758,7 +801,7 @@ namespace Torn.UI
 			// label6
 			// 
 			this.label6.AutoSize = true;
-			this.label6.Location = new System.Drawing.Point(39, 47);
+			this.label6.Location = new System.Drawing.Point(39, 97);
 			this.label6.Name = "label6";
 			this.label6.Size = new System.Drawing.Size(57, 13);
 			this.label6.TabIndex = 1;
@@ -767,7 +810,7 @@ namespace Torn.UI
 			// teamSize
 			// 
 			this.teamSize.Enabled = false;
-			this.teamSize.Location = new System.Drawing.Point(169, 40);
+			this.teamSize.Location = new System.Drawing.Point(169, 90);
 			this.teamSize.Minimum = new decimal(new int[] {
             1,
             0,
@@ -786,7 +829,7 @@ namespace Torn.UI
 			// automaticHandicapEnabled
 			// 
 			this.automaticHandicapEnabled.AutoSize = true;
-			this.automaticHandicapEnabled.Location = new System.Drawing.Point(42, 17);
+			this.automaticHandicapEnabled.Location = new System.Drawing.Point(42, 67);
 			this.automaticHandicapEnabled.Name = "automaticHandicapEnabled";
 			this.automaticHandicapEnabled.Size = new System.Drawing.Size(164, 17);
 			this.automaticHandicapEnabled.TabIndex = 0;
@@ -804,7 +847,7 @@ namespace Torn.UI
 			this.GradesPage.Location = new System.Drawing.Point(4, 22);
 			this.GradesPage.Name = "GradesPage";
 			this.GradesPage.Padding = new System.Windows.Forms.Padding(3);
-			this.GradesPage.Size = new System.Drawing.Size(329, 328);
+			this.GradesPage.Size = new System.Drawing.Size(329, 312);
 			this.GradesPage.TabIndex = 2;
 			this.GradesPage.Text = "Grades";
 			this.GradesPage.UseVisualStyleBackColor = true;
@@ -856,7 +899,7 @@ namespace Torn.UI
 			this.pointPercentBox.Location = new System.Drawing.Point(4, 22);
 			this.pointPercentBox.Name = "pointPercentBox";
 			this.pointPercentBox.Padding = new System.Windows.Forms.Padding(3);
-			this.pointPercentBox.Size = new System.Drawing.Size(329, 328);
+			this.pointPercentBox.Size = new System.Drawing.Size(329, 312);
 			this.pointPercentBox.TabIndex = 4;
 			this.pointPercentBox.Text = "Points to %";
 			this.pointPercentBox.UseVisualStyleBackColor = true;
@@ -920,7 +963,7 @@ namespace Torn.UI
 			this.terms.Location = new System.Drawing.Point(4, 22);
 			this.terms.Name = "terms";
 			this.terms.Padding = new System.Windows.Forms.Padding(3);
-			this.terms.Size = new System.Drawing.Size(329, 328);
+			this.terms.Size = new System.Drawing.Size(329, 312);
 			this.terms.TabIndex = 5;
 			this.terms.Text = "Terminations";
 			this.terms.UseVisualStyleBackColor = true;
@@ -1079,12 +1122,15 @@ namespace Torn.UI
 			this.temTab.ResumeLayout(false);
 			this.leaguePage.ResumeLayout(false);
 			this.leaguePage.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericProportional)).EndInit();
+			this.groupBox4.ResumeLayout(false);
+			this.groupBox4.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.sweepBonus)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericHighScore)).EndInit();
-			this.groupBoxHandicapStyle.ResumeLayout(false);
 			this.scoresPage.ResumeLayout(false);
 			this.HandicapPage.ResumeLayout(false);
 			this.HandicapPage.PerformLayout();
+			this.groupBoxHandicapStyle.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)(this.manualTeamCap)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.extraGBonus)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.extraAPenalty)).EndInit();
@@ -1180,5 +1226,9 @@ namespace Torn.UI
         private System.Windows.Forms.CheckBox halfVps;
         private System.Windows.Forms.Button buttonPasteTeams;
 		private System.Windows.Forms.Button buttonSortTeams;
+		private System.Windows.Forms.GroupBox groupBox4;
+		private System.Windows.Forms.Panel panelVPs;
+		private System.Windows.Forms.NumericUpDown numericProportional;
+		private System.Windows.Forms.Label labelProportional;
 	}
 }

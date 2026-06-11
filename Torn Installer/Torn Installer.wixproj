@@ -1,7 +1,7 @@
 ﻿<Project Sdk="WixToolset.Sdk/4.0.0">
   <PropertyGroup>
     <OutputType>Package</OutputType>
-    <DefineConstants>Torn.Version=90.0.0</DefineConstants>
+    <DefineConstants>Torn.Version=91.0.0</DefineConstants>
     <PreBuildEvent>
     </PreBuildEvent>
   </PropertyGroup>
