@@ -1655,13 +1655,7 @@ namespace Torn.Report
 				report.Rows.Add(row);
 			}
 
-			// Add an overall average row.
-			ZRow averageRow = new ZRow()
-			{
-				new ZCell("Average of " + played.Count().ToString() + " games")
-			};
-			FillAverages(report, averageRow);
-			report.Rows.Add(averageRow);
+			report.Rows.Add(AveragesRow(report, "Average of " + played.Count().ToString() + " games"));
 
 			report.RemoveZeroColumns();
 			return report;
@@ -1834,12 +1828,7 @@ namespace Torn.Report
 					previousGameDate = game.Time.Date;
 				}  // if from..to; for Played
 
-			ZRow averageRow = new ZRow()
-			{
-				new ZCell("Average of " + played.Count.ToString() + " games")
-			};
-			averageRow.Color = report.Rows.Count % 2 == 0 ? evenColor : oddColor;
-			FillAverages(report, averageRow);
+			var averageRow = AveragesRow(report, "Average of " + played.Count.ToString() + " games");
 
 			DoRatio(report, averageRow, "Tags +", "Tags -", "Tag Ratio");
 			double averageTotalScore = played.Any() ? played.Average(gt => league.Game(gt).TotalScore() / league.Game(gt).Teams.Count) : 0;
@@ -3250,8 +3239,14 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			row.Add(BlankZero(gamePlayer.RedCards, ChartType.Bar, color));
 		}
 
-		static void FillAverages(ZoomReport report, ZRow averageRow)
+		static ZRow AveragesRow(ZoomReport report, string cell1Text)
 		{
+			ZRow averageRow = new ZRow()
+			{
+				new ZCell(cell1Text)
+			};
+			averageRow.Color = Color.FromArgb(128, 240, 240, 240);
+
 			for (int col = averageRow.Count; col < report.Columns.Count; col++)
 			{
 				double total = 0.0;
@@ -3274,6 +3269,8 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				else
 					averageRow.Add(new ZCell(total / count, ChartType.Bar, format));
 			}
+
+			return averageRow;
 		}
 
 		/// <summary>Append the specified symbol to the StringBuilders. If the current colour has changed, emit <div> and <tspan> or </div> and </tspan> as appropriate.</summary>
