@@ -1,31 +1,35 @@
-﻿namespace Torn5
+﻿using System;
+
+namespace Torn5
 {
-    internal class PackHits
+    internal class PackHits: IComparable
     {
-        public string name {  get; set; }
-        public decimal phasor { get; set; }
-        public decimal chest { get; set; }
-        public decimal flShoulder { get; set; }
-        public decimal frShoulder { get; set; }
-        public decimal blShoulder { get; set; }
-        public decimal brShoulder { get; set; }
-        public decimal back { get; set; }
+        public string Name {  get; set; }
+		public int Games { get; set; }
+        public int Phasor { get; set; }
+        public int Chest { get; set; }
+        public int FrontLeftShoulder { get; set; }
+        public int FrontRightShoulder { get; set; }
+        public int Back { get; set; }
         public PackHits(string name)
         {
-            this.name = name;
-            this.back = 0;
-            this.phasor = 0;
-            this.chest = 0;
-            this.flShoulder = 0;
-            this.frShoulder = 0;
-            this.blShoulder = 0;
-            this.brShoulder = 0;
-            this.back = 0;
+            Name = name;
+            Back = 0;
+            Phasor = 0;
+            Chest = 0;
+            FrontLeftShoulder = 0;
+            FrontRightShoulder = 0;
+            Back = 0;
         }
 
-        public decimal TotalHits()
+        public int TotalHits()
         {
-            return phasor + chest + back + flShoulder + frShoulder + blShoulder + brShoulder;
+            return Phasor + Chest + Back + FrontLeftShoulder + FrontRightShoulder;
         }
+
+		int IComparable.CompareTo(object obj)
+		{
+			return string.Compare(Name, ((PackHits)obj).Name);
+		}
     }
 }

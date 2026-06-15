@@ -2131,13 +2131,13 @@ namespace Torn.Report
 					"In a team event, you can try to balance the colours, by removing the best pack from this colour, the worst from that colour, etc. \n";
 
 				if (missingTags)
-					report.Description += " Note that on Nexus or Helios, in .Torn files created by Torn 4, only games committed with \"Calculate scores by Torn\" selected in Preferences will show tag ratios. \n";
+					report.Description += "If detailed tag data is not available, this report will only show score ratios. \n";
 
 				if (longitudinal)
-					report.Description += " The \"Longitudinal\" column shows the performance of each pack in each game over time -- higher means the pack did better. \n";
+					report.Description += "The \"Longitudinal\" column shows the performance of each pack in each game over time -- higher means the pack did better. \n";
 
 				if (from != null || to != null)
-					report.Description += " The report has been limited to games" + FromTo(games, from, to) + ".";
+					report.Description += "The report has been limited to games" + FromTo(games, from, to) + ".";
 			}
 
 			return report;
@@ -2234,124 +2234,41 @@ namespace Torn.Report
 			return report;
 		}
 
-		public static bool logFileIsBeforeDate(string file, DateTime? to)
+		static bool LogFileNameBetween(string fileName, DateTime? from, DateTime? to)
 		{
-			if (to == null)
+			try
 			{
-				return true;
+				string s = Path.GetFileNameWithoutExtension(fileName).Replace("game", "");
+				var dt = DateTime.ParseExact(s, "yyyy-MM-ddTHH_mm_ss", CultureInfo.InvariantCulture);
+
+				return (from == null || dt >= from) && (to == null || dt <= to);
 			}
-
-			string[] fileParts = file.Split('\\');
-			string fileName = fileParts[fileParts.Length - 1];
-			string dateTime = fileName.Replace("game", "").Replace(".json","");
-
-			string[] dateTimes = dateTime.Split('T');
-			string date = dateTimes[0];
-			string time = dateTimes[1];
-
-			string[] dates = date.Split('-');
-			string[] times = time.Split('_');
-
-			int year = Int32.Parse(dates[0]);
-			int month = Int32.Parse(dates[1]);
-			int day = Int32.Parse(dates[2]);
-
-			int hour = Int32.Parse(times[0]);
-			int minute = Int32.Parse(times[1]);
-
-			if (year < to.Value.Year)
-				return true;
-
-			if (year == to.Value.Year)
+			catch
 			{
-				if (month < to.Value.Month) 
-					return true;
-
-				if (month == to.Value.Month)
-				{
-					if (day < to.Value.Day)
-						return true;
-
-					if (day == to.Value.Day)
-					{
-						if (hour < to.Value.Hour)
-							return true;
-
-						if (hour == to.Value.Hour)
-						{
-							if (minute <= to.Value.Minute)
-								return true;
-						}
-					}
-				}
+				return false;
 			}
-
-			return false;
-
 		}
 
-		public static bool logFileIsAfterDate(string file, DateTime? from)
+		static DateTime LogFileNameToDateTime(string fileName)
 		{
-			if (from == null)
+
+			try
 			{
-				return true;
+				string s = Path.GetFileNameWithoutExtension(fileName).Replace("game", "");
+				return DateTime.ParseExact(s, "yyyy-MM-ddTHH_mm_ss", CultureInfo.InvariantCulture);
 			}
-
-			string[] fileParts = file.Split('\\');
-			string fileName = fileParts[fileParts.Length - 1];
-			string dateTime = fileName.Replace("game", "").Replace(".json", "");
-
-			string[] dateTimes = dateTime.Split('T');
-			string date = dateTimes[0];
-			string time = dateTimes[1];
-
-			string[] dates = date.Split('-');
-			string[] times = time.Split('_');
-
-			int year = Int32.Parse(dates[0]);
-			int month = Int32.Parse(dates[1]);
-			int day = Int32.Parse(dates[2]);
-
-			int hour = Int32.Parse(times[0]);
-			int minute = Int32.Parse(times[1]);
-
-			if (year > from.Value.Year)
-				return true;
-
-			if (year == from.Value.Year)
+			catch
 			{
-				if (month > from.Value.Month)
-					return true;
-
-				if (month == from.Value.Month)
-				{
-					if (day > from.Value.Day)
-						return true;
-
-					if (day == from.Value.Day)
-					{
-						if (hour > from.Value.Hour)
-							return true;
-
-						if (hour == from.Value.Hour)
-						{
-							if (minute >= from.Value.Minute)
-								return true;
-						}
-					}
-				}
+				return default;
 			}
-
-			return false;
-
 		}
 
 		public static ZoomReport PackHitsReport(ReportTemplate rt, string exportFolder, DateTime? from, DateTime? to)
 		{
 			ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", "", rt),
-												"Pack,Chest,Back,Phasor,Left Shoulder,Right Shoulder,Chest,Back,Phasor,Left Shoulder,Right Shoulder,Total Hits",
-												"left,integer,right,integer,right,integer,right,integer,right,integer,right,integer",
-												",Percentage,Percentage,Percentage,Percentage,Percentage,Hits,Hits,Hits,Hits,Hits,");
+												"Pack,Games,Chest,Back,Phasor,Left Shoulder,Right Shoulder,Chest,Back,Phasor,Left Shoulder,Right Shoulder,Total",
+												"left,integer,integer,right,integer,right,integer,right,integer,right,integer,right,integer",
+												",,Percentage,Percentage,Percentage,Percentage,Percentage,Hits Per Game,Hits Per Game,Hits Per Game,Hits Per Game,Hits Per Game,Hits Per Game");
 
 			if (exportFolder == "" || exportFolder == null)
 			{
@@ -2359,98 +2276,95 @@ namespace Torn.Report
 				return report;
 			}
 
+			report.MaxChartByColumn = true;
+
 			string jsonPath = Path.Combine(exportFolder, "json");
 
-			var files = from file in Directory.EnumerateFiles(jsonPath) select file;
+			var files = Directory.EnumerateFiles(jsonPath).Where(fileName => LogFileNameBetween(fileName, from, to));
 
 			List<PackHits> packs = new List<PackHits>();
 
 			foreach (var file in files)
 			{
-				if (logFileIsAfterDate(file, from) && logFileIsBeforeDate(file, to))
+				string jsonLines = File.ReadAllText(file);
+				JObject json = new JObject();
+				JArray loggedEvents = new JArray();
+				JArray players = new JArray();
+
+				try
 				{
+					json = JsonConvert.DeserializeObject<JObject>(jsonLines);
+					loggedEvents = json.Value<JArray>("Events");
+					players = json.Value<JArray>("Players");
+				}
+				catch (Newtonsoft.Json.JsonException)
+				{
+					Console.WriteLine("JSON file at path ({0}) does not contain JSON data, event data ignored", file);
+				}
 
-					string jsonLines = File.ReadAllText(file);
-					JObject json = new JObject(); ;
-					JArray loggedEvents = new JArray();
-					JArray players = new JArray();
+				var packsInThisGame = new List<PackHits>();
 
-					try
+				foreach (JObject evnt in loggedEvents.Cast<JObject>())
+				{
+					var eventNum = Int32.Parse(evnt["Event_Type"].ToString());
+					var serverPlayerId = evnt["ServerPlayerId"].ToString();
+					JObject player = players.Children<JObject>().FirstOrDefault(p => p["ServerPlayerId"] != null && p["ServerPlayerId"].ToString() == serverPlayerId);
+					string packName = player?["Pack"].ToString();
+
+					var pack = packs.Find(p => p.Name == packName);
+					if (pack == null)
 					{
-						json = JsonConvert.DeserializeObject<JObject>(jsonLines);
-						loggedEvents = json.Value<JArray>("Events");
-						players = json.Value<JArray>("Players");
+						pack = new PackHits(packName);
+						packs.Add(pack);
 					}
-					catch (Newtonsoft.Json.JsonException)
-					{
-						Console.WriteLine("JSON file at path ({0}) does not contain JSON data, event data ignored", file);
-					}
 
-					foreach (JObject evnt in loggedEvents)
+					if (!packsInThisGame.Contains(pack))
+						packsInThisGame.Add(pack);
+
+					switch (eventNum)
 					{
-						var eventNum = Int32.Parse(evnt["Event_Type"].ToString());
-						var serverPlayerId = evnt["ServerPlayerId"].ToString();
-						JObject player = players.Children<JObject>().FirstOrDefault(p => p["ServerPlayerId"] != null && p["ServerPlayerId"].ToString() == serverPlayerId);
-						string packName = player["Pack"].ToString();
-						int packIndex = packs.FindIndex(p => p.name == packName);
-						if (packIndex == -1)
-						{
-							packIndex = packs.Count();
-							packs.Add(new PackHits(packName));
-						}
-						switch (eventNum)
-						{
-							case 14:
-							case 21:
-								packs[packIndex].phasor++;
-								break;
-							case 15:
-							case 22:
-								packs[packIndex].chest++;
-								break;
-							case 16:
-							case 23:
-								packs[packIndex].flShoulder++;
-								break;
-							case 17:
-							case 24:
-								packs[packIndex].frShoulder++;
-								break;
-							case 20:
-							case 27:
-								packs[packIndex].back++;
-								break;
-						}
+						case 14: case 21: pack.Phasor++; break;
+						case 15: case 22: pack.Chest++; break;
+						case 16: case 23: pack.FrontLeftShoulder++; break;
+						case 17: case 24: pack.FrontRightShoulder++; break;
+						case 20: case 27: pack.Back++; break;
 					}
 				}
+
+				foreach (var pack in packsInThisGame)
+					pack.Games++;
 			}
+
+			packs.Sort();
 
 			foreach(PackHits pack in packs)
 			{
-				Console.WriteLine("PackHitsReport: " + pack.name);
 				ZRow row = report.AddRow(new ZRow());
 
-				decimal chest = Math.Round(pack.chest / pack.TotalHits() * 100,2);
-				decimal back = Math.Round(pack.back / pack.TotalHits() * 100,2);
-				decimal phasor = Math.Round(pack.phasor / pack.TotalHits() * 100,2);
-				decimal flShoulder = Math.Round(pack.flShoulder / pack.TotalHits() * 100,2);
-				decimal frShoulder = Math.Round(pack.frShoulder / pack.TotalHits() * 100,2);
+				int totalHits = pack.TotalHits();
 
-				row.AddCell(new ZCell(pack.name));
-				row.AddCell(new ZCell(chest + "%"));
-				row.AddCell(new ZCell(back + "%"));
-				row.AddCell(new ZCell(phasor + "%"));
-				row.AddCell(new ZCell(flShoulder + "%"));
-				row.AddCell(new ZCell(frShoulder + "%"));
-				row.AddCell(new ZCell(pack.chest.ToString()));
-				row.AddCell(new ZCell(pack.back.ToString()));
-				row.AddCell(new ZCell(pack.phasor.ToString()));
-				row.AddCell(new ZCell(pack.flShoulder.ToString()));
-				row.AddCell(new ZCell(pack.frShoulder.ToString()));
-				row.AddCell(new ZCell((int)pack.TotalHits()));
+				row.AddCell(new ZCell(pack.Name));
+				row.AddCell(new ZCell(pack.Games, ChartType.Bar, "N0"));
+
+				row.AddCell(new ZCell(1.0 * pack.Chest / totalHits, ChartType.Bar, "P1"));
+				row.AddCell(new ZCell(1.0 * pack.Back / totalHits, ChartType.Bar, "P1"));
+				row.AddCell(new ZCell(1.0 * pack.Phasor / totalHits, ChartType.Bar, "P1"));
+				row.AddCell(new ZCell(1.0 * pack.FrontLeftShoulder / totalHits, ChartType.Bar, "P1"));
+				row.AddCell(new ZCell(1.0 * pack.FrontRightShoulder / totalHits, ChartType.Bar, "P1"));
+
+				row.AddCell(new ZCell(1.0 * pack.Chest / pack.Games, ChartType.Bar, "G3"));
+				row.AddCell(new ZCell(1.0 * pack.Back / pack.Games, ChartType.Bar, "G2"));
+				row.AddCell(new ZCell(1.0 * pack.Phasor / pack.Games, ChartType.Bar, "G2"));
+				row.AddCell(new ZCell(1.0 * pack.FrontLeftShoulder / pack.Games, ChartType.Bar, "G2"));
+				row.AddCell(new ZCell(1.0 * pack.FrontRightShoulder / pack.Games, ChartType.Bar, "G2"));
+				row.AddCell(new ZCell(1.0 * totalHits / pack.Games, ChartType.Bar, "G3"));
 			}
 
-			report.Description = "Pack hits collated from " + files.Count() + " JSON files.";
+			report.Rows.Add(AveragesRow(report, "Averages"));
+
+			var first = files.Min(fileName => LogFileNameToDateTime(fileName));
+			var last = files.Max(fileName => LogFileNameToDateTime(fileName));
+			report.Description = "Pack hits collated from " + files.Count() + " JSON files, from " + first + " to " + last + ".";
 
 			return report;
 		}
@@ -3264,7 +3178,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				}
 				if (count == 0)
 					averageRow.Add(new ZCell());
-				else if (format == "N0" && total / count < 100)
+				else if (format == "N0" && total / count < 10)
 					averageRow.Add(new ZCell(total / count, ChartType.Bar, "G2"));
 				else
 					averageRow.Add(new ZCell(total / count, ChartType.Bar, format));
