@@ -1375,12 +1375,14 @@ namespace Torn.Report
 				report.Columns[i].Rotate = true;
 
 			bool solo = 1.0 * game.Players().Count / game.Teams.Count < 1.5;  // True if most "teams" have one player.
+			int colours = game.Teams.Select(gt => gt.Colour).Distinct().Count();
+			var teams = game.Teams.Count >= colours * 2 ? game.Teams.OrderBy(gt => gt.Colour).ThenBy(gt => -gt.Points).ThenBy(gt => -gt.Score).ToList() : game.Teams;  // For a game like Lord of the Ring, group teams of the same colour together.
 
 			var gameTotal = new GamePlayer();
 
 			double maxScore = double.MinValue;
 			int maxTags = 1;
-			foreach (GameTeam gameTeam in game.Teams)
+			foreach (GameTeam gameTeam in teams)
 			{
 				var teamTotal = new GamePlayer();
 
@@ -1484,7 +1486,7 @@ namespace Torn.Report
 
 			if (game?.ServerGame?.Events?.Any() ?? false)
 			{
-				foreach (var gameTeam in game.Teams)
+				foreach (var gameTeam in teams)
 				{
 					var leagueTeam = league.LeagueTeam(gameTeam);
 
@@ -1516,7 +1518,7 @@ namespace Torn.Report
 
 					// Add who-shot-who cells.
 					var gameTeam = player1.GameTeam(league);
-					foreach (var gameTeam2 in game.Teams)
+					foreach (var gameTeam2 in teams)
 						foreach (var player2 in gameTeam2.Players)
 						{
 							ZCell cell;
@@ -1536,6 +1538,7 @@ namespace Torn.Report
 							row.Add(cell);
 						}
 
+					// Add last column this-game-as-emojis text for this player.
 					if (game.ServerGame?.Events != null && game.ServerGame.Events.Any())
 					{
 						var text = new StringBuilder();
@@ -1566,14 +1569,14 @@ namespace Torn.Report
 									case 33: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
 									case 34: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
 									case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // player tagged target
-									case 1401:
-									case 1402:  // score denial points: circle with cross, circle with slash
-										ColourSymbol(text, html, svg, ref currentColour, otherTeam, new string('\u29bb', eevent.ShotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
-										if (eevent.ShotsDenied % 2 == 1) ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
+									case 60: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\U0001fae2"); break;  // score denial points on ally: shocked face.
+									case 61: case 1401: case 1402:  // score denial points: circle with slash, circle with cross
+										if (eevent.ShotsDenied > 1)
+											ColourSymbol(text, html, svg, ref currentColour, otherTeam, new string('\u29bb', eevent.ShotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
+										if (eevent.ShotsDenied == 0 || eevent.ShotsDenied % 2 == 1) ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
 										break;
-									case 1403: case 1404: ColourSymbol(text, html, svg, ref currentColour, Colour.None, eevent.ShotsDenied == 1 ? "\U0001f61e" : "\U0001f620"); break;  // lose points for being denied: sad face, angry face
-									default:
-										ColourSymbol(text, html, svg, ref currentColour, Colour.None, "?"); break;
+									case 62: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f620"); break;  // lose points for being denied by ally: angry face
+									case 63: case 1403: case 1404: ColourSymbol(text, html, svg, ref currentColour, Colour.None, eevent.ShotsDenied < 2 ? "\U0001f61e" : "\U0001f620"); break;  // lose points for being denied: sad face, angry face
 								}
 							}
 						}
@@ -1587,11 +1590,26 @@ namespace Torn.Report
 					}
 				}
 
-				report.AddColumn(new ZColumn("Base hits etc.", ZAlignment.Left)
+				// Set title for this-game-as-emojis column.
+				var caption = new List<string>();
+				var eventsUsed = game.ServerGame.Events.Select(e => e.Event_Type).Distinct();
+				if (eventsUsed.Contains(30)) caption.Add("Base hits");
+				if (eventsUsed.Contains(31)) caption.Add("destroys");
+				if (eventsUsed.Any(t => (60 <= t && t <= 63) || (1401 <= t && t <= 1404))) caption.Add("denies");
+				if (eventsUsed.Contains(28) || eventsUsed.Contains(29)) caption.Add("penalties");
+				if (eventsUsed.Contains(32)) caption.Add("eliminations");
+				if (eventsUsed.Any(t => 33 <= t && t <= 46)) caption.Add("etc.");
+
+				if (caption.Any())
 				{
-					FillWidth = true
+					caption[0] = caption[0][0].ToString().ToUpper() + caption[0].Substring(1);  // Capitalize first word in caption.
+
+					report.AddColumn(new ZColumn(string.Join(", ", caption), ZAlignment.Left)
+					{
+						FillWidth = true
+					}
+					);
 				}
-				);
 			}
 
 			report.RemoveColumn(idCol);
@@ -3224,17 +3242,6 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			currentColour = newColour;
 		}
 
-		// value, scaleMin and scaleMax are all in the before-scaling ordinate system. outputRange gives the range of the after-scaling ordinate system.
-		static float Scale(double value, float outputRange, double scaleMin, double scaleMax)
-		{
-			return (float)((value - scaleMin) / (scaleMax - scaleMin) * outputRange);
-		}
-
-		static float Scale(DateTime value, double outputRange, DateTime scaleMin, DateTime scaleMax)
-		{
-			return (float)(value.Subtract(scaleMin).TotalMilliseconds / scaleMax.Subtract(scaleMin).TotalMilliseconds * outputRange);
-		}
-
 		// If i > 10000, show i / 1000 + "K". If i > 1E6, show i / 1E6 + "M".
 		static string ToK(double i)
 		{
@@ -3247,56 +3254,71 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			return (i / 1000000.0).ToString("F0") + "M";
 		}
 
-		/// <summary>Create a bitmap showing the score of each team over time.</summary>
+		private class TimeAndScore
+		{
+			/// <summary>Time in seconds since game start.</summary>
+			public float Time { get; set; }
+			public float Score { get; set; }
+		}
+
+		/// <summary>Create a chart showing the score of each team over time.</summary>
 		public static Bitmap GameWorm(League league, Game game, bool includeSecret)
 		{
-			var scoreRange = league.Games(includeSecret).Max(g => g.Teams.Max(t => t.Score)) - league.Games(includeSecret).Min(g => Math.Min(g.Teams.Min(t => t.Score), 0));
-			var minScore = Math.Min(game.Teams.Min(x => x.Score), 0);  // Handle games where all teams scores are positive, some are negative, 
-			var maxScore = Math.Max(game.Teams.Max(x => x.Score), 0);  // or all are negative (e.g. Lord of the Ring).
-			double duration = game.ServerGame.EndTime.Subtract(game.Time).TotalSeconds;
-			var height = Math.Max((int)Math.Ceiling(duration * (maxScore - minScore) / scoreRange), 1);
-			var skew = Scale(game.ServerGame.Events.Sum(e => e.Event_Type < 28 ? e.Score : 0) / game.Teams.Count, height, minScore, maxScore) / duration;  // In points per second, or points per pixel.
+			var allGameTeams = league.Games(includeSecret).SelectMany(g => g.Teams);
+			double highestScore = Math.Max(allGameTeams.Max(gt => gt.Score), 0);
+			double lowestScore = Math.Min(allGameTeams.Min(gt => gt.Score), 0);
 
-			if (duration < 2 || height < 2 || double.IsInfinity(skew))
+			float duration = (float)game.ServerGame.EndTime.Subtract(game.Time).TotalSeconds;
+			float pixelsPerScore = duration / (float)(highestScore - lowestScore);  // Set so that a chart whose right side ranges from lowestScore to highestScore will be square. Scoring 1 point will move you up this many pixels.
+			int height = (int)duration;
+			float averageTeamFieldPoints = (float)game.ServerGame.Events.Sum(e => e.Event_Type < 28 ? e.Score : 0) / game.Teams.Count;
+			float skew = averageTeamFieldPoints * pixelsPerScore / duration;  // In pixels per second, or pixels per pixel. Set so that a team scoring at the average field point rate will be shown as horizontal.
+
+			if (duration < 2 || height < 2 || float.IsInfinity(skew))
 				return null;
 
-			var bitmap = new Bitmap((int)duration, height + (int)(skew * duration));  // Widthwise, 1 pixel = 1 second.
+			float origin = (float)highestScore * pixelsPerScore - skew * duration;  // This is the Y height of lowestScore on the left edge of the bitmap.
+			var bitmap = new Bitmap(height, height);  // Widthwise, 1 pixel = 1 second. We create this as square; we will crop off unused top/bottom parts later.
 			var graphics = Graphics.FromImage(bitmap);
 
 			var font = new Font("Arial", 12);
 			graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+			float textHeight = graphics.MeasureString("0", font).Height;
 
-			// Draw "horizontal" gridlines and labels. 
+			// Draw "horizontal" (actually skewed) gridlines and labels. 
 			var gridPen = new Pen(Color.Gray);
-			var dashLength =  (float)Math.Sqrt(skew * skew + 1) * 4;  // Dashlength is 4 seconds.
+			float dashLength = (float)Math.Sqrt(skew * skew + 1) * 4;  // Dashlength is 4 seconds.
 			gridPen.DashPattern = new float[] { dashLength, dashLength * 2 };
 			gridPen.DashOffset = dashLength * 2;
 
-			var interval = Math.Pow(10, Math.Floor(Math.Log10(maxScore - minScore)));  // Interval will be a round number of points like 100, 1000, 10000, e.
-			for (var i = (Math.Truncate(minScore / interval) - 1) * interval; i <= maxScore; i += interval)
+			float interval = (float)Math.Pow(10, Math.Floor(Math.Log10(highestScore - lowestScore)));  // Interval will be a round number of points like 100, 1000, 10000, etc.
+			for (float i = (float)((Math.Truncate(lowestScore / interval) - 1) * interval); i <= highestScore; i += interval)
 			{
-				graphics.DrawLine(gridPen, 0, height - Scale(i, height, minScore, maxScore), bitmap.Width, height - Scale(i, height, minScore, maxScore) + (float)(skew * duration)); // "Horizontal" gridlines showing score values.
+				graphics.DrawLine(gridPen, 0, origin - i * pixelsPerScore, bitmap.Width, origin - i * pixelsPerScore + skew * duration);  // "Horizontal" gridline showing score value.
 				string caption = ToK(i);
-				graphics.DrawString(caption, font, Brushes.Gray, 0, height - Scale(i, height, minScore, maxScore) - graphics.MeasureString(caption, font).Height);
-				graphics.DrawString(caption, font, Brushes.Gray, bitmap.Width - graphics.MeasureString(caption, font).Width, height - Scale(i, height, minScore, maxScore) + (float)(skew * duration));
+				graphics.DrawString(caption, font, Brushes.Gray, 0, origin - i * pixelsPerScore - (skew < 0 ? 0 : textHeight));
+				graphics.DrawString(caption, font, Brushes.Gray, bitmap.Width - graphics.MeasureString(caption, font).Width, origin - i * pixelsPerScore + skew * duration - (skew < 0 ? textHeight : 0));
 			}
 
 			// Draw vertical gridlines, once per minute.
-			dashLength = Scale(interval, height, minScore, maxScore) / 30;
+			dashLength = interval * pixelsPerScore / 30;
 			gridPen.DashPattern = new float[] { dashLength, dashLength * 2 };
 			gridPen.DashOffset = 0;
-			for (var i = game.Time; i < game.ServerGame.EndTime; i = i.AddMinutes(1))
-			{
-				var x = Scale(i, duration, game.Time, game.ServerGame.EndTime);
-				graphics.DrawLine(gridPen, x, 0, x, bitmap.Height); // Vertical gridlines showing time values.
-			}
-			graphics.DrawLine(gridPen, bitmap.Width - 1, 0, bitmap.Width - 1, bitmap.Height); // Last vertical gridline.
 
-			// Write vertical gridline labels.
 			var minutes = (int)Math.Round(duration / 60);
+			for (var i = 0; i < minutes; i++)
+				graphics.DrawLine(gridPen, i * 60, 0, i * 60, height);  // Vertical gridline.
+
+			graphics.DrawLine(gridPen, bitmap.Width - 1, 0, bitmap.Width - 1, height); // Last vertical gridline.
+
+			// yMin and yMax are the highest and lowest points on the bitmap we've painted anything. Later, we can crop the bitmap to remove the top and bottom where we never painted anything.
+			float yMin = origin - textHeight;  // Initial yMin value is where we'll paint time labels.
+			float yMax = origin;
+
+			// Write time labels to the right of vertical gridlines.
 			int spacing = minutes < 6 ? 1 : minutes % 2 == 0 ? 2 : minutes % 3 == 0 ? 3 : minutes % 5 == 0 ? 5 : 1;
 			for (var i = spacing; i < minutes; i += spacing)
-				graphics.DrawString(i.ToString(), font, Brushes.Gray, Scale(i, bitmap.Width, 0, minutes), height - Scale(0, height, minScore, maxScore) - graphics.MeasureString("0", font).Height);  // Time labels.
+				graphics.DrawString(i.ToString(), font, Brushes.Gray, i * 60, yMin);
 
 			var playerIds = game.ServerGame.Players.Select(p => p.ServerPlayerId).Distinct();
 			var playerTeams = new Dictionary<string, GameTeam>();  // Dictionary to let us quickly find a player's team.
@@ -3306,14 +3328,12 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 			bool teamsByColour = game.Teams.All(t => t.Players.All(p => p.Colour == t.Colour)) && game.Teams.Select(t => t.Colour).Distinct().Count() == game.Teams.Count;  // true if each team has players only of a single colour, and all teams are different colours.
 
-			var currents = new Dictionary<GameTeam, KeyValuePair<DateTime, int>>();  // Dictionary of gameTeam -> <time, team score>.
+			var currents = new Dictionary<GameTeam, TimeAndScore>();  // Dictionary of gameTeam -> <time, team score>.
 			
 			foreach (var gameTeam in game.Teams)
-				currents.Add(gameTeam, new KeyValuePair<DateTime, int>(game.Time, 0));
+				currents.Add(gameTeam, new TimeAndScore() { Time = 0, Score = 0 });
 
-			float yMin = height;
-			float yMax = 0;
-
+			// Draw wiggly lines for all teams, showing all of their scoring events.
 			foreach (var oneEvent in game.ServerGame.Events)
 				if (oneEvent.Score != 0)
 				{
@@ -3330,12 +3350,12 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 						continue;
 
 					var pen = new Pen(gameTeam.Colour.ToSaturatedColor(), 3);
-					var oldPoint = new PointF(Scale(currents[gameTeam].Key, duration, game.Time, game.ServerGame.EndTime), height - Scale(currents[gameTeam].Value, height, minScore, maxScore) + (float)(skew * currents[gameTeam].Key.Subtract(game.Time).TotalSeconds));
-					currents[gameTeam] = new KeyValuePair<DateTime, int>(oneEvent.Time, currents[gameTeam].Value + oneEvent.Score);
-					float y = height - Scale(currents[gameTeam].Value, height, minScore, maxScore) + (float)(skew * currents[gameTeam].Key.Subtract(game.Time).TotalSeconds);
+					var oldPoint = new PointF(currents[gameTeam].Time, origin - currents[gameTeam].Score * pixelsPerScore + skew * currents[gameTeam].Time);
+					currents[gameTeam] = new TimeAndScore() { Time = (float)oneEvent.Time.Subtract(game.Time).TotalSeconds, Score = currents[gameTeam].Score + oneEvent.Score };
+					float y = origin - (float)currents[gameTeam].Score * pixelsPerScore + skew * currents[gameTeam].Time;
 					yMin = Math.Min(y, yMin);
 					yMax = Math.Max(y, yMax);
-					var newPoint = new PointF(Scale(currents[gameTeam].Key, duration, game.Time, game.ServerGame.EndTime), y);
+					var newPoint = new PointF(currents[gameTeam].Time, y);
 
 					if (oneEvent.Event_Type == 30) // Base hit: show in the base's colour not the player's colour.
 						pen.Color = ((Colour)(oneEvent.OtherTeam + 1)).ToSaturatedColor();
@@ -3344,41 +3364,49 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 					if (oneEvent.Event_Type == 31) // Base destroyed.
 					{
-						// Show the hit in a dashed line, half player colour, half base colour.
-						var dashPen = new Pen(((Colour)(oneEvent.OtherTeam + 1)).ToSaturatedColor(), 3);
-						float baseHeight = Math.Abs(oldPoint.Y - newPoint.Y);
-						dashPen.DashPattern = new float[] { baseHeight * 0.11F, baseHeight * 0.22F };
-						dashPen.DashOffset = baseHeight * -0.11F;
-						graphics.DrawLine(dashPen, oldPoint, newPoint);
+						// Put a circle on it.
+						var brush = new SolidBrush(((Colour)(oneEvent.OtherTeam + 1)).ToSaturatedColor());
+						float size = (oldPoint.Y - y) * 0.3F;
+						graphics.FillEllipse(brush, (oldPoint.X + newPoint.X - size) / 2, (oldPoint.Y + y - size) / 2, size, size);
 
-						// Show the alias of the player who destroyed the base.
-						var brush = new SolidBrush(gameTeam.Colour.ToDarkColor());
-	
-						if (currents.Max(x => x.Value.Value) == currents[gameTeam].Value)
-							graphics.DrawString(serverPlayer.Alias, font, brush, newPoint.X - graphics.MeasureString(serverPlayer.Alias, font).Width, newPoint.Y);
-						else
-							graphics.DrawString(serverPlayer.Alias, font, brush, newPoint.X, (oldPoint.Y + newPoint.Y) / 2);
+						if (serverPlayer != null)
+						{
+							// Show the alias of the player who destroyed the base.
+							brush = new SolidBrush(gameTeam.Colour.ToDarkColor());
+							float aliasWidth = graphics.MeasureString(serverPlayer.Alias, font).Width;
+
+							if (currents.Max(x => x.Value.Score) == currents[gameTeam].Score && newPoint.X > aliasWidth)  // If this is currently the top team, and there's room,
+								graphics.DrawString(serverPlayer.Alias, font, brush, newPoint.X - aliasWidth, newPoint.Y);  // write their label above and to the left of the destroy;
+							else
+							{
+								graphics.DrawString(serverPlayer.Alias, font, brush, newPoint.X - 1, (oldPoint.Y + newPoint.Y) / 2);  // otherwise, draw it to the right.
+								yMax = Math.Max((oldPoint.Y + newPoint.Y) / 2 + textHeight, yMax);
+							}
+						}
 					}
 				}
 
 			// Crop unused space off top and/or bottom of bitmap.
 			yMin = Math.Max(yMin - 1, 0);
-			bitmap =  bitmap.Clone(new RectangleF(0, yMin, bitmap.Width, Math.Max(Math.Min(yMax + 1, bitmap.Height) - yMin, 1)), bitmap.PixelFormat);
-			graphics = Graphics.FromImage(bitmap);
-			graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+			bitmap =  bitmap.Clone(new RectangleF(0, yMin, bitmap.Width, Math.Max(Math.Min(yMax + 2, bitmap.Height) - yMin, 1)), bitmap.PixelFormat);
 
 			// Write team names and scores in upper left corner.
-			if (game.Teams.Count <= 10)
+			if (game.Teams.Count <= 10 && bitmap.Height > game.Teams.Count * textHeight)
+			{
+				graphics = Graphics.FromImage(bitmap);
+				graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+
 				for (int i = 0; i < game.Teams.Count; i++)
 				{
 					var leagueTeam = league.LeagueTeam(game.Teams[i]);
 					if (leagueTeam != null)
 					{
 						var brush = new SolidBrush(game.Teams[i].Colour.ToDarkColor());
-						graphics.DrawString(leagueTeam.Name + " " + game.Teams[i].Score.ToString("N0", CultureInfo.CurrentCulture), 
-						                    font, brush, 30, graphics.MeasureString("0", font).Height * i);
+						graphics.DrawString(leagueTeam.Name + " " + game.Teams[i].Score.ToString("N0", CultureInfo.CurrentCulture),
+											font, brush, 30, textHeight * i);
 					}
 				}
+			}
 
 			return bitmap;
 		}
