@@ -3254,11 +3254,54 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			return (i / 1000000.0).ToString("F0") + "M";
 		}
 
-		private class TimeAndScore
+		private class WormEvent
 		{
-			/// <summary>Time in seconds since game start.</summary>
-			public float Time { get; set; }
-			public float Score { get; set; }
+			public PointF FromPoint { get; set; }
+			public PointF ToPoint { get; set; }
+			public GameTeam GameTeam { get; set; }
+			public Event Event { get; set; }
+		}
+
+		private static void DrawLines(Graphics graphics, float origin, List<Func<Colour, Pen>> colourPens, IOrderedEnumerable<GameTeam> gameTeams, List<WormEvent> wormEvents)
+		{
+			// Transform wormEvents into arrays of PointF's, one for each team's worm.
+			var pointsArrays = new Dictionary<GameTeam, PointF[]>();
+			foreach (GameTeam gameTeam in gameTeams)
+			{
+				var pointsList = wormEvents.Where(we => we.GameTeam == gameTeam).Select(we => we.ToPoint).ToList();
+				pointsList.Insert(0, new PointF(0, origin));
+				pointsArrays.Add(gameTeam, pointsList.ToArray());
+			}
+
+			// Paint the first colour for each team, then the second colour, etc.
+			foreach (var f in colourPens)
+				foreach (GameTeam gameTeam in gameTeams)
+				{
+					var pen = f(gameTeam.Colour);
+					pen.LineJoin = System.Drawing.Drawing2D.LineJoin.Round;
+					graphics.DrawLines(pen, pointsArrays[gameTeam]);
+				}
+		}
+
+		private static void DrawCircle(Graphics graphics, PointF centre, List<Func<Colour, Pen>> colourPens, Colour colour)
+		{
+			foreach (var f in colourPens)
+			{
+				var pen = f(colour);
+				var brush = new SolidBrush(pen.Color);
+				float radius = pen.Width < 2 ? pen.Width : pen.Width + 2;
+				graphics.FillEllipse(brush, centre.X - radius, centre.Y - radius, radius * 2, radius * 2);
+			}
+		}
+
+		private static PointF Midpoint(PointF point1, PointF point2)
+		{
+			return new PointF((point1.X + point2.X) / 2, (point1.Y + point2.Y) / 2);
+		}
+
+		private static Color Lighten(Color c, int offset)
+		{
+			return Color.FromArgb(Math.Min(Math.Max(c.R + offset, 0), 255), Math.Min(Math.Max(c.G + offset, 0), 255), Math.Min(Math.Max(c.B + offset, 0), 255));
 		}
 
 		/// <summary>Create a chart showing the score of each team over time.</summary>
@@ -3279,6 +3322,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 			float origin = (float)highestScore * pixelsPerScore - skew * duration;  // This is the Y height of lowestScore on the left edge of the bitmap.
 			var bitmap = new Bitmap(height, height);  // Widthwise, 1 pixel = 1 second. We create this as square; we will crop off unused top/bottom parts later.
+			bitmap.SetResolution(96, 96);
 			var graphics = Graphics.FromImage(bitmap);
 
 			var font = new Font("Arial", 12);
@@ -3328,70 +3372,97 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 			bool teamsByColour = game.Teams.All(t => t.Players.All(p => p.Colour == t.Colour)) && game.Teams.Select(t => t.Colour).Distinct().Count() == game.Teams.Count;  // true if each team has players only of a single colour, and all teams are different colours.
 
-			var currents = new Dictionary<GameTeam, TimeAndScore>();  // Dictionary of gameTeam -> <time, team score>.
-			
+			var wormEvents = new List<WormEvent>();  // A translation of game.ServerGame.Events into a ready-to-render version.
+
+			var currentPoints = new Dictionary<GameTeam, PointF>();  // Most recent X,Y for each team.
 			foreach (var gameTeam in game.Teams)
-				currents.Add(gameTeam, new TimeAndScore() { Time = 0, Score = 0 });
+				currentPoints.Add(gameTeam, new PointF(0, origin));
 
-			// Draw wiggly lines for all teams, showing all of their scoring events.
-			foreach (var oneEvent in game.ServerGame.Events)
-				if (oneEvent.Score != 0)
+			// Build wormEvents.
+			foreach (var thisEvent in game.ServerGame.Events.Where(e => e.Score != 0))
+			{
+				if (!playerTeams.TryGetValue(thisEvent.ServerPlayerId, out GameTeam gameTeam) && teamsByColour)  // Find gameTeam from ServerPlayerId,
+					gameTeam = game.Teams.Find(t => t.Colour == (Colour)(thisEvent.ServerTeamId + 1));  // or by colour.
+
+				if (gameTeam == null)
+					continue;
+
+				float x = (float)thisEvent.Time.Subtract(game.Time).TotalSeconds;
+				var newPoint = new PointF(x, currentPoints[gameTeam].Y - thisEvent.Score * pixelsPerScore + skew * (x - currentPoints[gameTeam].X));
+
+				wormEvents.Add(new WormEvent()
 				{
-					var serverPlayer = game.ServerGame.Players.Find(sp => sp.ServerPlayerId == oneEvent.ServerPlayerId);
+					FromPoint = currentPoints[gameTeam],
+					ToPoint = newPoint,
+					GameTeam = gameTeam,
+					Event = thisEvent
+				});
 
-					GameTeam gameTeam = null;
+				currentPoints[gameTeam] = newPoint;
+			}
+
+			// Series of colors we're going to paint for a worm line, based on a team's colour. Wide faint lines first; narrow bright lines last.
+			var colourPens = new List<Func<Colour, Pen>>()
+			{
+				colour => new Pen(Color.FromArgb(64, colour.ToSaturatedColor()), 7),
+				colour => new Pen(Color.FromArgb(64, colour.ToDarkColor()), 5),
+				colour => new Pen(colour.ToSaturatedColor(), 3),
+				colour => new Pen(Lighten(colour.ToColor(), 48), 1)
+			};
+
+			// Draw "Base destroyed" circles first, so they will get overpainted by lines.
+			foreach (var wormEvent in wormEvents.Where(e => e.Event.Event_Type == 31))
+				DrawCircle(graphics, Midpoint(wormEvent.FromPoint, wormEvent.ToPoint), colourPens, (Colour)(wormEvent.Event.OtherTeam + 1));
+
+			// Draw the wiggly lines for all teams.
+			DrawLines(graphics, origin, colourPens, game.Teams.OrderByDescending(gt => gt.Score), wormEvents);
+
+
+			foreach (var wormEvent in wormEvents.Where(e => e.Event.Event_Type == 30))  // Base hits.
+			{
+				var pen = new Pen(((Colour)(wormEvent.Event.OtherTeam + 1)).ToSaturatedColor(), 3);
+				graphics.DrawLine(pen, wormEvent.FromPoint, wormEvent.ToPoint);  // Overpaint in the base's colour not the player's colour.
+			}
+
+			colourPens.RemoveRange(0, 2);  // Remove the outer faint colors. When we re-draw base hit circles further down, we don't want to draw the faint colors over the top of our wiggly lines.
+
+			foreach (var wormEvent in wormEvents)
+			{
+				Event thisEvent = wormEvent.Event;
+
+				float toY = wormEvent.ToPoint.Y;
+				yMin = Math.Min(toY, yMin);
+				yMax = Math.Max(toY, yMax);
+
+				if (thisEvent.Event_Type == 31) // Base destroyed.
+				{
+					// Put a circle on it.
+					DrawCircle(graphics, Midpoint(wormEvent.FromPoint, wormEvent.ToPoint), colourPens, (Colour)(thisEvent.OtherTeam + 1));
+
+					var serverPlayer = game.ServerGame.Players.Find(sp => sp.ServerPlayerId == thisEvent.ServerPlayerId);
 					if (serverPlayer != null)
-						gameTeam = game.Teams.Find(t => t.Players.Exists(gp => gp.PlayerId == serverPlayer.PlayerId));
-
-					if (gameTeam == null && teamsByColour)
-						gameTeam = game.Teams.Find(t => t.Colour == (Colour)(oneEvent.ServerTeamId + 1));
-
-					if (gameTeam == null)
-						continue;
-
-					var pen = new Pen(gameTeam.Colour.ToSaturatedColor(), 3);
-					var oldPoint = new PointF(currents[gameTeam].Time, origin - currents[gameTeam].Score * pixelsPerScore + skew * currents[gameTeam].Time);
-					currents[gameTeam] = new TimeAndScore() { Time = (float)oneEvent.Time.Subtract(game.Time).TotalSeconds, Score = currents[gameTeam].Score + oneEvent.Score };
-					float y = origin - (float)currents[gameTeam].Score * pixelsPerScore + skew * currents[gameTeam].Time;
-					yMin = Math.Min(y, yMin);
-					yMax = Math.Max(y, yMax);
-					var newPoint = new PointF(currents[gameTeam].Time, y);
-
-					if (oneEvent.Event_Type == 30) // Base hit: show in the base's colour not the player's colour.
-						pen.Color = ((Colour)(oneEvent.OtherTeam + 1)).ToSaturatedColor();
-
-					graphics.DrawLine(pen, oldPoint, newPoint);  // Show the hit.
-
-					if (oneEvent.Event_Type == 31) // Base destroyed.
 					{
-						// Put a circle on it.
-						var brush = new SolidBrush(((Colour)(oneEvent.OtherTeam + 1)).ToSaturatedColor());
-						float size = (oldPoint.Y - y) * 0.3F;
-						graphics.FillEllipse(brush, (oldPoint.X + newPoint.X - size) / 2, (oldPoint.Y + y - size) / 2, size, size);
+						// Show the alias of the player who destroyed the base.
+						var brush = new SolidBrush(wormEvent.GameTeam.Colour.ToDarkColor());
+						float aliasWidth = graphics.MeasureString(serverPlayer.Alias, font).Width;
 
-						if (serverPlayer != null)
+						if (yMin == toY && wormEvent.ToPoint.X > aliasWidth)  // If this is currently the top team, and there's room,
+							graphics.DrawString(serverPlayer.Alias, font, brush, wormEvent.FromPoint.X - aliasWidth, toY);  // write their label above and to the left of the destroy;
+						else
 						{
-							// Show the alias of the player who destroyed the base.
-							brush = new SolidBrush(gameTeam.Colour.ToDarkColor());
-							float aliasWidth = graphics.MeasureString(serverPlayer.Alias, font).Width;
-
-							if (currents.Max(x => x.Value.Score) == currents[gameTeam].Score && newPoint.X > aliasWidth)  // If this is currently the top team, and there's room,
-								graphics.DrawString(serverPlayer.Alias, font, brush, newPoint.X - aliasWidth, newPoint.Y);  // write their label above and to the left of the destroy;
-							else
-							{
-								graphics.DrawString(serverPlayer.Alias, font, brush, newPoint.X - 1, (oldPoint.Y + newPoint.Y) / 2);  // otherwise, draw it to the right.
-								yMax = Math.Max((oldPoint.Y + newPoint.Y) / 2 + textHeight, yMax);
-							}
+							graphics.DrawString(serverPlayer.Alias, font, brush, wormEvent.ToPoint.X + 3, (wormEvent.FromPoint.Y + toY) / 2);  // otherwise, draw it to the right.
+							yMax = Math.Max((wormEvent.FromPoint.Y + toY) / 2 + textHeight, yMax);
 						}
 					}
 				}
+			}
 
 			// Crop unused space off top and/or bottom of bitmap.
 			yMin = Math.Max(yMin - 1, 0);
 			bitmap =  bitmap.Clone(new RectangleF(0, yMin, bitmap.Width, Math.Max(Math.Min(yMax + 2, bitmap.Height) - yMin, 1)), bitmap.PixelFormat);
 
 			// Write team names and scores in upper left corner.
-			if (game.Teams.Count <= 10 && bitmap.Height > game.Teams.Count * textHeight)
+			if (game.Teams.Count <= 4 && bitmap.Height > game.Teams.Count * textHeight)
 			{
 				graphics = Graphics.FromImage(bitmap);
 				graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
