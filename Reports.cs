@@ -3947,6 +3947,57 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 					report.Description += " The report has been limited to games with title \"" + group + "\".";
 			}
 		}
+
+		private class ListViewItemConverter : JsonConverter
+		{
+			public override bool CanConvert(Type objectType)
+			{
+				return objectType == typeof(System.Windows.Forms.ListViewItem);
+			}
+
+			public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+			{
+				return null;
+			}
+
+			public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+			{
+				writer.WriteStartObject();
+				writer.WriteEndObject();
+			}
+		}
+
+		/// <summary>If this game doesn't have detailed events loaded, try to load them from JSON log file.</summary>
+		public static bool LoadGameEvents(string logPath, League league, Game game)
+		{
+			if (game.ServerGame?.Events?.Any() ?? false)
+				return true;  // Game is already loaded.
+
+			if (string.IsNullOrEmpty(logPath))
+				return false;
+
+			string fileName = Path.Combine(logPath, "json", "game" + game.Time.ToString("yyyy-MM-ddTHH_mm_ss") + ".json");
+
+			try
+			{
+				string text = File.ReadAllText(fileName);
+				var sg = JsonConvert.DeserializeObject<ServerGame>(text, new ListViewItemConverter());
+
+				game.ServerGame = sg;
+				sg.League = league;
+				sg.Game = game;
+				if (sg.Events.Any())
+					sg.EndTime = sg.Events.Last().Time;
+
+				game.ReplacePlayers();
+			}
+			catch
+			{
+				return false;
+			}
+
+			return true;
+		}
 	}
 
 	class PyramidComparer: IComparer<ZRow>

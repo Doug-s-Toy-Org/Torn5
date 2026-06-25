@@ -425,12 +425,17 @@ namespace Torn
 		Other
 	}
 
+	/// <summary>Details of a termination (red card, yellow card, etc.)</summary>
 	public class TermRecord
 	{
 		public TermType Type { get; set; }
 		public DateTime? Time { get; set; }
 		public int Value { get; set; }
 		public string Reason { get; set; }
+
+		public TermRecord()
+		{
+		}
 
 		[JsonConstructor]
 		public TermRecord(TermType type, DateTime? time, int value, string reason = "")
@@ -476,7 +481,7 @@ namespace Torn
 		public int BaseDenied { get; set; }
 		public int YellowCards { get; set; }
 		public int RedCards { get; set; }
-		public List<TermRecord> TermRecords { get; set; }
+		public List<TermRecord> TermRecords { get; set; } = new List<TermRecord>();
 
 		public bool IsEliminated { get; set; }
 
@@ -494,10 +499,6 @@ namespace Torn
 
 		public void AddTermRecord(TermRecord termRecord)
 		{
-			if(TermRecords == null)
-			{
-				TermRecords = new List<TermRecord>();
-			}
 			TermRecords.Add(termRecord);
 		}
 
@@ -714,6 +715,24 @@ namespace Torn
 		public int Rank(GameTeam gt)
 		{
 			return Teams.IndexOf(gt) + 1;
+		}
+
+		/// <summary>This game's players may be of type GamePlayer. Where a matching ServerPlayer exists, convert each game team player to point to that ServerPlayer.</summary>
+		public void ReplacePlayers()
+		{
+			if (ServerGame == null)
+				return;
+
+			foreach (var gt in Teams)
+				for (int p = 0; p < gt.Players.Count; p++)
+				{
+					var serverPlayer = ServerGame.Players.Find(sp => sp.PlayerId == gt.Players[p].PlayerId);
+					if (serverPlayer != null)
+					{
+						gt.Players[p].CopyTo(serverPlayer);
+						gt.Players[p] = serverPlayer;
+					}
+				}
 		}
 
 		public override string ToString()
@@ -2299,6 +2318,11 @@ namespace Torn
 		//  35: trigger pressed;
 		//  36: game state (whatever that means);
 		//  37..46: player tagged target (whatever that means);
+		//  54: O-Zone: Dunno. Happens about 0 to 4 times per player per game.
+		//  60: O-Zone: score denial points, ally;
+		//  61: O-Zone: score denial points, foe;
+		//  62: O-Zone: lose points for being denied, ally;
+		//  63: O-Zone: lose points for being denied, foe;
 		//  1401: score denial points, friendly;
 		//  1402: score denial points, foe;
 		//  1403: lose points for being denied, friendly. Note that Score field is incorrect for this event type -- use Result_Data_3, PointsLostByDeniee instead.
@@ -2376,10 +2400,16 @@ namespace Torn
 	/// <summary>Represents a player as stored on the laser game server.</summary>
 	public class ServerPlayer : GamePlayer
 	{
-		public string ServerPlayerId { get; set; }  // This is the under-the-hood PAndC table ID field.
-		public int ServerTeamId { get; set; }   // Ditto. These two are only used by systems with in-game data available.
+		/// <summary>This is the under-the-hood PAndC table ID field. Only used by systems with in-game data available.</summary>
+		public string ServerPlayerId { get; set; }
+
+		/// <summary>This is the under-the-hood PAndC table ID field. Only used by systems with in-game data available.</summary>
+		public int ServerTeamId { get; set; }
+
 		public string Alias { get; set; }
+
 		/// <summary>If this object is linked from a ListViewItem's Tag, list that ListViewItem here.</summary>
+		[JsonIgnore]
 		public ListViewItem Item { get; set; }
 
 		public bool IsPopulated()
@@ -2404,7 +2434,7 @@ namespace Torn
 		{
 			YellowCards = 0;
 			RedCards = 0;
-			TermRecords = null;
+			TermRecords.Clear();
 
 			foreach (Event e in events)
 			{
