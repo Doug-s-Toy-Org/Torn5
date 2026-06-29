@@ -1294,7 +1294,10 @@ namespace Zoom
 					s.AppendFormat("text-anchor=\"end\" x=\"{0}\"", x + width - 1);
 				break;
 			}
-			s.AppendFormat(" y=\"{0}\" width=\"{1}\" font-size=\"{2:G2}\"", y, width, fontSize);
+			s.AppendFormat(" y=\"{0}\" width=\"{1}\"", y, width);
+
+			if (fontSize != 17)
+				s.AppendFormat(" font-size=\"{0:G2}\"", fontSize);
 
 			if (!string.IsNullOrEmpty(hyper) || fontColor != Color.Black)
 			{
@@ -1329,9 +1332,12 @@ namespace Zoom
 		}
 
 		/// <summary>Formats the value of a cell then calls the other overload.</summary>
-		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell)
+		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell, bool transparent)
 		{
-			SvgText(s, indent, x, y, width, height * 3 / 4, cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment, cell.OutputText(OutputFormat.Svg), cell.CssClass, cell.Hyper, column.FillWidth, false);
+			string cssClass = (cell.CssClass + (transparent && cell.Color == default ? " ld" : "")).Trim();
+
+			SvgText(s, indent, x, y, width, (int)Math.Round(height * 0.76), cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment,
+				cell.OutputText(OutputFormat.Svg), cssClass, cell.Hyper, column.FillWidth, false);
 		}
 
 		/// <summary>Print text, but see if we can make the ultimate font size bigger by breaking the text into multiple lines, instead of just shrinking the text to fit on a single line.</summary>
@@ -1785,7 +1791,7 @@ namespace Zoom
 			height += titleHeight - 44;
 			int zoomButtonY = (int)((lines.Length == 1 ? RowHeight : lineHeight) * 3 / 2 + 1);
 
-			s.AppendFormat("<svg viewBox=\"0 0 {0} {1}\" width=\"{0}\" align=\"center\">\n", width, height);
+			s.AppendFormat("<svg viewBox=\"0 0 {0} {1}\" width=\"{0}\" align=\"center\" font-size=\"17\">\n", width, height);
 
 			SvgRect(s, 1, 1, 1, width - 2, titleHeight, Colors.TitleBackColor);  // Paint title "row" background.
 
@@ -2166,7 +2172,8 @@ namespace Zoom
 		/// <summary>Write a single table row.</summary>
 		void SvgRow(StringBuilder s, int top, int height, int left, List<float> widths, List<double> mins, List<double> maxs, int maxPoints, int width, ZRow row, bool odd)
 		{
-			SvgRect(s, 1, left, top, width, height, Colors.GetBackColor(row, odd));  // Paint the background for the whole row.
+			var rowColor = Colors.GetBackColor(row, odd);
+			SvgRect(s, 1, left, top, width, height, rowColor);  // Paint the background for the whole row.
 
 			// Ensure ChartCells point to themselves, where they're part of a multi-cell chart.
 			foreach (var cell in row)
@@ -2189,7 +2196,7 @@ namespace Zoom
 				if (sourceCell.Color != Color.Empty || sourceCell.Border != Color.Empty || sourceCell.ChartCell != null)
 					SvgChart(s, top, height, widths.Take(start).Sum() + start + left, widths.Skip(start).Take(end - start + 1).Sum() + end - start,
 					         MaxChartByColumn ? mins[barSource] : mins.Min(), MaxChartByColumn ? maxs[barSource] : maxs.Max(), maxPoints,
-					         Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(Colors.GetBackColor(row, odd), Colors.BarNone), sourceCell, row, barSource, row == Rows.Last());
+					         Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(rowColor, Colors.BarNone), sourceCell, row, barSource, row == Rows.Last());
 
 				start = end + 1;
 			}
@@ -2198,7 +2205,7 @@ namespace Zoom
 			float x = left;
 			for (int col = 0; col < Columns.Count && col < row.Count; col++)
 			{
-				SvgText(s, 1, (int)x, top, (int)widths[col], height, Columns[col], row[col]);  // Write a data cell.
+				SvgText(s, 1, (int)x, top, (int)widths[col], height, Columns[col], row[col], rowColor == default);  // Write a data cell.
 
 				x += widths[col] + 1;
 			}
@@ -2465,6 +2472,7 @@ namespace Zoom
 			sb.Append("\t.back   { background: #eef; color: black; }\n");
 			sb.Append("\t@media (prefers-color-scheme: dark) {\n");
 			sb.Append("\t  .back { background: #112; color: white; }\n");
+			sb.Append("\t  .ld { fill: white; }\n");  // light/dark mode text inside SVG: black for light mode; white for dark mode.
 			sb.Append("\t}\n");
 		}
 
@@ -2604,7 +2612,12 @@ window.onload = function() {
   for (const text of document.querySelectorAll('text')) {
     var fit = text.getComputedTextLength() / (text.getAttribute('width') - 2);
     if (fit > 1)
-      text.setAttribute('font-size', text.getAttribute('font-size') / fit);
+    {
+      var size = text.getAttribute('font-size');
+      if (!size)
+        size = text.ownerSVGElement.getAttribute('font-size');
+      text.setAttribute('font-size', size / fit);
+    }
   }
   setwidths();
 }
