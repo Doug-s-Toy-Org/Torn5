@@ -1680,7 +1680,7 @@ namespace Torn.Report
 		}
 
 		/// <summary> List a team and its players' performance in each game.  One player per column; one game per row.</summary>
-		public static ZoomReport OneTeam(League league, bool includeSecret, LeagueTeam team, DateTime from, DateTime to, bool description)
+		public static ZoomReport OneTeam(League league, bool includeSecret, LeagueTeam team, string path, DateTime from, DateTime to, bool description)
 		{
 			ZoomReport report = new ZoomReport(team.Name);
 
@@ -1754,6 +1754,7 @@ namespace Torn.Report
 				if (from < league.Game(gameTeam).Time && league.Game(gameTeam).Time < to)
 				{
 					var game = league.Game(gameTeam);
+					EnsureEvents(path, league, game);
 					if (game.Time.Date > previousGameDate)  // We've crossed a date boundary, so
 						report.AddRow(new ZRow()).Add(new ZCell(game.Time.ToShortDateString()));  // Create a row to show the new date.
 
@@ -1798,7 +1799,7 @@ namespace Torn.Report
 					// Base Ratio: bases destroyed / bases conceded
 					ZCell basesConceded;
 					ZCell baseRatio;
-					if (game.ServerGame == null || game.ServerGame.Events == null)
+					if (game.ServerGame?.Events == null)
 					{
 						basesConceded = new ZCell();
 						baseRatio = new ZCell();
@@ -2162,7 +2163,7 @@ namespace Torn.Report
 		}
 
 		/// <summary>Try to identify common errors in committed games.</summary>
-		public static ZoomReport SanityReport(List<League> leagues, string title, DateTime? from, DateTime? to, bool description)
+		public static ZoomReport SanityReport(List<League> leagues, string path, string title, DateTime? from, DateTime? to, bool description)
 		{
 			var report = new ZoomReport(string.IsNullOrEmpty(title) ? (leagues.Count == 1 ? leagues[0].Title + " " : "") + "Sanity Check Report" : title,
 										"Game,Team,Issue",
@@ -2195,9 +2196,11 @@ namespace Torn.Report
 						(!gameTitle.Contains("ascension") && !gameTitle.Contains("format") && !gameTitle.Contains("final") && !gameTitle.Contains("track"))) &&
 						!game.Teams.Any(t => t.Points != 0))
 						AddSanityCheckRow(report, league, game, null, "Game does not have victory points set.");
+
+					EnsureEvents(path, league, game);
 				}
 
-				if (games.Count(g => g.ServerGame != null && g.ServerGame.EndTime != null) > league.GameCount() * 0.9)  // if most games have end times
+				if (games.Count(g => g.ServerGame?.EndTime != null) > league.GameCount() * 0.9)  // if most games have end times
 				{
 					// Look for games that have too short a duration. These may be games that have been ended early and replayed later and unintentionally committed.
 					bool isGameDurationVariable = games.Select(g => g.Duration()).Distinct().Count() > league.GameCount() / 3.0;  // Probably true for elimination or other formats that can intentionally end early; probably false for formats not intended to end early.
@@ -3968,7 +3971,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		}
 
 		/// <summary>If this game doesn't have detailed events loaded, try to load them from JSON log file.</summary>
-		public static bool LoadGameEvents(string logPath, League league, Game game)
+		public static bool EnsureEvents(string logPath, League league, Game game)
 		{
 			if (game.ServerGame?.Events?.Any() ?? false)
 				return true;  // Game is already loaded.
@@ -3987,7 +3990,12 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				sg.League = league;
 				sg.Game = game;
 				if (sg.Events.Any())
-					sg.EndTime = sg.Events.Last().Time;
+				{
+					var duration = sg.Events.Last().Time.Subtract(game.Time);
+					if (duration.Seconds > 54)  // If this game time appears to be a few seconds short of a whole number of minutes, it probably _is_ a whole number of minutes, but no events occurred in the last few seconds,
+						duration = TimeSpan.FromMinutes(Math.Round(duration.TotalMinutes));  // so round up.
+					sg.EndTime = game.Time + duration;
+				}
 
 				game.ReplacePlayers();
 			}

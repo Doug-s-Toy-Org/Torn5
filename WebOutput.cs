@@ -116,7 +116,7 @@ namespace Torn.Report
 						ChartTypeExtensions.ToChartType(rt.Setting("ChartType")), description, rt.Settings.Contains("Longitudinal"));
 				case ReportType.PackHits: return Reports.PackHitsReport(rt, exportFolder, rt.From, rt.To);
 				case ReportType.SanityCheck:
-					return Reports.SanityReport(new List<League> { league }, rt.Title, rt.From, rt.To, description);
+					return Reports.SanityReport(new List<League> { league }, exportFolder, rt.Title, rt.From, rt.To, description);
 				case ReportType.Everything: return Reports.EverythingReport(league, rt.Title, rt.From, rt.To, description);
 				case ReportType.PageBreak: return new ZoomSeparator();
 				case ReportType.TermReport: return Reports.TermReport(league, includeSecret, rt);
@@ -136,7 +136,7 @@ namespace Torn.Report
 					return Reports.PackReport(leagues, null, rt.Title, rt.From, rt.To,
 						ChartTypeExtensions.ToChartType(rt.Setting("ChartType")), description, rt.Settings.Contains("Longitudinal"));
 				case ReportType.SanityCheck:
-					return Reports.SanityReport(leagues, rt.Title, rt.From, rt.To, description);
+					return Reports.SanityReport(leagues, exportFolder, rt.Title, rt.From, rt.To, description);
 				default: return Report(leagues.FirstOrDefault(), includeSecret, rt, exportFolder);
 			}
 		}
@@ -168,11 +168,11 @@ namespace Torn.Report
 		}
 
 		/// <summary>Generate a page with results for a team.</summary>
-		public static string TeamPage(League league, bool includeSecret, LeagueTeam leagueTeam, OutputFormat outputFormat)
+		public static string TeamPage(League league, bool includeSecret, LeagueTeam leagueTeam, string exportFolder, OutputFormat outputFormat)
 		{
 			ZoomReports reports = new ZoomReports(leagueTeam.Name)
 			{
-				Reports.OneTeam(league, includeSecret, leagueTeam, DateTime.MinValue, DateTime.MaxValue, true)
+				Reports.OneTeam(league, includeSecret, leagueTeam, exportFolder, DateTime.MinValue, DateTime.MaxValue, true)
 			};
 
 			foreach (var player in leagueTeam.Players)
@@ -458,17 +458,20 @@ xhrScoreboard.send();
 
 				if (game == null)
 					return string.Format(CultureInfo.InvariantCulture, "<html><body>No games found on or after <br>{0}</body></html>", rawUrl);
-				else
-					return ReportPages.GamePage(holder.League, game);
+
+				Reports.EnsureEvents(ExportFolder, holder.League, game);
+				return ReportPages.GamePage(holder.League, game);
 			}
 			else if (lastPart.StartsWith("game2", StringComparison.OrdinalIgnoreCase))
 			{
 				DateTime dt = DateTime.ParseExact(lastPart.Substring(4, 12), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
 				Game game = holder.League.Games().Find(x => x.Time >= dt && x.Time.Subtract(dt).TotalSeconds < 60);
+
 				if (game == null)
 					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid game: <br>{0}</body></html>", rawUrl);
-				else
-					return ReportPages.GamePage(holder.League, game);
+
+				Reports.EnsureEvents(ExportFolder, holder.League, game);
+				return ReportPages.GamePage(holder.League, game);
 			}
 			else if (lastPart.StartsWith("team", StringComparison.OrdinalIgnoreCase))
 			{
@@ -478,7 +481,7 @@ xhrScoreboard.send();
 					if (leagueTeam == null)
 						return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid team number: <br>{0}</body></html>", rawUrl);
 					else
-						return ReportPages.TeamPage(holder.League, false, leagueTeam, OutputFormat.Svg);
+						return ReportPages.TeamPage(holder.League, false, leagueTeam, ExportFolder, OutputFormat.Svg);
 				}
 				else
 					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid team: <br>{0}</body></html>", rawUrl);
@@ -576,6 +579,8 @@ xhrScoreboard.send();
 			ZoomReports reports = new ZoomReports();
 			reports.Colors.BackgroundColor = Color.Empty;
 			reports.Colors.OddColor = Color.Empty;
+
+			Reports.EnsureEvents(ExportFolder, MostRecentHolder?.League, MostRecentGame);
 			reports.Add(Reports.OneGame(MostRecentHolder?.League, MostRecentGame));
 
 			return
@@ -803,32 +808,32 @@ xhrScoreboard.send();
 					foreach (LeagueTeam leagueTeam in holder.League.Teams())
 					{
 						using (StreamWriter sw = File.CreateText(Path.Combine(path, holder.Key, "team" + leagueTeam.TeamId.ToString("D2", CultureInfo.InvariantCulture) + "." + holder.ReportTemplates.OutputFormat.ToExtension())))
-							sw.Write(ReportPages.TeamPage(holder.League, includeSecret, leagueTeam, holder.ReportTemplates.OutputFormat));
+							sw.Write(ReportPages.TeamPage(holder.League, includeSecret, leagueTeam, path, holder.ReportTemplates.OutputFormat));
 						myProgress.Advance(1.0 / holder.League.TeamCount(), "Team " + leagueTeam.Name + " page exported.");
 					}
 
 					myProgress.Advance(0, "Team pages exported.");
 
-					ExportGames(holder, path, myProgress);
+					ExportGames(path, holder, myProgress);
 					myProgress.Advance(0, "Games pages exported.");
 				}
 			}
 		}
 
 		/// <summary>Generate game reports for every game in a league.</summary>
-		static void ExportGames(Holder holder, string path, Progress progress)
+		private static void ExportGames(string path, Holder holder, Progress progress)
 		{
 			var dates = holder.League.Games().Select(g => g.Time.Date).Distinct().ToList();
 			foreach (var date in dates)
 			{
-				ExportDay(holder, path, date);
+				ExportDay(path, holder, date);
 
 				progress.Advance(1.0 / dates.Count, "Exported games for " + date.ToShortDateString());
 			}
 		}
 
 		/// <summary>Generate game reports for a single day and write them to disk, but only if necessary.</summary>
-		static void ExportDay(Holder holder, string path, DateTime day)
+		private static void ExportDay(string path, Holder holder, DateTime day)
 		{
 			League league = holder.League;
 			string fileName = Path.Combine(path, holder.Key, "games" + day.ToString("yyyyMMdd", CultureInfo.InvariantCulture) +
@@ -854,7 +859,7 @@ xhrScoreboard.send();
 						gameTitle = game.Title;
 					}
 
-					Reports.LoadGameEvents(path, holder.League, game);
+					Reports.EnsureEvents(path, holder.League, game);
 					bool thisDetailed = game.ServerGame != null && game.ServerGame.Events.Any() && !game.ServerGame.InProgress;
 
 					reports.Add(new ZoomHtmlInclusion("<a name=\"game" + game.Time.ToString("HHmm", CultureInfo.InvariantCulture) + "\">" +
@@ -921,18 +926,6 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 					using (StreamWriter sw = File.CreateText(fileName))
 						sw.Write(reports.ToOutput(holder.ReportTemplates.OutputFormat));
 			}
-		}
-
-		static string OneWorm(Game game, string path, Holder holder)
-		{
-			if (game.ServerGame != null && game.ServerGame.Events.Any() && !game.ServerGame.InProgress)
-			{
-				string imageName = "score" + game.Time.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture) + ".png";
-				string imagePath = Path.Combine(path, holder.Key, imageName);
-				if (game.Reported && File.Exists(imagePath))
-					return "<img src=\"" + holder.Key + "/" + imageName + "\"/>";
-			}
-			return null;
 		}
 
 		/// <summary>Write out fixtures for the selected leagues.</summary>
