@@ -308,6 +308,7 @@ namespace Torn
 
 			// Build the "past" report showing which teams made the cut: one row per team, one game per column.
 			var pastReport = new Zoom.ZoomReport("From", "Rank,Team", "center,left");
+			pastReport.Columns[0].Rotate = true;
 
 			var times = pyramidGames.Select(pg => pg.Game.Time);
 			bool oneDay = times.Any() && times.Min().Date == times.Max().Date;
@@ -422,14 +423,14 @@ namespace Torn
 					if (teamPlay == null)
 						row.Add(new Zoom.ZCell());
 					else
-						row.Add(FillOnePastCell(teamPlay, hasPoints, teamPlay.Priority.ToColor()));
+						row.Add(FillOnePastCell(teamPlay, hasPoints));
 				}
 
-				row.Add(FillOnePastCell(teamPlays.AverageRank(), teamPlays.AverageScore(), teamPlays.AveragePoints(), hasPoints, default, "n1"));
+				row.Add(FillOnePastCell(teamPlays.AverageRank(), teamPlays.AverageScore(), teamPlays.AveragePoints(), hasPoints, default, "0.##"));
 			}
 		}
 
-		ZCell FillOnePastCell(TeamPlay teamPlay, bool hasPoints, Color color)
+		ZCell FillOnePastCell(TeamPlay teamPlay, bool hasPoints)
 		{
 			return FillOnePastCell(teamPlay.Game.Rank(teamPlay.GameTeam), teamPlay.GameTeam.Score, teamPlay.GameTeam.Points, hasPoints, teamPlay.Priority.ToColor());
 		}
@@ -442,9 +443,12 @@ namespace Torn
 
 			if (CompareRank || hasPoints)
 			{
-				string format = CompareRank && hasPoints ? "{0}: {1}; {2}" :
-					CompareRank ? "{0}: {1}" :
-					hasPoints ? "{1}; {2}" : "";
+				string scoreFormat = string.IsNullOrEmpty(numberFormat) ? "{1}" : "{1:" + numberFormat + "}";
+				string pointsFormat = string.IsNullOrEmpty(numberFormat) ? "{2}" : "{2:" + numberFormat + "}";
+
+				string format = CompareRank && hasPoints ? "{0}: " + scoreFormat + "; " + pointsFormat :
+					CompareRank ? "{0}: " + scoreFormat :
+					hasPoints ? scoreFormat + "; " + pointsFormat : "";
 
 				cell.Text = string.Format(format, rank.Ordinate(), score, points);
 			}
