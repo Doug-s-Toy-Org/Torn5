@@ -374,18 +374,15 @@ namespace Zoom
 			return s2.ToString();
 		}
 
-		public Color GetBarColor(Color? rowBackground = null, Color? barNone = null)
+		public Color GetBarColor()
 		{
-			if (BarColor != Color.Empty)
+			if (BarColor != default)
 				return BarColor;
 
-			if (Color != Color.Empty)
-				return ZReportColors.Darken(ZReportColors.AddDark(Color, rowBackground));
+			if (Color != default)
+				return Color.FromArgb(0x60, 0x80, 0x80, 0x80);  // Paint a translucent grey bar over the existing background color.
 
-			if (barNone != null && barNone != Color.Empty)
-				return ZReportColors.AddDark((Color)barNone, rowBackground);
-			
-			return ZReportColors.Darken(Color.White);
+			return default;
 		}
 
 		public override string ToString()
@@ -447,19 +444,12 @@ namespace Zoom
 		public Color BackgroundColor { get; set; }
 		/// <summary>Colour used for background of odd-numbered rows.</summary>
 		public Color OddColor { get; set; }
-		public Color BarColor { get; set; }
-		/// <summary>Colour used for bars if no cell colours are set.</summary>
-		public Color BarNone { get; set; }
 
 		public ZReportColors()
 		{
 			TitleFontColor = Color.White;
-			TitleBackColor = Color.Gray;
-			TextColor = Color.Black;
-			BackgroundColor = Color.White;
-			OddColor = Color.FromArgb(0xEE, 0xFF, 0xFF);
-			BarColor = Color.Empty;
-			BarNone = Color.FromArgb(255, 192, 160);
+			TitleBackColor = Color.FromArgb(0xC0, 0x40, 0x40, 0x40);
+			OddColor = Color.FromArgb(0x10, 0x00, 0xFF, 0xFF);
 		}
 
 		public Color GetBackColor(ZRow row, bool odd, Color color = default)
@@ -484,22 +474,6 @@ namespace Zoom
 
 	public abstract class ZoomReportBase
 	{
-		/// <summary>Title for the whole report.</summary>
-		public string Title { get; set; }
-		/// <summary>If the report title contains text which links to another report, put the URL of that report here.</summary>
-		public virtual string TitleHyper { get; set; }
-		internal ZReportColors colors;
-		public ZReportColors Colors
-		{
-			get
-			{
-				if (colors == null)
-					colors = new ZReportColors();
-				return colors;
-			}
-			set { colors = value;  } 
-		}
-
 		/// <summary>Export to character-separated value.</summary>
 		public abstract string ToCsv(char separator);
 		/// <summary>Export to an HTML table.</summary>
@@ -508,7 +482,6 @@ namespace Zoom
 		/// <param name="pure">True if this is standalone SVG that will not be embedded in an HTML file, and therefore cannot contain xlinks or javascript text resizing.</param>
 		public abstract string ToSvg(bool pure = false);
 		public abstract void ToSvg(StringBuilder sb, double? aspectRatio = null, bool pure = false);
-		public abstract IEnumerable<Color> BarCellColors();
 	}
 
 	public static class ZoomUtility
@@ -536,6 +509,22 @@ namespace Zoom
 
 	public class ZoomReport: ZoomReportBase
 	{
+		/// <summary>Title for the whole report.</summary>
+		public string Title { get; set; }
+		/// <summary>If the report title contains text which links to another report, put the URL of that report here.</summary>
+		public virtual string TitleHyper { get; set; }
+		internal ZReportColors colors = new ZReportColors();
+		public ZReportColors Colors
+		{
+			get
+			{
+				if (colors == null)
+					colors = new ZReportColors();
+				return colors;
+			}
+			set { colors = value; }
+		}
+
 		public List<ZColumn> Columns { get; private set; }
 		public List<ZRow> Rows { get; set; }
 		public string Description { get; set; }
@@ -825,12 +814,6 @@ namespace Zoom
 			return (titleHeight, (int)Math.Round(headingsHeight) + 1);  // The + 1 is for the one-pixel space between the column headings and the first data row of the table.
 		}
 
-		public override IEnumerable<Color> BarCellColors()
-		{
-			return Rows.SelectMany(row => row.Where(cell => cell.ChartCell != null)
-			                   .Select(cell => cell.GetBarColor())).Distinct();
-		}
-
 		SvgDocument document;
 		bool _pure;  // true if this is to be rendered to a bitmap by SvgDocument.Draw(), as opposed to saving out for rendering by a web browser.
 
@@ -922,13 +905,14 @@ namespace Zoom
 
 		private string ColorToTColor(Color color)
 		{
-			if(color.IsEmpty)
-            {
+			if (color.IsEmpty)
 				return "clNone";
-            }
-			var r = color.R.ToString("X2");
-			var g = color.G.ToString("X2");
-			var b = color.B.ToString("X2");
+
+			// If color has an alpha of less than 255, mix it with white.
+			double a = color.A / 255.0;
+			string r = ((int)(color.R * a + 255 * (1 - a))).ToString("X2");
+			string g = ((int)(color.G * a + 255 * (1 - a))).ToString("X2");
+			string b = ((int)(color.B * a + 255 * (1 - a))).ToString("X2");
 
 			return "$02" + b + g + r;
 		}
@@ -975,13 +959,8 @@ namespace Zoom
 			foreach (ZColumn header in Columns)
 			{
 				string heading = header.GroupHeading ?? "";
-				if(heading != "")
-                {
-					if(!groupHeadings.Contains(heading))
-                    {
+				if(heading != "" && !groupHeadings.Contains(heading))
 						groupHeadings.Add(heading);
-                    }
-                }
 			}
 
 
@@ -990,9 +969,7 @@ namespace Zoom
 				string align = header.Alignment.ToString().ToLower();
 
 				if(align != "left" && align != "right" && align != "center")
-                {
 					align = "right";
-                }
 
 				s.Append(align);
 				if (Columns.IndexOf(header) != Columns.Count() - 1)
@@ -1037,6 +1014,23 @@ namespace Zoom
 			return s.ToString();
 		}
 
+		void AppendRbgaColor(StringBuilder s, Color c)
+		{
+			s.AppendFormat("rgba({0}, {1}, {2}, {3:0.###})", c.R, c.G, c.B, c.A / 255.0);
+		}
+
+		void AppendHexColor(StringBuilder s, Color c)
+		{
+				s.AppendFormat("{0:X2}{1:X2}{2:X2}{3:X2}", c.A, c.R, c.G, c.B);
+		}
+
+		void OpenTrTag(StringBuilder s)
+		{
+			s.Append("\t<tr style=\"background-color: ");
+			AppendRbgaColor(s, Colors.TitleBackColor);
+			s.Append("\">\n");
+		}
+
 		/// <summary>Writes an HTML fragment -- it does not include <head> or <body> tags etc.</summary>
 		public override string ToHtml()
 		{
@@ -1056,14 +1050,15 @@ namespace Zoom
 
 			// Title row
 			if (!string.IsNullOrEmpty(Title))
-				AppendStrings(s, "    <tr bgcolor=\"", ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n",
-				              "       <th colspan=\"", columns.Count.ToString(CultureInfo.InvariantCulture), "\"><H2>", WebUtility.HtmlEncode(Title), "</H2></th>\n",
-				              "    </tr>\n");
+			{
+				OpenTrTag(s);
+				AppendStrings(s, "\t  <th colspan=\"", columns.Count.ToString(CultureInfo.InvariantCulture), "\"><H2>", WebUtility.HtmlEncode(Title), "</H2></th>\n\t</tr>\n");
+			}
 
 			// Group Headings row
 			if (hasgroupheadings)
 			{
-				AppendStrings(s, "    <tr bgcolor=\"", ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n");
+				OpenTrTag(s);
 
 				int start = 0;
 				while (start < columns.Count)
@@ -1073,48 +1068,53 @@ namespace Zoom
 						end++;
 
 					if (start == end)
-						AppendStrings(s, "      <th align=\"center\">", 
-						              WebUtility.HtmlEncode(columns[start].GroupHeading), "</th>\n");
+						AppendStrings(s, "\t  <th align=\"center\">", 
+							WebUtility.HtmlEncode(columns[start].GroupHeading), "</th>\n");
 					else
-						AppendStrings(s, "      <th align=\"center\" colspan=\"" + (end - start + 1).ToString(CultureInfo.InvariantCulture) + "\">",
-						              WebUtility.HtmlEncode(columns[start].GroupHeading), "</th>\n");
+						AppendStrings(s, "\t  <th align=\"center\" colspan=\"" + (end - start + 1).ToString(CultureInfo.InvariantCulture) + "\">",
+							WebUtility.HtmlEncode(columns[start].GroupHeading), "</th>\n");
 
 					start = end + 1;
 				}
 
-				s.Append("    </tr>\n");
+				s.Append("\t</tr>\n");
 			}
 
 			// Headings row
-			AppendStrings(s, "    <tr bgcolor=\"", ColorTranslator.ToHtml(Colors.TitleBackColor), "\">\n");
+			OpenTrTag(s);
 
 			foreach (ZColumn col in Columns)
 				if (string.IsNullOrEmpty(col.Hyper))
-					AppendStrings(s, "      <th", col.Alignment.ToHtml(), ">", WebUtility.HtmlEncode(col.Text), "</th>\n");
+					AppendStrings(s, "\t  <th", col.Alignment.ToHtml(), ">", WebUtility.HtmlEncode(col.Text), "</th>\n");
 				else
-					AppendStrings(s, "      <th", col.Alignment.ToHtml(), "><a href=\"", col.Hyper, "\">", WebUtility.HtmlEncode(col.Text), "</a></th>\n");
+					AppendStrings(s, "\t  <th", col.Alignment.ToHtml(), "><a href=\"", col.Hyper, "\">", WebUtility.HtmlEncode(col.Text), "</a></th>\n");
 
-			s.Append("    </tr>\n");
+			s.Append("\t</tr>\n");
 			s.Append("  </thead>\n");
 			s.Append("  <tbody>\n");
 
 			double max = 0;
-			if (Bars)
-//				max = this.Rows.SelectMany(row => row.Where(cell => cell.Number != null && (cell.Bar || cell.BarCell != null))
-//				                           .Select(cell => Math.Abs((double)cell.Number))).DefaultIfEmpty(0).Max();
-				foreach (var row in Rows)
-					foreach (var cell in row)
-						if (cell.Number != null && (cell.ChartType != ChartType.None || cell.ChartCell != null))
-							max = Math.Max(max, Math.Abs((double)cell.Number));
-			if (max == 0)
-				max = 1;
+			if (Bars && !MaxChartByRow && !MaxChartByColumn)
+				max = this.Rows.SelectMany(row => row.Where(cell => cell.Number is double d && !double.IsInfinity(d) && (cell.ChartType != ChartType.None || cell.ChartCell != null))
+					.Select(cell => Math.Abs((double)cell.Number))).DefaultIfEmpty(1).Max();
 
 			bool odd = true;
 
 			foreach (ZRow row in Rows)
 			{
-		        // Write the <tr> tag that begins the row.
-				AppendStrings(s, "    <tr style=\"background-color: ", ColorTranslator.ToHtml(Colors.GetBackColor(row, odd)), "\"");
+				if (MaxChartByRow)
+					max = row.Where(cell => cell.Number is double d && !double.IsInfinity(d) && (cell.ChartType != ChartType.None || cell.ChartCell != null))
+						.Select(cell => Math.Abs((double)cell.Number)).DefaultIfEmpty(1).Max();
+
+				// Write the <tr> tag that begins the row.
+				if (Colors.GetBackColor(row, odd) == default)
+					s.Append("\t<tr");
+				else
+				{
+					s.Append("\t<tr style=\"background-color: ");
+					AppendRbgaColor(s, Colors.GetBackColor(row, odd));
+					s.Append("\"");
+				}
 
 				if (!string.IsNullOrEmpty(row.CssClass))
 					AppendStrings(s, " class=\"", row.CssClass, "\"");
@@ -1132,22 +1132,40 @@ namespace Zoom
 					else
 						cellColor = " style=\"background-color: " + ColorTranslator.ToHtml(Colors.GetBackColor(row, odd, row[col].Color)) + '"';
 
-					if (Bars && /*!oneBar &&*/ row[col].Number != null && (row[col].ChartType != ChartType.None || row[col].ChartCell == row[col]))
+					bool hasChart = Bars && row[col].Number is double && (row[col].ChartType != ChartType.None || row[col].ChartCell == row[col]);
+					if (hasChart)
 					{
-						// find the max value to scale the bar against
-//						thisbar = MaxBarByColumn ? FMaxBars[col] :
-//								  MaxBarByRow    ? FMaxBars[j] : FMaxBar;
-						
-						var barColor = row[col].GetBarColor(Colors.GetBackColor(row, odd), Colors.BarNone);
+						var barColor = row[col].GetBarColor();
 
-						AppendStrings(s, "      <td class=\"barcontainer\"", cellColor, ">\n");
-						s.AppendFormat("        <div class=\"bar{0:X2}{1:X2}{2:X2}\" style=\"width: {3}%\" />\n", 
-						               barColor.R, barColor.G, barColor.B, (int)((double)(row[col].Number) * 100 / (double)max));
-						AppendStrings(s, "        <div", columns[col].Alignment.ToHtml(), " class=\"bartext\">");
+						s.Append("\t  <td class=\"cell");
+						AppendHexColor(s, row[col].Color);
+						s.Append("\">\n");
+
+						if (MaxChartByColumn)
+							max = this.Rows.Where(ro => ro.Valid(col) && ro[col].Number is double d && !double.IsInfinity(d) && (ro[col].ChartType != ChartType.None || ro[col].ChartCell != null))
+								.Select(ro => Math.Abs((double)ro[col].Number)).DefaultIfEmpty(1).Max();
+
+						int barWidth = double.IsInfinity((double)row[col].Number) ? 100 : (int)(row[col].Number / max * 100);
+						if (barWidth > 0)
+						{
+							s.Append("\t    <div class=\"bar");
+							AppendHexColor(s, barColor);
+							s.AppendFormat("\" style=\"width: {0}%\"></div>\n", barWidth);
+						}
+
+						AppendStrings(s, "\t    <div", columns[col].Alignment.ToHtml(), " class=\"bartext\">");
 					}
 					else
 					{
-						AppendStrings(s, "      <td", columns[col].Alignment.ToHtml(), cellColor);
+						AppendStrings(s, "\t  <td", columns[col].Alignment.ToHtml());
+
+						if (row[col].Color != default)
+						{
+							s.Append(" style=\"background-color: ");
+							AppendRbgaColor(s, row[col].Color);
+							s.Append("\"");
+						}
+
 						if (!string.IsNullOrEmpty(row[col].CssClass))
 							AppendStrings(s, " class=\"", row[col].CssClass, "\"");
 						s.Append(">");
@@ -1160,12 +1178,12 @@ namespace Zoom
 					else
 						AppendStrings(s, "<a href=\"", row[col].Hyper, "\">", text, "</a>");
 
-					if (Bars && /*!oneBar &&*/ row[col].Number != null && (row[col].ChartType != ChartType.None || row[col].ChartCell == row[col]))
+					if (hasChart)
 						s.Append("</div>");
 
 					s.Append("</td>\n");
 				}
-				s.Append("    </tr>\n");
+				s.Append("\t</tr>\n");
 
 				odd = !odd;
 			}
@@ -1204,16 +1222,40 @@ namespace Zoom
 			}
 		}
 
-		// Write a <rect> tag, and a <text> tag on top of it.
+		/// Write a <rect> tag, and a <text> tag on top of it.
 		void SvgRectText(StringBuilder s, int indent, double x, double y, double width, double height, Color fontColor, Color backColor, ZAlignment alignment, string text)
 		{
 			SvgRect(s, indent, x, y, width, height, backColor);
 			SvgText(s, indent, (int)x, (int)y, (int)width, (int)(height * 0.75), fontColor, alignment, text, null, null);
 		}
 
-		void SvgRect(StringBuilder s, int indent, double x, double y, double width, double height, Color fill, Color outline = default)
+		/// <summary>Optionally writes style="..." and class="...".</summary>
+		void Style(StringBuilder s, Color fill, Color outline = default, string cssClass = default)
 		{
-			if ((fill == default && outline == default) || width == 0 || height == 0)
+			if (fill != default || outline != default)
+			{
+				s.Append("style=\"");
+				if (fill != default && fill.A < 255)
+					s.AppendFormat("fill-opacity:{0:0.###}; ", fill.A / 255.0);
+
+				if (fill == default)
+					AppendStrings(s, "fill:none;");
+				else
+					AppendStrings(s, "fill:", ColorTranslator.ToHtml(fill), ";");
+
+				if (outline != default)
+					AppendStrings(s, " stroke:", ColorTranslator.ToHtml(outline), ";");
+
+				s.Append("\"");
+			}
+
+			if (!string.IsNullOrEmpty(cssClass))
+				AppendStrings(s, " class=\"", cssClass, "\"");
+		}
+
+		void SvgRect(StringBuilder s, int indent, double x, double y, double width, double height, Color fill, Color outline = default, string cssClass = default)
+		{
+			if ((fill == default && outline == default && cssClass == default) || width == 0 || height == 0)
 				return;
 
 			s.Append('\t', indent);
@@ -1221,49 +1263,36 @@ namespace Zoom
 			if (width > Right - x - 1)  // If we're at the extreme right edge of the report,
 				width = Right - x - 1;  // tuck in so we don't draw off the edge.
 
+			string format = "<rect x=\"{0:0.#}\" y=\"{1:0.#}\" width=\"{2:0.#}\" height=\"{3:0.#}\" ";
+
 			if (outline == default)
 			{
-				int len = s.Length;
 				if (width > 0)
-					s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F0}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x, y, width, height);
+					s.AppendFormat(format, x, y, width, height);
 				else
-					s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F0}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x + width, y, -width, height);
-
-				if (fill.A < 255)
-					s.AppendFormat("fill-opacity:{0};", fill.A / 256.0);
-
-				s.Replace(".0", "", len, s.Length - len);
-				s.Append("fill:");
-				s.Append(ColorTranslator.ToHtml(fill));
+					s.AppendFormat(format, x + width, y, -width, height);
 			}
 			else
-			{
-				int len = s.Length;
-				s.AppendFormat("<rect x=\"{0:F1}\" y=\"{1:F1}\" width=\"{2:F1}\" height=\"{3:F0}\" style=\"", x - 0.5, y - 0.5, width + 1, height + 1);
-				s.Replace(".0", "", len, s.Length - len);
+				s.AppendFormat(format, x - 0.5, y - 0.5, width + 1, height + 1);
 
-				if (fill == default)
-					s.Append("fill-opacity:0");
-				else
-				{
-					s.Append("fill:");
-					s.Append(ColorTranslator.ToHtml(fill));
-				}
+			Style(s, fill, outline, cssClass);
 
-				s.Append(";stroke:");
-				s.Append(ColorTranslator.ToHtml(outline));
-			}
-
-			s.Append("\" />\n");
+			s.Append(" />\n");
 		}
 
 		/// <summary>Like SvgRect() but with 2 decimal places of precision for x,y,width,height instead of 1.</summary>
 		void SvgRect2(StringBuilder s, int indent, double x, double y, double width, double height, Color fillColor)
 		{
 			s.Append('\t', indent);
-			s.AppendFormat("<rect x=\"{0:F2}\" y=\"{1:F2}\" width=\"{2:F2}\" height=\"{3:F2}\" style=\"fill:", x, y, width, height);
-			s.Append(ColorTranslator.ToHtml(fillColor));
-			s.Append("\" />\n");
+			s.AppendFormat("<rect x=\"{0:0.##}\" y=\"{1:0.##}\" width=\"{2:0.##}\" height=\"{3:0.##}\" ", x, y, width, height);
+
+			Style(s, fillColor, default, fillColor == default ? "bar" : default);
+			//if (fillColor == default)
+			//	AppendStrings(s, " class=\"bar\"");
+			//else
+			//	AppendStrings(s, " style=\"fill:", ColorTranslator.ToHtml(fillColor), "\"");
+
+			s.Append("/>\n");
 		}
 
 		void SvgBeginText(StringBuilder s, int indent, int x, int y, int width, double fontSize, Color fontColor, ZAlignment alignment, string cssClass, string hyper, bool fillWidth)
@@ -1284,7 +1313,7 @@ namespace Zoom
 
 			switch (alignment)
 			{
-				case ZAlignment.Left: 
+				case ZAlignment.Left:
 					s.AppendFormat("x=\"{0}\"", x + 1);
 				break;
 				case ZAlignment.Center:
@@ -1299,10 +1328,10 @@ namespace Zoom
 			if (fontSize != 17)
 				s.AppendFormat(" font-size=\"{0:G2}\"", fontSize);
 
-			if (!string.IsNullOrEmpty(hyper) || fontColor != Color.Black)
+			if (fontColor != default)
 			{
 				s.Append(" fill=\"");
-				s.Append(!string.IsNullOrEmpty(hyper) && fontColor == Color.Black ? "Navy" : ColorTranslator.ToHtml(fontColor));
+				s.Append(ColorTranslator.ToHtml(fontColor));
 				s.Append('\"');
 			}
 
@@ -1353,14 +1382,12 @@ namespace Zoom
 			{
 				int linesToUse = (int)Math.Ceiling(oversizeRatio);  // Number of lines we would like to break the text into, to avoid having to shrink the text.
 				int linesAvailable = (rectHeight - textHeight / 3) / textHeight;
-				float lineHeight = textHeight;
 
 				if (Math.Ceiling(oversizeRatio) > linesAvailable) // The rect we're fitting into is not tall enough to directly fit the number of lines we want to break the text into.
 				{
 					var shrinkRatio = Math.Sqrt(oversizeRatio);
 					int linestoUseByRectHeight = (int)Math.Max(shrinkRatio * rectHeight / textHeight, 1);
 					linesToUse = Math.Max(Math.Max(Math.Min((int)shrinkRatio, linestoUseByRectHeight), rectHeight / textHeight), 1);
-					lineHeight = Math.Min(textHeight, (float)rectHeight / linesToUse);
 				}
 
 				(string[] lines, _) = BreakText(text, linesToUse);
@@ -1480,7 +1507,7 @@ namespace Zoom
 			if (fillColor != Color.Empty)
 			{
 				s.Append('\t', indent);
-				s.AppendFormat("<circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" style=\"fill:", x, y, radius);
+				s.AppendFormat("<circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" fill=\"", x, y, radius);
 				s.Append(ColorTranslator.ToHtml(fillColor));
 				s.Append("\" />\n");
 			}
@@ -1499,9 +1526,11 @@ namespace Zoom
 				if (Math.Round(y0, 1) != Math.Round(y1, 1) || Math.Round(y1, 1) != Math.Round(y2, 1))  // Only write the point if the y before or the y after is different -- otherwise we have a very expensive way of writing a horizontal line.
 					s.AppendFormat("{0:F1},{1:F1} ", points[i].Item1, y1);
 			}
-			s.Append("\" style=\"fill:");
-			s.Append(ColorTranslator.ToHtml(fillColor));
-			s.Append("\" />\n");
+			s.Append("\" ");
+
+			Style(s, fillColor, default, fillColor == default ? "bar" : default);
+
+			s.Append("/>\n");
 		}
 
 		enum TopBottomType { Left, Right, Both }; // Does the top of this arrow have an end from the left? An end to the right? One of each? What about the bottom of the arrow?
@@ -1791,7 +1820,7 @@ namespace Zoom
 			height += titleHeight - 44;
 			int zoomButtonY = (int)((lines.Length == 1 ? RowHeight : lineHeight) * 3 / 2 + 1);
 
-			s.AppendFormat("<svg viewBox=\"0 0 {0} {1}\" width=\"{0}\" align=\"center\" font-size=\"17\">\n", width, height);
+			s.AppendFormat("<svg viewBox=\"0 0 {0} {1}\" width=\"{0}\" align=\"center\" font-size=\"17\" class=\"ld\">\n", width, height);
 
 			SvgRect(s, 1, 1, 1, width - 2, titleHeight, Colors.TitleBackColor);  // Paint title "row" background.
 
@@ -1855,7 +1884,7 @@ namespace Zoom
 				var column = Columns[col];
 				int headSpace = string.IsNullOrWhiteSpace(column.GroupHeading) ? 0 : RowHeight + 1;  // If this column has a group heading, its top is lower.
 				Color backColor = column.Color == default ? Colors.TitleBackColor : column.Color;
-				Color textColor = column.Color == default ? Colors.TitleFontColor : backColor.GetBrightness() < 0.63 ? Color.White : Color.Black;
+				Color textColor = column.Color == default ? Colors.TitleFontColor : column.Color;
 				bool nextRotated = Columns.Valid(col + 1) && Columns[col + 1].Rotate;
 
 				// Paint column heading background.
@@ -1872,25 +1901,25 @@ namespace Zoom
 					if (column.Rotate && nextRotated)  // This column heading and next are both rotated: left and right sides are at 46 degrees.
 					{
 						if (right - height < 1)  // Top two points of a parallelogram would be off left edge of report.
-							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left; go down and right at 45 degrees to right edge of column; left by widths[col]; up and right at 45 degrees to left edge of report; then let it close itself.
+							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\"";  // Paint a trapezoid. Start at top left; go down and right at 45 degrees to right edge of column; left by widths[col]; up and right at 45 degrees to left edge of report; then let it close itself.
 						else if (x - height < 1)  // Top left point of a parallelogram would be off left edge of report.
-							format = "\t<polygon points=\"1,{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" style=\"fill:";  // Paint a pentagon. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+							format = "\t<polygon points=\"1,{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\"";  // Paint a pentagon. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
 						else
-							format = "\t<polygon points=\"{0:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" style=\"fill:";  // Paint a parallelogram. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+							format = "\t<polygon points=\"{0:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\"";  // Paint a parallelogram. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
 					}
 					else if (column.Rotate && !nextRotated)  // This column heading is rotated but next column heading is flat: left at 45 degrees, right vertical.
 					{
 						if (x - height < 1)  // Top left point would be off left edge of report.
-							format = "\t<polygon points=\"1,{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" style=\"fill:";  // Paint a pentagon. Start at top left; go right; down by headingsHeight; left by widths[col]; up and right at 45 degrees to left edge of report; close.
+							format = "\t<polygon points=\"1,{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\"";  // Paint a pentagon. Start at top left; go right; down by headingsHeight; left by widths[col]; up and right at 45 degrees to left edge of report; close.
 						else
-							format = "\t<polygon points=\"{0:F0},{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left, then go right, down by headingsHeight, left by widths[col], then let it close itself.
+							format = "\t<polygon points=\"{0:F0},{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\"";  // Paint a trapezoid. Start at top left, then go right, down by headingsHeight, left by widths[col], then let it close itself.
 					}
 					else  // This column heading is flat but next column heading is rotated: left vertical, right at 45 degrees.
 					{
 						if (right - height < 1)  // We are constrained by next column's heading above us.
-							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} 1,{5:F0}\" style=\"fill:";  // Paint a triangle. Start at upper left; go down and right at 45 degrees to bottom; then left; close.
+							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} 1,{5:F0}\"";  // Paint a triangle. Start at upper left; go down and right at 45 degrees to bottom; then left; close.
 						else
-							format = "\t<polygon points=\"{3:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" style=\"fill:";  // Paint a trapezoid. Start at top left; go right; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+							format = "\t<polygon points=\"{3:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\"";  // Paint a trapezoid. Start at top left; go right; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
 					}
 
 					// x positions:        0: top left; 1: top right;   2: bottom right; 3: bottom left;
@@ -1898,8 +1927,9 @@ namespace Zoom
 					// y positions: 4: header top; 5: bottom; 6 & 7: heights along the left edge which represent how much is truncated off the left edge.
 									top,           bottom,    bottom - x + 1, bottom - right + 1);
 
-					s.Append(ColorTranslator.ToHtml(backColor));
-					s.Append("\" />\n");
+					Style(s, backColor);
+
+					s.Append("/>\n");
 				}
 
 				// Paint text.
@@ -1907,10 +1937,13 @@ namespace Zoom
 				{
 					s.Append("\t<text alignment-baseline=\"middle\" ");
 
-					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
+					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3}\"",
 									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height, Math.Min((RowHeight * (_pure ? 0.681 : 0.75)), widths[col]));
-					s.Append(ColorTranslator.ToHtml(textColor));
-					s.Append("\">");
+
+					if (column.Color == default)
+						AppendStrings(s, " fill=\"", ColorTranslator.ToHtml(Colors.TitleFontColor), "\"");
+
+					s.Append(">");
 
 					s.Append(WebUtility.HtmlEncode(column.Text));
 					s.Append("</text>\n");
@@ -1931,10 +1964,13 @@ namespace Zoom
 					float previousOffset = text45Offset;
 					text45Offset = widths[col] / 2 - (nextRotated ? RowHeight / 2F : 0);
 
-					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
+					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3}\"",
 								   x + Math.Min(previousOffset, text45Offset), bottom - 3, height * 1.41 - RowHeight * 3 / 4, RowHeight * 3 / 4);
-					s.Append(ColorTranslator.ToHtml(textColor));
-					s.Append("\">");
+
+					if (column.Color == default)
+						AppendStrings(s, " fill=\"", ColorTranslator.ToHtml(Colors.TitleFontColor), "\"");
+
+					s.Append(">");
 
 					s.Append(WebUtility.HtmlEncode(column.Text));
 					s.Append("</text>");
@@ -1946,7 +1982,7 @@ namespace Zoom
 				else  // Paint column heading text flat.
 				{
 					SvgMultilineText(s, 1, (int)x, top + headSpace, (int)widths[col] - (nextRotated && !hasGroupHeadings ? RowHeight : 0), height - headSpace, TextHeight,
-						textColor, column.Alignment, column.Text, null, column.Hyper);
+						column.Color == default ? Colors.TitleFontColor : default, column.Alignment, column.Text, null, column.Hyper);
 
 					text45Offset = float.MaxValue;
 				}
@@ -1988,6 +2024,9 @@ namespace Zoom
 
 		void SvgChart(StringBuilder s, int top, int height, double left, double width, double chartMin, double chartMax, int maxPoints, Color backColor, Color chartColor, ZCell cell, ZRow row, int column, bool lastRow)
 		{
+			if (_pure && chartColor == default)
+				chartColor = Color.FromArgb(0xFF, 0xC0, 0xA0);
+
 			if (cell.Color != Color.Empty || cell.Border != Color.Empty)
 				SvgRect(s, 1, left, top, width, height, backColor, cell.Border);  // Paint chart cell(s) background.
 
@@ -1997,7 +2036,7 @@ namespace Zoom
 				if (CalculateFill != null)
 					CalculateFill?.Invoke(row, column, chartMin, chartMax, ref fill);
 				if (fill != null)
-					SvgRect(s, 1, left + Scale(0, width, chartMin, chartMax), top, (double)fill * width, height, chartColor);  // Paint bar.
+					SvgRect(s, 1, left + Scale(0, width, chartMin, chartMax), top, (double)fill * width, height, chartColor, default, chartColor == default ? "bar" : default);  // Paint bar.
 			}
 
 			int count = 0;
@@ -2020,10 +2059,10 @@ namespace Zoom
 				int percentile98 = (int)(count * 0.98) - 1;
 
 				SvgRect(s, 1, left + Scale(cell.Data[percentile2], width, chartMin, chartMax), top + height * 0.4,
-				        ScaleWidth(cell.Data[percentile98] - cell.Data[percentile2], width, chartMin, chartMax), height * 0.1, chartColor);  // Whisker from 2nd percentile to 98th percentile -- contains all data within 2 std deviations.
+				        ScaleWidth(cell.Data[percentile98] - cell.Data[percentile2], width, chartMin, chartMax), height * 0.1, chartColor, default, chartColor == default ? "bar" : default);  // Whisker from 2nd percentile to 98th percentile -- contains all data within 2 std deviations.
 
 				SvgRect(s, 1, left + Scale(firstQuartile, width, chartMin, chartMax), top + height * 0.1,
-				        ScaleWidth(thirdQuartile - firstQuartile, width, chartMin, chartMax), height * 0.7, chartColor);  // Second quartile / third quartile box.
+				        ScaleWidth(thirdQuartile - firstQuartile, width, chartMin, chartMax), height * 0.7, chartColor, default, chartColor == default ? "bar" : default);  // Second quartile / third quartile box.
 
 				SvgRect(s, 1, left + Scale(median, width, chartMin, chartMax) - 0.5, top + height * 0.1, 1, height * 0.7, backColor);  // Median white stripe.
 				
@@ -2067,7 +2106,7 @@ namespace Zoom
 				for (int i = 0; i < heights.Count; i++)
 					if (heights[i] > 0)
 						SvgRect(s, 1, left + width * i / bins, top + height - height * heights[i] / heights.Max(), 
-						        width / bins - 0.1, height * heights[i] / heights.Max(), chartColor);
+						        width / bins - 0.1, height * heights[i] / heights.Max(), chartColor, default, chartColor == default ? "bar" : default);
 
 				SvgRect2(s, 1, left + Scale(cell.Number ?? 0, width, chartMin, chartMax) - 0.05, top, 0.1, height, Color.Gray);  // Paint mean stripe.
 
@@ -2115,7 +2154,7 @@ namespace Zoom
 			}
 
 			if (cell.ChartType.HasFlag(ChartType.Rug))  // Rug
-		    {
+		{
 				int markNumber = 0;  // This is going to be 0 for most marks, but where marks coincide or overlap we will increment this to prevent them overpainting.
 				double lastCentre = double.MinValue;
 				double markWidth = Math.Max(Math.Min(width / Math.Max(count * 2, 100.0), height * 0.1), 0.2); // Width of a mark is 1/100th of the row width, or smaller if there's lots of data points, or the mark height; whichever smallest. If less than 0.2, round up to 0.2.
@@ -2133,8 +2172,7 @@ namespace Zoom
 						lastCentre = markCentre;
 					}
 
-					Color markColor = cell.ChartType.HasFlag(ChartType.KernelDensityEstimate) || 
-						(cell.ChartType.HasFlag(ChartType.Bar) && 0 < d && d < cell.Number) ? backColor : chartColor;
+					Color markColor = cell.ChartType.HasFlag(ChartType.KernelDensityEstimate) || cell.ChartType.HasFlag(ChartType.Bar) ? Color.Gray : chartColor;
 					SvgRect2(s, 1, left + markCentre - markWidth / 2, top + height - (markNumber + 1) * markHeight, markWidth, markHeight, markColor);  // Paint mark.
 				}
 			}
@@ -2157,10 +2195,10 @@ namespace Zoom
 			{
 				var minY = Math.Min(0, points2.Min(p => double.IsNaN(p.Y) ? 0 : p.Y));
 				var maxY = Math.Max(1, points2.Max(p => p.Y));
-				var radius = Math.Min(Math.Max(width / maxPoints / 4, 0.1), 2.0);
+				var radius = Math.Min(Math.Max(width / maxPoints / 4, 0.5), 2.0);
 
 				SvgRect2(s, 1, left, top + height - Scale(1, height, minY, maxY) - 0.05, width, 0.1, chartColor); // Paint "full height" stripe. (Points will actually appear above this line because scaling.)
-				SvgRect2(s, 1, left, top + height - Scale(0.5, height, minY, maxY) - 0.05, width, 0.1, chartColor); // Paint mean stripe.
+				SvgRect2(s, 1, left, top + height - Scale(0.5, height, minY, maxY) - 0.1, width, 0.2, chartColor); // Paint mean stripe.
 				SvgRect2(s, 1, left, top + height - Scale(0, height, minY, maxY) - 0.05, width, 0.1, chartColor); // Paint baseline.
 
 				foreach (var point in points2)
@@ -2196,7 +2234,7 @@ namespace Zoom
 				if (sourceCell.Color != Color.Empty || sourceCell.Border != Color.Empty || sourceCell.ChartCell != null)
 					SvgChart(s, top, height, widths.Take(start).Sum() + start + left, widths.Skip(start).Take(end - start + 1).Sum() + end - start,
 					         MaxChartByColumn ? mins[barSource] : mins.Min(), MaxChartByColumn ? maxs[barSource] : maxs.Max(), maxPoints,
-					         Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(rowColor, Colors.BarNone), sourceCell, row, barSource, row == Rows.Last());
+					         Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(), sourceCell, row, barSource, row == Rows.Last());
 
 				start = end + 1;
 			}
@@ -2370,8 +2408,6 @@ namespace Zoom
 		public override string ToSvg(bool pure = false) { return Literal; }
 
 		public override void ToSvg(StringBuilder sb, double? aspectRatio, bool pure = false) { sb.Append(Literal); }
-
-		public override IEnumerable<Color> BarCellColors() { return new List<Color>(); }
 	}
 
 	/// <summary>An output-format-specific separator. In a multi-page printed report, this is a page break. In a CSV, it's some newlines and a "----".</summary>
@@ -2384,8 +2420,6 @@ namespace Zoom
 		public override string ToSvg(bool pure = false) { return "</div>\n<div style=\"display: flex; flex-flow: row wrap; justify-content: space-around;\">\n"; }
 
 		public override void ToSvg(StringBuilder sb, double? aspectRatio, bool pure = false) { sb.Append(ToSvg(pure)); }
-
-		public override IEnumerable<Color> BarCellColors() { return new List<Color>(); }
 	}
 
 	public class ZoomReports: List<ZoomReportBase>
@@ -2407,34 +2441,25 @@ namespace Zoom
 		public new void Add(ZoomReportBase report)
 		{
 			base.Add(report);
-			if (report.colors == null)
-				report.colors = colors;
+			if (report is ZoomReport zr && zr.colors == null)
+				zr.colors = colors;
 		}
 
 		/// <summary>Return a list of colours of bar cells, over all reports.</summary>
-		List<Color> BarCellColors()
+		List<Color> GetColors(Func<ZCell, Color> f)
 		{
 			var result = new List<Color>();
 			foreach (var report in this)
 				if (report is ZoomReport zoomReport)
-				{
-					bool odd = true;
 					foreach (var row in zoomReport.Rows)
-					{
 						foreach (var cell in row)
-							if (!result.Contains(cell.GetBarColor(colors.GetBackColor(row, odd))))
-							    result.Add(cell.GetBarColor(colors.GetBackColor(row, odd)));
-						odd = !odd;
-					}
-				}
-
-			if (!result.Contains(colors.BarNone))
-				result.Add(colors.BarNone);
-			if (!result.Contains(ZReportColors.AddDark(colors.BarNone, colors.OddColor)))
-				result.Add(ZReportColors.AddDark(colors.BarNone, colors.OddColor));
+						{
+							Color c = f(cell);
+							if (!result.Contains(c))
+								result.Add(c);
+						}
 
 			return result;
-//			return this.SelectMany(x => x.BarCellColors()).Distinct().ToList();
 		}
 
 		/// <summary>Export to the specified format.</summary>
@@ -2464,15 +2489,23 @@ namespace Zoom
 			sb.Append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"/><title>");
 			if (!string.IsNullOrEmpty(Title))
 				sb.Append(WebUtility.HtmlEncode(Title));
-			else if (Count > 0)
-				sb.Append(WebUtility.HtmlEncode(this[0].Title));
+			else if (this.Any() && this[0] is ZoomReport zr)
+				sb.Append(WebUtility.HtmlEncode(zr.Title));
 			sb.Append("</title>\n");
 
 			sb.Append("  <style type=\"text/css\">\n");
-			sb.Append("\t.back   { background: #eef; color: black; }\n");
+			sb.Append("\tbody { background: #eef; color: black; }\n");
+			sb.Append("\t.ld { background: white; fill: black; }\n");  // Light/dark mode inside SVG: black text for light mode; white text for dark mode.
+			sb.Append("\t.bar { fill-opacity:0.375; fill: #ff5702; }\n");  // SVG bar of unspecified color: display as orange.
+			sb.Append("\ta:link { fill: navy; }\n");
+			sb.Append("\ta:visited { fill: purple; }\n");
+
 			sb.Append("\t@media (prefers-color-scheme: dark) {\n");
-			sb.Append("\t  .back { background: #112; color: white; }\n");
-			sb.Append("\t  .ld { fill: white; }\n");  // light/dark mode text inside SVG: black for light mode; white for dark mode.
+			sb.Append("\t  body { background: #100; color: white; }\n");
+			sb.Append("\t  .ld { background: black; fill: white; }\n");
+			sb.Append("\t  .bar { fill-opacity:0.625; fill: #ff6600; }\n");
+			sb.Append("\t  a:link { color: #8cf; fill: #8cf; }\n");
+			sb.Append("\t  a:visited { color: #c8f; fill: #c8f; }\n");
 			sb.Append("\t}\n");
 		}
 
@@ -2484,17 +2517,19 @@ namespace Zoom
 			if (Bars)
 			{
 				sb.Append("\t.barcontainer { position:relative }\n");
-				sb.Append("\t.bar { padding-bottom: 18px; background-color: #DFDFDF }\n");
+				sb.Append("\t.bar { padding-bottom: 18px; }\n");
 				sb.Append("\t.bartext { position: absolute; top: 0px; left: 0px; text-align: right; width: 100% }\n");
 
-				foreach (var c in BarCellColors())
-					sb.AppendFormat("\t.bar{0:X2}{1:X2}{2:X2} {{ padding-bottom: 18px; background-color: {3} }}\n", 
-					                c.R, c.G, c.B, ColorTranslator.ToHtml(c));
+				foreach (var c in GetColors(cell => cell.Color))
+					sb.AppendFormat("\t.cell{0:X2}{1:X2}{2:X2}{3:X2} {{ position:relative; background: rgba({1}, {2}, {3}, {4:0.###}) }}\n", c.A, c.R, c.G, c.B, c.A / 255.0);
+
+				sb.Append("\t.bar00000000 { padding-bottom: 18px; background: rgba(255, 87, 2, 0.375) }\n");
+				foreach (var c in GetColors(cell => cell.GetBarColor()).Where(c => c != default))
+					sb.AppendFormat("\t.bar{0:X2}{1:X2}{2:X2}{3:X2} {{ padding-bottom: 18px; background: rgba({1}, {2}, {3}, {4:0.###}) }}\n", c.A, c.R, c.G, c.B, c.A / 255.0);
 			}
 			sb.Append("  </style>\n");
 
-			sb.Append("</head><body class=\"back\">\n");
-			//sb.Append("");  // TODO: cellstyles.ToHtml here?
+			sb.Append("</head><body>\n");
 
 			foreach (ZoomReportBase report in this) {
 				sb.Append(report.ToHtml());
@@ -2588,7 +2623,7 @@ namespace Zoom
 			sb.Append("\tsvg { box-shadow: 0 4px 20px rgba(88,88,88,0.6) }\n");
 			sb.Append("  </style>\n");
 
-			sb.Append("</head><body class=\"back\">\n");
+			sb.Append("</head><body>\n");
 			//sb.Append("");  // TODO: cellstyles.ToHtml here?
 
 			if (Count == 1)

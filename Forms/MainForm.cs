@@ -536,9 +536,11 @@ namespace Torn.UI
 
 		private string ColorToTColor(Color color)
 		{
-			var r = color.R.ToString("X2");
-			var g = color.G.ToString("X2");
-			var b = color.B.ToString("X2");
+			// If color has an alpha of less than 255, mix it with white.
+			double a = color.A / 255.0;
+			string r = (color.R * a + 255 * (1 - a)).ToString("X2");
+			string g = (color.G * a + 255 * (1 - a)).ToString("X2");
+			string b = (color.B * a + 255 * (1 - a)).ToString("X2");
 
 			return "$02" + b + g + r;
 		}

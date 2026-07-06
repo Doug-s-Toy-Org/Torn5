@@ -50,7 +50,19 @@ namespace Torn.Report
 				return "<html><body>No league file loaded.</body></html>";
 
 			StringBuilder sb = new StringBuilder();
-			sb.Append("<html><head><title>Leagues</title></head><body style=\"background-color: #EEF\">\n");
+			sb.Append(@"<html><head><title>Leagues</title>
+  <style type=""text/css"">
+	body   { background: #eef; color: black; }
+	a:link { fill: navy; }
+	a:visited { fill: purple; }
+	@media (prefers-color-scheme: dark) {
+	  body { background: #100; color: white; }
+	  a:link { color: #8cf; fill: #8cf; }
+	  a:visited { color: #c8f; fill: #c8f; }
+	}
+  </style>
+</head><body>
+");
 
 			foreach(Holder item in leagues)
 			{
@@ -877,7 +889,7 @@ xhrScoreboard.send();
 							if (bitmap != null && (bitmap.Height > 1 || !File.Exists(imagePath)))
 								bitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
 						}
-						reports.Add(new ZoomHtmlInclusion("\n<div><p> </p></div><div><p> </p></div>\n<div><img src=\"" + imageName + "\"></div></div>\n"));
+						reports.Add(new ZoomHtmlInclusion("\n<p> &nbsp; &nbsp; </p>\n<div><img src=\"" + imageName + "\"></div></div>\n"));
 						game.Reported = true;
 						anyDetailed = true;
 					}

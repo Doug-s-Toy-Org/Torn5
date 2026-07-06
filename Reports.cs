@@ -766,6 +766,8 @@ namespace Torn.Report
 				MultiColumnOK = true
 			};
 
+			report.Colors.OddColor = default;
+
 			int thisgame = 0;
 			List<Game> games = Games(league, includeSecret, rt);
 			games.Sort();
@@ -1362,8 +1364,6 @@ namespace Torn.Report
 			{
 				MaxChartByColumn = true
 			};
-			report.Colors.TitleBackColor = Color.DarkGray;  // DarkGray is lighter than Gray.
-			report.Colors.TitleFontColor = Color.Black;
 			report.Colors.BackgroundColor = default;
 			report.Colors.OddColor = default;
 
@@ -1542,7 +1542,6 @@ namespace Torn.Report
 					if (game.ServerGame?.Events != null && game.ServerGame.Events.Any())
 					{
 						var text = new StringBuilder();
-						var html = new StringBuilder();
 						var svg = new StringBuilder();
 						var startTime = game.ServerGame.Events.FirstOrDefault().Time;
 						int minutes = 0;  // How many whole minutes into the game are we?
@@ -1554,39 +1553,39 @@ namespace Torn.Report
 								int now = (int)Math.Truncate(eevent.Time.Subtract(startTime).TotalMinutes);
 								if (now - minutes > 1)
 								{
-									ColourSymbol(text, html, svg, ref currentColour, Colour.None, new string('\u00B7', now - minutes));  // Add one dot for each whole minute of the game.
+									ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', now - minutes));  // Add one dot for each whole minute of the game.
 									minutes = now;
 								}
 
 								Colour otherTeam = (Colour)(eevent.OtherTeam + 1);
 								switch (eevent.Event_Type)
 								{
-									case 28: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f7e8"); break;  // warning: yellow square.
-									case 29: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f7e5"); break;  // terminated: red square.
-									case 30: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u25cb"); break;  // hit base: open circle
-									case 31: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2b24"); break;  // destroyed base: filled circle.
-									case 32: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\U0001f480"); break;  // eliminated: skull
-									case 33: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
-									case 34: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
-									case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // player tagged target
-									case 60: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\U0001fae2"); break;  // score denial points on ally: shocked face.
+									case 28: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e8"); break;  // warning: yellow square.
+									case 29: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e5"); break;  // terminated: red square.
+									case 30: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u25cb"); break;  // hit base: open circle
+									case 31: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2b24"); break;  // destroyed base: filled circle.
+									case 32: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001f480"); break;  // eliminated: skull
+									case 33: ColourSymbol(text, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
+									case 34: ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
+									case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46: ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;  // player tagged target
+									case 60: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001fae2"); break;  // score denial points on ally: shocked face.
 									case 61: case 1401: case 1402:  // score denial points: circle with slash, circle with cross
 										if (eevent.ShotsDenied > 1)
-											ColourSymbol(text, html, svg, ref currentColour, otherTeam, new string('\u29bb', eevent.ShotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
-										if (eevent.ShotsDenied == 0 || eevent.ShotsDenied % 2 == 1) ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
+											ColourSymbol(text, svg, ref currentColour, otherTeam, new string('\u29bb', eevent.ShotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
+										if (eevent.ShotsDenied == 0 || eevent.ShotsDenied % 2 == 1) ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
 										break;
-									case 62: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f620"); break;  // lose points for being denied by ally: angry face
-									case 63: case 1403: case 1404: ColourSymbol(text, html, svg, ref currentColour, Colour.None, eevent.ShotsDenied < 2 ? "\U0001f61e" : "\U0001f620"); break;  // lose points for being denied: sad face, angry face
+									case 62: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f620"); break;  // lose points for being denied by ally: angry face
+									case 63: case 1403: case 1404: ColourSymbol(text, svg, ref currentColour, Colour.None, eevent.ShotsDenied < 2 ? "\U0001f61e" : "\U0001f620"); break;  // lose points for being denied: sad face, angry face
 								}
 							}
 						}
-						ColourSymbol(text, html, svg, ref currentColour, Colour.None, new string('\u00B7', (int)Math.Truncate(game.ServerGame.Events.LastOrDefault().Time.Subtract(startTime).TotalMinutes) - minutes) + ".");  // Add one dot for each whole minute of the game.
+						ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', (int)Math.Truncate(game.ServerGame.Events.LastOrDefault().Time.Subtract(startTime).TotalMinutes) - minutes) + ".");  // Add one dot for each whole minute of the game.
+
 						row.Add(new ZCell(text.ToString())
 						{
-							Html = html.ToString(),
 							Svg = svg.ToString()
 						}
-							);
+						);
 					}
 				}
 
@@ -1633,16 +1632,18 @@ namespace Torn.Report
 			ZoomReport report = new ZoomReport(string.IsNullOrEmpty(player.Name) ? "Player " + player.Id : player.Name,
 											   "Time,Rank,Score,Tags +,Tags -,Tag Ratio,Score Ratio,TR\u00D7SR,Destroys,Denies,Got Denied,Yellow Card,Red Card",
 											   "left,integer,integer,integer,integer,float,float,float,integer,integer,integer,integer,integer,integer",
-											   ",,,Tags,Tags,Ratios,Ratios,Ratios,Base,Base,Base,Penalties,Penalties,");
+											   ",,,Tags,Tags,Ratios,Ratios,Ratios,Base,Base,Base,Penalties,Penalties,")
+			{
+				MaxChartByColumn = true
+			};
 			report.Columns[1].Rotate = true;
+			report.Colors.OddColor = default;
 
 			report.Title += " \u2014 " + string.Join(", ", teams.Select(t => t.Name));
 			if (teams.Count == 1)
 				report.TitleHyper = TeamHyper(teams[0]);
 			else
 				report.Columns.Insert(1, new ZColumn("Team"));
-
-			report.MaxChartByColumn = true;
 
 			var played = league.Played(player);
 			foreach (GamePlayer gamePlayer in played)
@@ -1684,10 +1685,8 @@ namespace Torn.Report
 		{
 			ZoomReport report = new ZoomReport(team.Name);
 
-			var evenColor = report.Colors.BackgroundColor;
 			var oddColor = report.Colors.OddColor;
 
-			report.Colors.BackgroundColor = default;
 			report.Colors.OddColor = default;
 
 			report.AddColumn(new ZColumn("Game", ZAlignment.Left));
@@ -1760,7 +1759,7 @@ namespace Torn.Report
 
 					ZRow gameRow = new ZRow()
 					{
-						Color = report.Rows.Count % 2 == 0 ? evenColor : oddColor
+						Color = report.Rows.Count % 2 == 0 ? default : oddColor
 					};
 					report.Rows.Add(gameRow);
 					var timeCell = new ZCell(game.LongTitle())
@@ -1831,10 +1830,10 @@ namespace Torn.Report
 							var team2 = game.Teams[i];
 							Colour team2Colour = team2.Colour;
 							var team2Name = team2.TeamId == team.TeamId ? "\u25CF" : league.LeagueTeam(team2).Name;
-							ColourSymbol(text, html, svg, ref currentColour, team2Colour, team2Name);
+							ColourSymbol(text, svg, ref currentColour, team2Colour, team2Name);
 
 							string separator = i < game.Teams.Count - 1 ? ", " : "";
-							ColourSymbol(text, html, svg, ref currentColour, Colour.None, separator);
+							ColourSymbol(text, svg, ref currentColour, Colour.None, separator);
 						}
 
 						gameRow.Add(new ZCell(text.ToString())
@@ -2045,7 +2044,7 @@ namespace Torn.Report
 					row.Add(new ZCell(pValue, ChartType.None, "G2"));  // 4: p value
 
 					if (Math.Abs(pValue) < 0.05 / packs.Count)
-						row.Last().Color = Color.FromArgb(0xFF, 0xC0, 0xC0);
+						row.Last().Color = report.Colors.TitleBackColor;
 					else if (Math.Abs(pValue) < 0.05)
 						row.Last().Color = Color.FromArgb(0xFF, 0xF0, 0xF0);
 				}
@@ -3013,7 +3012,7 @@ namespace Torn.Report
 					ZCell cell;
 					if (team1 == team2)
 					{
-						cell = new ZCell("\u2572", Color.Gray)
+						cell = new ZCell("\u2572", report.Colors.TitleBackColor)
 						{
 							Number = 1,  // Ensure that ZoomReport.Widths will set sensible widths for all columns.
 							NumberFormat = "F1"  // Ensure that ZoomReport.Widths will set sensible widths for all columns.
@@ -3063,10 +3062,6 @@ namespace Torn.Report
 				MaxChartByColumn = true
 			};
 
-			var evenColor = report.Colors.BackgroundColor;
-			var oddColor = report.Colors.OddColor;
-			var barColor = report.colors.BarNone;
-			report.Colors.BackgroundColor = default;
 			report.Colors.OddColor = default;
 
 			// EventType (see P&C ng_event_types):
@@ -3092,12 +3087,6 @@ namespace Torn.Report
 				};
 
 				report.Rows.Add(row);
-
-				foreach (var cell in row)
-				{
-					cell.Color = report.Rows.Count % 2 == 0 ? evenColor : oddColor;
-					cell.BarColor = barColor;
-				}
 			}
 
 			// Do it all again for a summary row.
@@ -3126,11 +3115,7 @@ namespace Torn.Report
 
 				report.Rows.Add(row);
 
-				foreach (var cell in row)
-				{
-					cell.Color = Color.DarkGray;
-					cell.BarColor = barColor;
-				}
+				row.Color = report.Colors.TitleBackColor;
 			}
 
 			if (description)
@@ -3180,7 +3165,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			{
 				new ZCell(cell1Text)
 			};
-			averageRow.Color = Color.FromArgb(128, 240, 240, 240);
+			averageRow.Color = default;
 
 			for (int col = averageRow.Count; col < report.Columns.Count; col++)
 			{
@@ -3209,38 +3194,28 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		}
 
 		/// <summary>Append the specified symbol to the StringBuilders. If the current colour has changed, emit <div> and <tspan> or </div> and </tspan> as appropriate.</summary>
-		static void ColourSymbol(StringBuilder text, StringBuilder html, StringBuilder svg, ref Colour currentColour, Colour newColour, string symbol)
+		static void ColourSymbol(StringBuilder text, StringBuilder svg, ref Colour currentColour, Colour newColour, string symbol)
 		{
 			string c = ColorTranslator.ToHtml(newColour.ToDarkColor());
 
 			if (currentColour == Colour.None && newColour != Colour.None)
 			{
-				html.Append("<div style=\"color:");
-				html.Append(c);
-				html.Append("\">");
-
 				svg.Append("<tspan fill=\"");
 				svg.Append(c);
 				svg.Append("\">");
 			}
 			else if (currentColour != Colour.None && newColour == Colour.None)
 			{
-				html.Append("</div>");
 				svg.Append("</tspan>");
 			}
 			else if (currentColour != newColour)
 			{
-				html.Append("</div><div style=\"color:");
-				html.Append(c);
-				html.Append("\">");
-
 				svg.Append("</tspan><tspan fill=\"");
 				svg.Append(c);
 				svg.Append("\">");
 			} // else currentColour == newColour: do nothing.
 
 			text.Append(symbol);
-			html.Append(symbol);
 			svg.Append(symbol);
 			currentColour = newColour;
 		}
@@ -4158,7 +4133,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			foreach (ZRow row in report.Rows)
 				for (int i = 0; i < row.Count && i< Columns.Count && groups.IndexOf(Columns[i].GroupHeading) <= (int)row[lastGroupIndex].Number; i++)
 					if (!string.IsNullOrEmpty(Columns[i].GroupHeading) && groups.IndexOf(Columns[i].GroupHeading) % 2 == 0 && row[i].Color == Color.Empty)
-						row[i].Color = Color.FromArgb(0xF0, 0xF0, 0xFF);
+						row[i].Color = Color.FromArgb(0x20, 0x80, 0x80, 0xFF);
 		}
 #region Old code
 /*

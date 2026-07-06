@@ -19,11 +19,11 @@ namespace Torn
 	{
 		public static Color ToColor(this Colour colour)
 		{
-			Color[] Colors = { Color.FromArgb(0x40, 0x20, 0x20, 0x20), Color.FromArgb(0xFF, 0xA0, 0xA0), Color.FromArgb(0xA0, 0xD0, 0xFF),  // None, Red, Blue,
-				Color.FromArgb(0xA0, 0xFF, 0xA0), Color.FromArgb(0xFF, 0xFF, 0x90), Color.FromArgb(0xC0, 0xA0, 0xFF), Color.FromArgb(0xFF, 0xA0, 0xF0),  // Green, Yellow, Purple, Pink,
-				Color.FromArgb(0xA0, 0xFF, 0xFF), Color.FromArgb(0xFF, 0xD0, 0xA0), Color.FromArgb(0xFF, 0xFF, 0xFF), Color.FromArgb(0x90, 0x90, 0x90),  // Cyan, Orange, White, Black,
-				Color.FromArgb(0xFF, 0xB0, 0x90), Color.FromArgb(0xE0, 0xE0, 0xFF), Color.FromArgb(0xD0, 0xD0, 0x80), Color.FromArgb(0xFF, 0xC0, 0xF0),  // Fire, Ice, Earth, Crystal,
-				Color.FromArgb(0xE0, 0xE0, 0xE0), Color.FromArgb(0xB0, 0xC0, 0xFF), Color.FromArgb(0xF0, 0xF0, 0xF0)  // Rainbow, Cops, Referee
+			Color[] Colors = { Color.FromArgb(0x40, 0x20, 0x20, 0x20), Color.FromArgb(0x70, 255, 38, 38), Color.FromArgb(0x70, 38, 148, 255),  // None, Red, Blue,
+				Color.FromArgb(0x70, 38, 255, 38), Color.FromArgb(0x70, 255, 255, 1), Color.FromArgb(0x70, 111, 38, 255), Color.FromArgb(0x70, 255, 38, 220),  // Green, Yellow, Purple, Pink,
+				Color.FromArgb(0x70, 38, 255, 255), Color.FromArgb(0x70, 255, 148, 38), Color.FromArgb(0x70, 255, 255, 255), Color.FromArgb(0x70, 22, 22, 0),  // Cyan, Orange, White, Black,
+				Color.FromArgb(0x70, 255, 74, 1), Color.FromArgb(0x70, 184, 184, 255), Color.FromArgb(0x70, 148, 148, 0), Color.FromArgb(0x70, 255, 111, 220),  // Fire, Ice, Earth, Crystal,
+				Color.FromArgb(0x70, 184, 184, 184), Color.FromArgb(0x70, 74, 111, 255), Color.FromArgb(0x70, 220, 220, 220)  // Rainbow, Cops, Referee
 			};
 			return Colors.Valid((int)colour) ? Colors[(int)colour] : Color.Empty;
 		}
