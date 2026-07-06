@@ -69,7 +69,7 @@ namespace Torn
 			{
 				AddCells(row, narrow ? null : gameCol, arrowCol);
 				if (prefillArrows)
-					gameCol.AddArrow(row, 5, Color.FromArgb(0xEE, 0xEE, 0xEE), true);
+					gameCol.AddArrow(row, 5, Color.FromArgb(0x30, 0x00, 0x00, 0x00), true);
 			}
 
 			// Add cells for the space which is above this game but below the teams first game, because this is a lower track.
@@ -100,7 +100,11 @@ namespace Torn
 
 			// Add cells for the space below this game (and the arrows between games), so that lower-track games are placed correctly.
 			for (int i = 0; i < bottomSpace && row < Report.Rows.Count; i++, row++)
+			{
 				AddCells(row, narrow ? null : gameCol, arrowCol);
+				if (prefillArrows)
+					gameCol.AddArrow(row, 5, Color.FromArgb(0x30, 0x00, 0x00, 0x00), true);
+			}
 
 			return gameCol;
 		}
@@ -202,7 +206,7 @@ namespace Torn
 			}
 
 			// Add a "startup" games to get things rolling.
-			games.Add(FillColumn(GameName(game), topSpace, 0, TeamsPerGame, NumTeams - topSpace - TeamsPerGame, prefix));
+			games.Add(FillColumn(GameName(game), topSpace, 0, TeamsPerGame, NumTeams - topSpace - TeamsPerGame, prefix, !prefix));
 			game++;
 			topSpace -= TeamsSentDown;
 			bool first = true;

@@ -270,7 +270,7 @@ namespace Zoom
 
 		public bool Empty()
 		{
-			return string.IsNullOrEmpty(text) && Number == null;
+			return string.IsNullOrEmpty(text) && Number == null && Border == default;
 		}
 
 		public bool EmptyOrNaN()
@@ -1612,10 +1612,16 @@ namespace Zoom
 				else  // Draw the curved arrow line with two SVG "q" splines, like: <path d=\"M 100,100 h1 q3,0 6,11 q3,11 6,11 h1" stroke="color" stroke-width="4"/>
 					s.AppendFormat("h 1 q {0:F1},0 {1:F1},{2:F1} q {0:F1},{2:F1} {1:F1},{2:F1} h 1\" ", width / 4 - 1, width / 2 - 2, mid);
 
-				s.AppendFormat("fill=\"none\" stroke-width=\"{0:F1}\" stroke=\"", fullArrow);
+				s.AppendFormat("fill=\"none\" stroke-width=\"{0:F1}\"", fullArrow);
+
+				if (c.A < 255)
+					s.AppendFormat(" stroke-opacity=\"{0:0.###}\"", c.A / 255.0);
+
+				s.Append(" stroke=\"");
 				s.Append(ColorTranslator.ToHtml(c));
 				s.Append("\" /> ");
 
+				// Add triangular arrowhead.
 				s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", left + width - fullArrow / 2F, RowMid(top, rightEnd.Row, rowHeight));
 				s.AppendFormat("v {0:F1} l {0:F1},{1:F1} l {1:F1},{1:F1} z\" fill=\"", fullArrow, -fullArrow);
 			}
@@ -1693,11 +1699,11 @@ namespace Zoom
 					bool found = false;
 					if (end.Expand)
 						for (int col2 = col + 1; col2 < Columns.Count && !found; col2++)
-							foreach (var arrow2 in Columns[col].Arrows)
+							foreach (var arrow2 in Columns[col2].Arrows)
 								if (arrow2.From.Any(e => e.Row == end.Row))
 								{
 									found = true;
-									for (int cc = col + 1; cc < col2; cc++)
+									for (int cc = col + 1; cc < col2 && cc < Rows[end.Row].Count; cc++)
 										found &= Rows[end.Row][cc].Empty();
 
 									if (found)
@@ -1733,7 +1739,12 @@ namespace Zoom
 					s.AppendFormat("c {0:F1},0 {0:F1},{2:F1} {1:F1},{2:F1} ", -halfArrowH, -halfArrowH * 2, (arrow.To.First().Width - arrow.From.First().Width) / 2);
 				s.Append("Z\" fill=\"");
 			}
+
 			s.Append(ColorTranslator.ToHtml(c));
+
+			if (c.A < 255)
+				s.AppendFormat("\" fill-opacity=\"{0:0.###}", c.A / 255.0);
+
 			s.Append("\" />\n");
 
 			foreach (var end in arrow.From.Where(e => e.Number != null))
