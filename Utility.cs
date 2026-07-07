@@ -89,7 +89,9 @@ namespace Torn
 				return Color.FromArgb(255, v, p, q);
 		}
 
-
+		/// <summary>Return a mixture of two source colors, mixing R, G and B separately.</summary>
+		/// <param name="mix">Proportion of color1 to use. Value between 0 and 1.</param>
+		/// <returns>A mixture of color1 and color2.</returns>
 		public static Color MixColors(Color color1, Color color2, double mix)
 		{
 			return Color.FromArgb((int)(color1.R * mix + color2.R * (1 - mix)),

@@ -788,8 +788,7 @@ namespace Zoom
 					thisColumnWidth = Math.Max(thisColumnWidth, wordWidths.Any() ? wordWidths.Max() : 0);
 
 					var titleLineWidth = wordWidths.Sum() + (spaces.Count - 1) * spaceWidth;
-					if (thisColumnWidth < titleLineWidth)
-						thisTitleHeight = Math.Min(wordWidths.Count, (int)Math.Ceiling(titleLineWidth / thisColumnWidth)) * TextHeight + TextHeight / 3.0 + (string.IsNullOrEmpty(column.GroupHeading) ? 0 : RowHeight + 1);
+					thisTitleHeight = Math.Min(wordWidths.Count, (int)Math.Ceiling(titleLineWidth / thisColumnWidth)) * TextHeight + TextHeight / 3.0 + (string.IsNullOrEmpty(column.GroupHeading) ? 0 : RowHeight + 1);
 				}
 
 				headingsHeight = Math.Max(headingsHeight, thisTitleHeight);
