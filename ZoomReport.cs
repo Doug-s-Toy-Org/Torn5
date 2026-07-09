@@ -707,14 +707,14 @@ namespace Zoom
 						if (cell.Data != null && cell.Data.Any() && cell.ChartType != ChartType.None && cell.ChartType != ChartType.Bar)  // For charts including rug, box plot, etc., let's get the min/max of the data points within the cell, instead of just the cell's display value.
 						{
 							hasNumber = true;
-							min = Math.Min(min, cell.Data.Min());
-							max = Math.Max(max, cell.Data.Max());
+							var data = cell.Data.Where(x => !double.IsNaN(x) && !double.IsInfinity(x));
+							min = Math.Min(min, data.Min());
+							max = Math.Max(max, data.Max());
 
 							if (Math.Abs(min) > max)
-							{
 								max = min;
-							}
-							maxPoints = Math.Max(maxPoints, cell.Data.Count);
+
+							maxPoints = Math.Max(maxPoints, data.Count());
 						}
 						else if (cell.Tag is List<ChartPoint> points && points.Any())
 						{
@@ -1243,7 +1243,7 @@ namespace Zoom
 					AppendStrings(s, "fill:", ColorTranslator.ToHtml(fill), ";");
 
 				if (outline != default)
-					AppendStrings(s, " stroke:", ColorTranslator.ToHtml(outline), ";");
+					AppendStrings(s, " stroke:", ColorTranslator.ToHtml(outline));
 
 				s.Append("\"");
 			}
@@ -1284,13 +1284,7 @@ namespace Zoom
 		{
 			s.Append('\t', indent);
 			s.AppendFormat("<rect x=\"{0:0.##}\" y=\"{1:0.##}\" width=\"{2:0.##}\" height=\"{3:0.##}\" ", x, y, width, height);
-
 			Style(s, fillColor, default, fillColor == default ? "bar" : default);
-			//if (fillColor == default)
-			//	AppendStrings(s, " class=\"bar\"");
-			//else
-			//	AppendStrings(s, " style=\"fill:", ColorTranslator.ToHtml(fillColor), "\"");
-
 			s.Append("/>\n");
 		}
 
@@ -2171,7 +2165,7 @@ namespace Zoom
 				int marksPerRow = Math.Min(Math.Max((int)Math.Sqrt(count), 9), 75);
 				double markHeight = height * 0.9 / marksPerRow;
 				
-				foreach (double d in cell.Data)
+				foreach (double d in cell.Data.Where(x => !double.IsNaN(x) && !double.IsInfinity(x)))
 				{
 					double markCentre = Scale(d, width, chartMin, chartMax);
 					if (markCentre - lastCentre < markWidth * 1.1)  // Clear of other marks? Drop down to bottom of the row. Not clear? Go in above the last mark, unless we've reached top of the row, in which case modulo back down to 0.
@@ -2218,10 +2212,9 @@ namespace Zoom
 		}
 
 		/// <summary>Write a single table row.</summary>
-		void SvgRow(StringBuilder s, int top, int height, int left, List<float> widths, List<double> mins, List<double> maxs, int maxPoints, int width, ZRow row, bool odd)
+		void SvgRow(StringBuilder s, int left, int top, int width, int height, ZRow row, bool odd, List<float> widths, List<double> mins, List<double> maxs, int maxPoints)
 		{
 			var rowColor = Colors.GetBackColor(row, odd);
-			SvgRect(s, 1, left, top, width, height, rowColor);  // Paint the background for the whole row.
 
 			// Ensure ChartCells point to themselves, where they're part of a multi-cell chart.
 			foreach (var cell in row)
@@ -2253,7 +2246,7 @@ namespace Zoom
 			float x = left;
 			for (int col = 0; col < Columns.Count && col < row.Count; col++)
 			{
-				SvgText(s, 1, (int)x, top, (int)widths[col], height, Columns[col], row[col], rowColor == default);  // Write a data cell.
+				SvgText(s, 1, (int)x, top, (int)widths[col], height, Columns[col], row[col], rowColor == default || rowColor.A <= 128);  // Write a data cell.
 
 				x += widths[col] + 1;
 			}
@@ -2349,39 +2342,40 @@ namespace Zoom
 			var mins = new List<double>();   // Minimum numeric value in each column, or if all numbers are positive, 0.
 			var maxs = new List<double>();   // Maximum numeric value in each column.
 			(int titleHeight, int headerHeight) = Metrics(widths, mins, maxs, out int maxPoints);
-			Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG -- the sum of each column, plus pixels for spacing left, right and between.
+			Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG (assuming multiColumns == 1) -- the sum of each column, plus pixels for spacing left, right and between.
 			double max = maxs.DefaultIfEmpty(1).Max();
 
-			int left = 1;
-			Height = titleHeight + headerHeight + Rows.Count * (RowHeight + 1);
-			int multiColumns = MultiColumnOK && aspectRatio is double ar ? Math.Max((int)Math.Round(Math.Sqrt(ar / Width * Height)), 1) : 1;
+			Height = titleHeight + headerHeight + Rows.Count * (RowHeight + 1);  // Total height of the whole SVG (assuming multiColumns == 1).
+			int multiColumns = MultiColumnOK && aspectRatio is double ar ? Math.Max((int)Math.Round(Math.Sqrt(ar / Width * Height)), 1) : 1;  // If greater than 1, break the report into multiple sets of side-by-side columns; e.g. break a solo ladder of 120 players into 2 columns of 60 rows each, or 3 columns of 40 rows each, etc.
 			int rowsPerCol = (int)Math.Ceiling((double)Rows.Count / multiColumns);
 			Height = titleHeight + headerHeight + rowsPerCol * (RowHeight + 1);
 			Right = (int)(Width * 1.1 * multiColumns - Width * 0.1);
 
 			titleHeight = SvgBegin(sb, Right, ref Height);
-			int arrowTop = titleHeight + headerHeight;
 
+			// Headers
 			for (int col = 0; col < multiColumns; col++)
 			{
-				int thisLeft = (int)(left + Width * 1.1 * col);
-				Right = thisLeft + Width;
-				SvgHeader(sb, thisLeft, titleHeight, headerHeight - 1, widths);
-				int rowTop = titleHeight + headerHeight;
-				bool odd = true;
-
-				for (int row = rowsPerCol * col; row < rowsPerCol * (col + 1); row++)
-				{
-					SvgRow(sb, rowTop, RowHeight, thisLeft, widths, mins, maxs, maxPoints, Width, row < Rows.Count ? Rows[row] : new ZRow(), odd);
-
-					rowTop += RowHeight + 1;
-					odd = !odd;
-				}
+				int left = (int)(Width * 1.1 * col + 1);
+				Right = left + Width;
+				SvgHeader(sb, left, titleHeight, headerHeight - 1, widths);
 			}
+			
+			// Row backgrounds
+			ForAllRows((s, left, top, width, height, row, odd, discard1, discard2, discard3, discard4) =>
+				{
+					SvgRect(s, 1, left, top, width, height, Colors.GetBackColor(row, odd));  // Paint the background for a row.
+				},
+				sb, multiColumns, titleHeight + headerHeight);
 
+			// Arrows
+			float arrowTop = titleHeight + headerHeight - 0.5F;
 			for (int col = 0; col < Columns.Count; col++)
 				foreach (var arrow in Columns[col].Arrows.OrderByDescending(a => (a.From.Count + a.To.Count) * 100 + Math.Abs((a.From.FirstOrDefault()?.Row - a.To.FirstOrDefault()?.Row) ?? 0)))
-					SvgArrow(sb, 1, col, arrow, widths, arrowTop - 0.5F, RowHeight + 1);
+					SvgArrow(sb, 1, col, arrow, widths, arrowTop, RowHeight + 1);
+
+			// Data cells, including charts
+			ForAllRows(SvgRow, sb, multiColumns, titleHeight + headerHeight, widths, mins, maxs, maxPoints);
 
 			Width = (int)(Width * 1.1 * multiColumns - Width * 0.1);
 
@@ -2397,6 +2391,29 @@ namespace Zoom
 				sb.Append("</div>\n");
 
 			sb.Append('\n');
+		}
+
+		delegate void RowAction(StringBuilder s, int left, int top, int width, int height, ZRow row, bool odd, List<float> widths = default, List<double> mins = default, List<double> maxs = default, int maxPoints = default);
+
+		/// <summary>Carry out the specified action on all rows, taking ito account those rows' final location on the SVG "canvas".</summary>
+		void ForAllRows(RowAction action, StringBuilder sb, int multiColumns, int top, List<float> widths = null, List<double> mins = null, List<double> maxs = null, int maxPoints = 0)
+		{
+			int rowsPerCol = (int)Math.Ceiling((double)Rows.Count / multiColumns);
+			for (int col = 0; col < multiColumns; col++)
+			{
+				int left = (int)(1 + Width * 1.1 * col);
+				int rowTop = top;
+				Right = left + Width;
+				bool odd = true;
+
+				for (int row = rowsPerCol * col; row < rowsPerCol * (col + 1) && row < Rows.Count; row++)
+				{
+					action(sb, left, rowTop, Width, RowHeight, Rows[row], odd, widths, mins, maxs, maxPoints);
+
+					rowTop += RowHeight + 1;
+					odd = !odd;
+				}
+			}
 		}
 
 		public override string ToString()
