@@ -1615,6 +1615,8 @@ namespace Torn.Report
 
 			report.CalculateFill = delegate (ZRow row, int col, double chartMin, double chartMax, ref double? fill) 
 			{
+				if (row[0].Empty()) 
+					return;
 				if (report.Columns[col].Text == "Score")
 					fill = row[col].Number / maxScore;
 				if (report.Columns[col].GroupHeading == "Tags")
