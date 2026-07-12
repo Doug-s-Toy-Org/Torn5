@@ -241,44 +241,26 @@ namespace Torn
 				return i.ToString() + " " + Pluralise(s);
 		}
 
-		public static string GetDeployedVersion()
+		/// <summary>Convert a version string like "92.0.0" into three integers.</summary>
+		public static bool ParseVersion(string version, out int major, out int minor, out int patch)
 		{
-			string deployedVersion = "";
+			major = 0;
+			minor = 0;
+			patch = 0;
 
-			try
-			{
+			string[] parts = version.Split('.');
 
-				System.Net.WebClient wc = new System.Net.WebClient();
-				byte[] raw = wc.DownloadData("https://torn.lasersports.au/version/");
+			if (parts.Length < 3)
+				return false;
 
-				deployedVersion = System.Text.Encoding.UTF8.GetString(raw);
-			} catch
-			{
-				Console.WriteLine("Cannot fetch deployed version");
-			}
-
-			return deployedVersion;
+			return int.TryParse(parts[0], out major) && int.TryParse(parts[1], out minor) && int.TryParse(parts[2], out patch);
 		}
 
-		public static bool IsNewerVersionAvailable()
+		public static bool IsNewerVersionAvailable(string latestVersion)
 		{
-			string deployedVersion = GetDeployedVersion();
-			if (deployedVersion == "")
-			{
+			if (!ParseVersion(latestVersion, out int deployedMajor, out int deployedMinor, out int deployedPatch) ||
+				!ParseVersion(Resources.version, out int currentMajor, out int currentMinor, out int currentPatch))
 				return false;
-			}
-			string currentVersion = Resources.version;
-
-			string[] deployedArr = deployedVersion.Split('.');
-			string[] currentArr = currentVersion.Split('.');
-
-			int deployedMajor = Int32.Parse(deployedArr[0]);
-			int deployedMinor = Int32.Parse(deployedArr[1]);
-			int deployedPatch = Int32.Parse(deployedArr[2]);
-
-			int currentMajor = Int32.Parse(currentArr[0]);
-			int currentMinor = Int32.Parse(currentArr[1]);
-			int currentPatch = Int32.Parse(currentArr[2]);
 
 			return deployedMajor > currentMajor ||
 				(deployedMajor == currentMajor && deployedMinor > currentMinor) ||

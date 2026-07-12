@@ -369,12 +369,6 @@
     <Compile Include="Forms\FormWithdraw.Designer.cs">
       <DependentUpon>FormWithdraw.cs</DependentUpon>
     </Compile>
-    <Compile Include="Forms\NewVersion.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\NewVersion.Designer.cs">
-      <DependentUpon>NewVersion.cs</DependentUpon>
-    </Compile>
     <Compile Include="GridFinder.cs" />
     <Compile Include="RingGrid.cs" />
     <Compile Include="JsonServer.cs" />
@@ -571,9 +565,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormManageTerms.resx">
       <DependentUpon>FormManageTerms.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Forms\NewVersion.resx">
-      <DependentUpon>NewVersion.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

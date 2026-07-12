@@ -6,7 +6,7 @@ It reads data from a lasergame server (currently Zone systems and Laserforce sys
 
 ## Features
 
-* Load games from P&C Nexus or Zeon systems, including hit-by-hit data
+* Load games from P&C Nexus, Zeon or O-Zone systems, including hit-by-hit data
 * Load games from Laserforce systems (aggregate data only)
 * Create league files, and have several league files open at once
 * Set handicaps, adjust scores, apply penalties, re-ID players
@@ -20,5 +20,5 @@ Settings are stored in the Windows ApplicationData folder, in Torn\Torn5.Setting
 
 ## Links
 
-- Download latest build: https://torn.lasersports.au/downloads/latest
+- Download latest build: https://dougburbidge.com/Apps/
 - Past tournament results: http://dougburbidge.com/OzNationals/

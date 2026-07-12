@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,48 +26,15 @@ Broad architecture:
 * WebOuput is an important module. It runs the internal web server, allowing others to query us for data in HTML or JSON, and also generates web pages to file for export or upload.
 * Reports.cs contains the code that generates the data for each report type. ZoomReports renders those to various output formats: HTML with tables, HTML with SVG, .csv, etc.
 
-IMPLEMENTED: load league, save league, delete game from league
-read from P&C server, web server, report to HTML, upload to FTP,
-transfer to team boxes via drag-drop, transfer to team boxes on game selection, set dimensions, persistence
-show team name, scores and rank in team boxes
-right-click remember team, identify team, identify player, handicap team
-edit league -- team add/delete/rename, player add/delete/re-ID; implement OK/Cancel
-better save format
-read from demo "server"
-read from laserforce server
-sanity check report. Add new check: are there odd games out with no victory points?
-tech report: hit totals for all sensors on all packs, plus games where a sensor takes 0 hits
-output to printer
-set up pyramid round
-read from O-Zone server
-
-TODO for BOTH:
-on commit auto-update scoreboard
-right-click handicap player, merge player
-
-TODO for LEAGUE:
-handicap, on commit auto-update team handicaps
-set up fixtures
-
-TODO for ZLTAC:
-recalculate scores on Helios
-
-OTHER:
-league copy from
+TODO:
 Space Marines match play
 spark lines
-check latest version via REST
 reports and uploads in worker thread
-option to zero eliminated players.
 Move global settings to Program.cs
 
 NEEDS TESTING:
-adjust team score/victory points
-remember all teams
 upload to http, https, ftp
 If we don't find a settings file in the user folder, check for one in the exe folder.
-group players by LotR
-on commit auto-update teams
 send to scoreboard (web browser)
 */
 
@@ -182,10 +150,27 @@ namespace Torn.UI
 			Task.Run(CheckForNewVersion);
 		}
 
+		string latestVersion;
 		private void CheckForNewVersion()
 		{
-			if (Utility.IsNewerVersionAvailable())
-				new NewVersion().ShowDialog();
+			try
+			{
+				HttpClient client = new HttpClient();
+				client.DefaultRequestHeaders.Add("User-Agent", "Torn - a laser tag tournament scores manager");
+				latestVersion = client.GetStringAsync("https://dougburbidge.com/Apps/versions/version.txt").Result;
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Cannot fetch deployed version: " + e.Message);
+			}
+
+			if (Utility.IsNewerVersionAvailable(latestVersion))
+				new About
+				{
+					Icon = (Icon)Icon.Clone(),
+					Caption = "A new version of Torn is now available!",
+					LatestVersion = latestVersion
+				}.ShowDialog();
 		}
 
 		void ConnectLaserGameServer()
@@ -333,9 +318,7 @@ namespace Torn.UI
 
 		void ButtonAboutClick(object sender, EventArgs e)
 		{
-			About about = new About();
-			about.Show();
-			//MessageBox.Show("A tournament scores editor by Doug Burbidge & AJ Horsman.\n\nhttp://www.dougburbidge.com/Apps/\n\nhttps://github.com/DougBurbidge/Torn5/\nhttps://github.com/MrMeeseeks200/Torn5/", "Torn 5");
+			new About { Icon = (Icon)Icon.Clone(), LatestVersion = latestVersion }.ShowDialog();
 		}
 
 		void ButtonAddRowClick(object sender, EventArgs e)
