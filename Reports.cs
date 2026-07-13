@@ -2167,15 +2167,29 @@ namespace Torn.Report
 		public static ZoomReport SanityReport(List<League> leagues, string path, string title, DateTime? from, DateTime? to, bool description)
 		{
 			var report = new ZoomReport(string.IsNullOrEmpty(title) ? (leagues.Count == 1 ? leagues[0].Title + " " : "") + "Sanity Check Report" : title,
-										"Game,Team,Issue",
-										"left,left,left");
+										"League,Game,Team,Issue",
+										"left,left,left,left");
 
 			foreach (var league in leagues)
 			{
 				var games = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue)).ToList();
-				double averageTeamPlayers = games.Average(g => g.Teams.Average(t => t.Players.Count));
-				double playersLoggedOn = games.Any() ? games.Average(g => g.Teams.Any() ? g.Teams.Average(t => t.Players.Any() ? t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1) : 0) : 0) : 0;
+				if (!games.Any())
+				{
+					AddSanityCheckRow(report, "", "No games found in league " + league.Title + " for specified date/time range.");
+					continue;
+				}
+
+				var gameTeams = games.SelectMany(g => g.Teams);
+				if (!gameTeams.Any())
+				{
+					AddSanityCheckRow(report, "", "No games with teams in them found in league " + league.Title);
+					continue;
+				}
+
 				int gamesWithPoints = games.Count(g => g.Teams.Any(t => t.Points != 0));
+				double averageTeamPlayers = gameTeams.Average(t => t.Players.Count);
+				double playersLoggedOn = gameTeams.Average(t => t.Players.Any() ? t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1) : 0);
+				double coloursPerTeam = gameTeams.Average(gt => gt.Players.Select(gp => gp.Colour).Distinct().Count());
 
 				foreach (var game in games)
 				{
@@ -2187,10 +2201,14 @@ namespace Torn.Report
 					foreach (var team in teams)
 						AddSanityCheckRow(report, league, game, team, string.Format("Team has {0} players. (A player might have switched packs.)", team.Players.Count));
 
-					if (playersLoggedOn > 0.5)
+					if (playersLoggedOn > 0.75)
 						foreach (var team in game.Teams)
 							foreach (var player in team.Players.Where(p => string.IsNullOrEmpty(p.PlayerId)))
 								AddSanityCheckRow(report, league, game, team, string.Format("Pack {0} did not log on. Score: {1}", player.Pack, player.Score));
+
+					if (coloursPerTeam < 1.5)
+						foreach (var team in game.Teams.Where(gt => gt.Players.Select(gp => gp.Colour).Distinct().Count() > 1))
+							AddSanityCheckRow(report, league, game, team, string.Format("Team has multiple colour players: " + string.Join(", ", team.Players.Select(gp => gp.Colour).Distinct())));
 
 					string gameTitle = game.Title?.ToLower();
 					if (gamesWithPoints > games.Count() / 2 && (string.IsNullOrEmpty(game.Title) ||
@@ -2204,7 +2222,7 @@ namespace Torn.Report
 				if (games.Count(g => g.ServerGame?.EndTime != null) > league.GameCount() * 0.9)  // if most games have end times
 				{
 					// Look for games that have too short a duration. These may be games that have been ended early and replayed later and unintentionally committed.
-					bool isGameDurationVariable = games.Select(g => g.Duration()).Distinct().Count() > league.GameCount() / 3.0;  // Probably true for elimination or other formats that can intentionally end early; probably false for formats not intended to end early.
+					bool isGameDurationVariable = games.Select(g => g.Duration()).Distinct().Count() > games.Count() / 4.0;  // Probably true for elimination or other formats that can intentionally end early; probably false for formats not intended to end early.
 					double averageDuration = games.Average(g => g.Duration().TotalSeconds);
 
 					foreach (var game in games)
@@ -2230,25 +2248,14 @@ namespace Torn.Report
 				foreach (var team in league.Teams())
 					foreach (var player in team.Players)
 						if (!games.Any(g => g.AllPlayers().Any(p => p.PlayerId == player.Id && p.TeamId == team.TeamId)))
-							report.Rows.Add(
-								new ZRow()
-								{
-									new ZCell(string.Empty),
-									new ZCell(team.Name),
-									new ZCell(string.Format("Player {0} is listed on this team but plays no games for it.", player.Name))
-								}
-						);
+							AddSanityCheckRow(report, team.Name, string.Format("Player {0} is listed on this team but plays no games for it.", player.Name));
 			}
 
 			if (report.Rows.Count == 0)
-							report.Rows.Add(
-								new ZRow()
-								{
-									new ZCell(string.Empty),
-									new ZCell("No problems found. Hooray!"),
-									new ZCell(string.Empty)
-								}
-						);
+				AddSanityCheckRow(report, "", "No problems found. Hooray!");
+
+			if (leagues.Count == 1)
+				report.RemoveColumn(0);
 
 			if (description)
 				report.Description = "This report lists possible problems with committed games.\nTake remedial action (e.g. by fixing the problem and recommitting the game) where appropriate.";
@@ -2713,10 +2720,10 @@ namespace Torn.Report
 			if (league.IsPoints())
 				report.AddColumn(new ZColumn("Points", ZAlignment.Float));
 
-			double scoreMin = games.Min(g => g.Teams.Min(t => t.Score));
-			double scoreRange = games.Max(g => g.Teams.Max(t => t.Score)) - scoreMin;
-			double victoryPointsMin = games.Min(g => g.Teams.Min(t => t.Points));
-			double victoryPointsRange = games.Max(g => g.Teams.Max(t => t.Points)) - victoryPointsMin;
+			double scoreMin = games.Any() ? games.Min(g => g.Teams.Min(t => t.Score)) : 0;
+			double scoreRange = games.Any() ? games.Max(g => g.Teams.Max(t => t.Score)) - scoreMin : 0;
+			double victoryPointsMin = games.Any() ? games.Min(g => g.Teams.Min(t => t.Points)) : 0;
+			double victoryPointsRange = games.Any() ? games.Max(g => g.Teams.Max(t => t.Points)) - victoryPointsMin : 0;
 
 			report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average Score", ZAlignment.Float));
 			if(showZeroed)
@@ -3490,11 +3497,17 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			report.Rows.Add(
 				new ZRow()
 				{
+					new ZCell(league.Title),
 					new ZCell(game?.LongTitle()) { Hyper = GameHyper(game) },
 					team == null ? new ZCell(string.Empty) : new ZCell(league.LeagueTeam(team)?.Name, team.Colour.ToColor()),
 					new ZCell(message)
 				}
 			);
+		}
+
+		static void AddSanityCheckRow(ZoomReport report, string teamName, string issue)
+		{
+			report.Rows.Add(new ZRow() { new ZCell(""), new ZCell(""), new ZCell(teamName), new ZCell(issue) });
 		}
 
 		static List<Game> Games(League league, bool includeSecret, ReportTemplate rt)
