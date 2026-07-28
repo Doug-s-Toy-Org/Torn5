@@ -12,7 +12,17 @@ namespace Zoom
 {
 	public enum ZNumberStyle { Comma, Plain, Brief };  // Comma: use a thousands separator.  Brief: convert larger numbers to 2k, 3M, etc.
 
-	public enum ZAlignment { None, Left, Right, Center, Float, Integer };  // Float and Integer are the same as Right, but give a hint as to the type of data contained in cell.Data. "Integer" means that the underlying data is made of integers (e.g. average score, average rank) not that the number displayed in the cell is an integer.
+	[Flags]
+	public enum ZAlignment
+	{
+		None = 0,
+		Left = 1,
+		Right = 2,
+		Center = 4,
+		Float = 8,  // Float and Integer give a hint as to the type of data contained in cell.Data.
+		Integer = 16,  // "Integer" means that the underlying data is made of integers (e.g. average rank) not that the number displayed in the cell is an integer.
+		Overflow = 32  // Overflow does not shrink text to fit within the cell, so it can bleed out of one side of the cell (as far as cells in that direction are empty).
+	};
 
 	public static class ZAlignmentExtensions
 	{
@@ -55,6 +65,8 @@ namespace Zoom
 	{
 		/// <summary>If this cell or column heading contains text which links to another report, put the URL of that report here.</summary>
 		public string Hyper { get; set; }
+		/// <summary>Left, right or center. Also overflow and hints about chart rendering.</summary>
+		public ZAlignment Alignment { get; set; }
 		/// <summary>Optional background color.</summary>
 		public Color Color { get; set; }
 		/// <summary>Can hold whatever data the caller wants.</summary>
@@ -68,8 +80,6 @@ namespace Zoom
 		public string Text { get; set; }
 		/// <summary>Optional. Appears *above* heading text.</summary>
 		public string GroupHeading { get; set; }
-		/// <summary>left, right or center</summary>
-		public ZAlignment Alignment { get; set; }
 		/// <summary>If true, we should try rotating the header text to make it fit better.</summary>
 		public bool Rotate { get; set; }
 		/// <summary>If true, try to adjust text spacing so that all cells in this column have text that fills the whole available width.</summary>
@@ -83,6 +93,9 @@ namespace Zoom
 			Text = text;
 			Alignment = alignment;
 			GroupHeading = groupHeading;
+
+			if (alignment == ZAlignment.Float || alignment == ZAlignment.Integer)
+				Alignment |= ZAlignment.Right;
 		}
 
 		public override string ToString()
@@ -111,7 +124,7 @@ namespace Zoom
 		/// <summary>If set, paint a number on this arrow end.</summary>
 		public int? Number { get; set; }
 
-		public ZArrowEnd(int row, double width)
+		public ZArrowEnd(int row, double width = default)
 		{
 			Row = row;
 			Width = width;
@@ -493,6 +506,9 @@ namespace Zoom
 
 		public static T Force<T>(this IList<T> list, int i) where T: new()
 		{
+			if (i < 0)
+				return default;
+
 			if (list.Valid(i))
 				return list[i];
 
@@ -575,7 +591,14 @@ namespace Zoom
 			{
 				string[] alignmentList = alignments.Split(',');
 				for (int i = 0; firstAdded + i < Columns.Count && i < alignmentList.Length; i++)
-					Columns[firstAdded + i].Alignment = (ZAlignment)Enum.Parse(typeof(ZAlignment), alignmentList[i], true);
+				{
+					var alignment = (ZAlignment)Enum.Parse(typeof(ZAlignment), alignmentList[i], true);
+
+					if (alignment == ZAlignment.Float || alignment == ZAlignment.Integer)
+						alignment |= ZAlignment.Right;
+
+					Columns[firstAdded + i].Alignment = alignment;
+				}
 			}
 
 			if (!string.IsNullOrEmpty(groupHeadings))
@@ -586,14 +609,14 @@ namespace Zoom
 			}
 		}
 
-		///<summary>Just like Add(), but returns the added ZColumn.</summary> 
+		///<summary>Just like Columns.Add(), but returns the added ZColumn.</summary> 
 		public ZColumn AddColumn(ZColumn col)
 		{
 			Columns.Add(col);
 			return col;
 		}
 
-		///<summary>Just like Add(), but returns the added ZRow.</summary> 
+		///<summary>Just like Rows.Add(), but returns the added ZRow.</summary> 
 		public ZRow AddRow(ZRow row)
 		{
 			Rows.Add(row);
@@ -732,7 +755,7 @@ namespace Zoom
 							min = Math.Min(min, n);
 							max = Math.Max(max, n);
 						}
-						else if (!string.IsNullOrEmpty(cell.Text))
+						else if (!string.IsNullOrEmpty(cell.Text) && !(column.Alignment | cell.Alignment).HasFlag(ZAlignment.Overflow))
 						{
 							float width = TextWidth(cell.Text);
 							total += width;
@@ -1304,7 +1327,7 @@ namespace Zoom
 			if (fillWidth)
 				s.AppendFormat("textLength=\"{0}\" lengthAdjust=\"spacing\" ", width);
 
-			switch (alignment)
+			switch (alignment & (ZAlignment.Left | ZAlignment.Center))
 			{
 				case ZAlignment.Left:
 					s.AppendFormat("x=\"{0}\"", x + 1);
@@ -1358,7 +1381,28 @@ namespace Zoom
 		{
 			string cssClass = (cell.CssClass + (transparent && cell.Color == default ? " ld" : "")).Trim();
 
-			SvgText(s, indent, x, y, width, (int)Math.Round(height * 0.76), cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, column.Alignment,
+			var leftrightcenter = cell.Alignment & (ZAlignment.Left | ZAlignment.Right | ZAlignment.Center);
+			if (leftrightcenter == ZAlignment.None)
+				leftrightcenter = column.Alignment & (ZAlignment.Left | ZAlignment.Right | ZAlignment.Center);
+
+			if ((column.Alignment | cell.Alignment).HasFlag(ZAlignment.Overflow))
+			{
+				if (leftrightcenter.HasFlag(ZAlignment.Left))
+					width = Right - x - 1;
+				else if (leftrightcenter.HasFlag(ZAlignment.Right))
+				{
+					width += x - 1;
+					x = 1;
+				}
+				else if (leftrightcenter.HasFlag(ZAlignment.Center))
+				{
+					var availableExpansion = Math.Min(x, Right - width);
+					x -= availableExpansion;
+					width += availableExpansion;
+				}
+			}
+
+			SvgText(s, indent, x, y, width, (int)Math.Round(height * 0.76), cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, leftrightcenter,
 				cell.OutputText(OutputFormat.Svg), cssClass, cell.Hyper, column.FillWidth, false);
 		}
 
@@ -1500,7 +1544,7 @@ namespace Zoom
 			if (fillColor != Color.Empty)
 			{
 				s.Append('\t', indent);
-				s.AppendFormat("<circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" fill=\"", x, y, radius);
+				s.AppendFormat("<circle cx=\"{0:0.##}\" cy=\"{1:0.##}\" r=\"{2:0.##}\" fill=\"", x, y, radius);
 				s.Append(ColorTranslator.ToHtml(fillColor));
 				s.Append("\" />\n");
 			}
@@ -1517,7 +1561,7 @@ namespace Zoom
 				double y1 = rowTop + rowHeight - Scale(points[i].Item2, rowHeight, 0, yMax);
 				double y2 = i == points.Count - 1 ? double.MaxValue : rowTop + rowHeight - Scale(points[i + 1].Item2, rowHeight, 0, yMax);
 				if (Math.Round(y0, 1) != Math.Round(y1, 1) || Math.Round(y1, 1) != Math.Round(y2, 1))  // Only write the point if the y before or the y after is different -- otherwise we have a very expensive way of writing a horizontal line.
-					s.AppendFormat("{0:F1},{1:F1} ", points[i].Item1, y1);
+					s.AppendFormat("{0:0.#},{1:0.#} ", points[i].Item1, y1);
 			}
 			s.Append("\" ");
 
@@ -1528,26 +1572,40 @@ namespace Zoom
 
 		enum TopBottomType { Left, Right, Both }; // Does the top of this arrow have an end from the left? An end to the right? One of each? What about the bottom of the arrow?
 
+		int FindArrowEnd(ZArrowEnd end, int col, int direction)
+		{
+			col += direction;
+			if (end.Expand)
+				while (Columns.Valid(col) &&
+						(!Rows[end.Row].Valid(col) || Rows[end.Row][col].Empty()) &&
+						!Columns[col].Arrows.Exists(a => a.To.Exists(t => t.Row == end.Row)))
+					col += direction;
+
+			return col;
+		}
+
 		float FindArrowLeft(ZArrowEnd end, int col, List<float> widths)
 		{
-			if (end.Expand)
-				while (Columns.Valid(col - 1) &&
-						(!Rows[end.Row].Valid(col - 1) || Rows[end.Row][col - 1].Empty()) &&
-						!Columns[col - 1].Arrows.Exists(a => a.To.Exists(t => t.Row == end.Row)))
-					col--;
+			col = FindArrowEnd(end, col, -1);
 
-			return widths.Take(col).Sum(w => w + 1) + 0.5F;
+			// If the cell we've stopped at exists, and is in a column that exists, and is align right, and has Overflow set,
+			if (Rows[end.Row].Valid(col) && Columns.Valid(col) &&
+				(Rows[end.Row][col + 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow) || Columns[col + 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow)))
+				return widths.Take(col).Sum(w => w + 1) + 0.5F + TextWidth(Rows[end.Row][col + 1].Text);  // step right by the width of the text in the cell with Overflow set.
+			else
+				return widths.Take(col + 1).Sum(w => w + 1) + 0.5F;
 		}
 
 		float FindArrowRight(ZArrowEnd end, int col, List<float> widths)
 		{
-			if (end.Expand)
-				while (Columns.Valid(col + 1) &&
-						(!Rows[end.Row].Valid(col + 1) || Rows[end.Row][col + 1].Empty()) &&
-						!Columns[col + 1].Arrows.Exists(a => a.From.Exists(f => f.Row == end.Row)))
-					col++;
+			col = FindArrowEnd(end, col, 1);
 
-			return widths.Take(col + 1).Sum(w => w + 1) - 1.5F;
+			// If the cell we've stopped at exists, and is in a column that exists, and is align right, and has Overflow set,
+			if (Rows[end.Row].Valid(col) && Columns.Valid(col) &&
+				(Rows[end.Row][col].Alignment.HasFlag(ZAlignment.Right | ZAlignment.Overflow) || Columns[col].Alignment.HasFlag(ZAlignment.Right | ZAlignment.Overflow)))
+				return widths.Take(col + 1).Sum(w => w + 1) - 1.5F - TextWidth(Rows[end.Row][col].Text);  // step left by the width of the text in the cell with Overflow set.
+			else
+				return widths.Take(col).Sum(w => w + 1) - 1.5F;
 		}
 
 		/// <summary>Draw one complete vertical arrow plus its horizontal ends.</summary>
@@ -1588,24 +1646,98 @@ namespace Zoom
 			var halfScaleWidth = arrow.MaxWidth() / rowHeight * 2;  // Scaling factor used to convert an unscaled arrow width into half a scaled arrow width. 
 			var halfArrowH = arrow.MaxWidth() * halfScaleWidth;  // Half the width of the vertical part of the arrow, in output SVG units.
 
-			if (arrow.From.Count == 1 && arrow.To.Count == 1 && arrow.From[0].Width == arrow.To[0].Width)  // Arrow has one start, one end, of constant width: draw one spline-curved arrow.
+			if (arrow.From.Count == 1 && arrow.To.Count == 1 && arrow.From[0].Width == arrow.To[0].Width)  // Arrow has one start, one end, of constant width: draw one Bezier-curved arrow.
 			{
 				var leftEnd = arrow.From[0];
 				var rightEnd = arrow.To[0];
 				float fullArrow = (float)(leftEnd.Width * halfScaleWidth * 2);
 
 				float left = FindArrowLeft(leftEnd, col, widths);
-				float width = FindArrowRight(rightEnd, col, widths) - left;
+				float right = FindArrowRight(rightEnd, col, widths);
+				float width = Math.Max(right - left, fullArrow * 1.5F);
 
-				var mid = (rightEnd.Row - leftEnd.Row) * rowHeight / 2;  // mid is -ve if the arrow is going up.
-				s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", left, RowMid(top, leftEnd.Row, rowHeight));
+				s.AppendFormat("<path d=\"M {0:0.#},{1:0.#} ", left, RowMid(top, leftEnd.Row, rowHeight));
 
-				if (leftEnd == rightEnd)  // Draw the straight arrow line.
-					s.AppendFormat("h {0:F1}\" ", width);
+				if (leftEnd.Row == rightEnd.Row)  // Draw the straight arrow line.
+					s.AppendFormat("h {0:0.#}\" ", width - halfArrowH + 1);
 				else  // Draw the curved arrow line with two SVG "q" splines, like: <path d=\"M 100,100 h1 q3,0 6,11 q3,11 6,11 h1" stroke="color" stroke-width="4"/>
-					s.AppendFormat("h 1 q {0:F1},0 {1:F1},{2:F1} q {0:F1},{2:F1} {1:F1},{2:F1} h 1\" ", width / 4 - 1, width / 2 - 2, mid);
+				{
+					// See if there are filled cells that this arrow needs to dodge around.
+					// If leftEnd.Expand = false, go up/down at the left, then go to rightEnd.Row, dodging any blockages on the right.
+					// Otherwise, go from left end across, dodging any blockages on the left, then go up/down at right.
+					// That may be a horizontal followed by an S-shaped up/down, or an S-shaped up/down followed by a horizontal,
+					// or two Bezier "q" curves, with the transition from first to second curve at the corner of the cell/text we're dodging around.
+					bool upDownAtRight = leftEnd.Expand;
+					int yDirection = Math.Sign(rightEnd.Row - leftEnd.Row);  // -1: up; +1: down.
+					float yDirection2 = yDirection * (upDownAtRight ? -0.5F : 0.5F);  // Move crossover point up/down half a row to avoid text.
 
-				s.AppendFormat("fill=\"none\" stroke-width=\"{0:F1}\"", fullArrow);
+					int worstRow = rightEnd.Row;
+					float gradient = Math.Abs(leftEnd.Row - rightEnd.Row) * rowHeight / width;  // Absolute gradients because we want to figure out what's steepest.
+					float worstEdge = upDownAtRight ? left : right;
+
+					int fromTo = leftEnd.Row + (upDownAtRight ? yDirection : 0);
+					int toFrom = rightEnd.Row - (upDownAtRight ? 0 : yDirection);
+
+					for (int row = Math.Min(fromTo, toFrom); row <= Math.Max(fromTo, toFrom); row++)
+					{
+						float thisEdge = upDownAtRight ? FindArrowLeft(new ZArrowEnd(row) { Expand = true }, col, widths) : FindArrowRight(new ZArrowEnd(row) { Expand = true }, col, widths);
+						if (left < thisEdge && thisEdge < right)
+						{
+							float rows = Math.Abs((upDownAtRight ? rightEnd.Row : leftEnd.Row) - row - yDirection2);
+							float thisGradient = rows * rowHeight / (upDownAtRight ? right - thisEdge : thisEdge - left);
+							if (gradient < thisGradient)
+							{
+								worstRow = row;
+								gradient = thisGradient;
+								worstEdge = thisEdge;
+							}
+						}
+					}
+
+					if (gradient > Math.Abs(leftEnd.Row - rightEnd.Row) * rowHeight / width)
+					{
+						Console.WriteLine("Arrow from row {0} thru {1} to {2}: gradient {3}", leftEnd.Row, worstRow, rightEnd.Row, gradient);
+						float crossoverX = worstEdge - left;
+						var longEnd = upDownAtRight ? leftEnd : rightEnd;
+
+						if (gradient > 0.5 && Math.Abs(longEnd.Row - worstRow) * 2 <= Math.Abs(leftEnd.Row - rightEnd.Row))
+						{
+							// Two symmetric Bezier curves plus a long horizontal.
+							var yStepback = Math.Abs(longEnd.Row - worstRow) - 0.5F;
+							crossoverX += yStepback / gradient * (upDownAtRight ? -1 : 1) * rowHeight;
+							var wiggleHalfWidth = (upDownAtRight ? width - crossoverX : crossoverX) / 2 - halfArrowH;
+							var hStart = upDownAtRight ? crossoverX : 1;
+							var hEnd = upDownAtRight ? halfArrowH : width - crossoverX + halfArrowH;
+
+							s.AppendFormat("h {4:0.#} q {0:0.#},0 {1:0.#},{2:0.#} t {1:0.#},{2:0.#} h {3:0.#}\" ",
+								// 0: Control point x; 1: width of each curve; 2: height of each curve;                      3: horizontal bit at end, 4: horizontal bit at start.
+								wiggleHalfWidth / 2,   wiggleHalfWidth,        (rightEnd.Row - leftEnd.Row) * rowHeight / 2, hEnd,                     hStart);
+						}
+						else
+						{
+							// Two Bezier "q" quadratic curves. The end of the first curve (which is also the start of the second curve) is the point of steepest gradient.
+							// In the first curve, the control point has the same y position as the start point, meaning that the curve starts out horizontally.
+							// In the second curve, the control point y is the same as the end point y, meaning that the curve ends horizontally.
+							gradient *= yDirection * 2;  // Gradient at the steepest point on the curves will be double the gradient of if we just took a straight line.
+							float height1 = (worstRow - leftEnd.Row + yDirection2) * rowHeight;
+							float controlPoint1X = crossoverX - height1 / gradient;
+							float height2 = (rightEnd.Row - worstRow - yDirection2) * rowHeight;
+							float controlPoint2X = height2 / gradient;
+
+							s.AppendFormat("q {0:0.#},0 {1:0.#},{2:0.#} q {3:0.#},{4:0.#} {5:0.#},{4:0.#}\" ",
+								// 0: Control point x; 1,2: end of curve 1 x,y;  3,4: control point 2 x,y; 5: end of curve 2 x
+								controlPoint1X, crossoverX, height1, controlPoint2X, height2, width - crossoverX);
+						}
+					}
+					else
+						// Again, two Bezier quadratic curves, with steepest gradient where they meet.
+						// The control point has a width of half the width to the end point. The second "t" curve is a 180 degree rotation of the first.
+						s.AppendFormat("h 1 q {0:0.#},0 {1:0.#},{2:0.#} t {1:0.#},{2:0.#} h {3:0.#}\" ",
+							// 0: Control point x;      1: width of each curve; 2: height of each curve;                      3: horizontal bit at end.
+							width / 4 - halfArrowH / 2, width / 2 - halfArrowH, (rightEnd.Row - leftEnd.Row) * rowHeight / 2, halfArrowH);
+				}
+
+				s.AppendFormat("fill=\"none\" stroke-width=\"{0:0.#}\"", fullArrow);
 
 				if (c.A < 255)
 					s.AppendFormat(" stroke-opacity=\"{0:0.###}\"", c.A / 255.0);
@@ -1615,8 +1747,8 @@ namespace Zoom
 				s.Append("\" /> ");
 
 				// Add triangular arrowhead.
-				s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", left + width - fullArrow / 2F, RowMid(top, rightEnd.Row, rowHeight));
-				s.AppendFormat("v {0:F1} l {0:F1},{1:F1} l {1:F1},{1:F1} z\" fill=\"", fullArrow, -fullArrow);
+				s.AppendFormat("<path d=\"M {0:0.#},{1:0.#} ", left + width - halfArrowH, RowMid(top, rightEnd.Row, rowHeight));
+				s.AppendFormat("v {0:0.#} l {0:0.#},{1:0.#} l {1:0.#},{1:0.#} z\" fill=\"", fullArrow, -fullArrow);
 			}
 			else  // Complex arrow: draw an assembly with multiple starts and/or ends, connected by a vertical "bus" via 90 degree turns.
 			{
@@ -1627,13 +1759,13 @@ namespace Zoom
 				if (topType == TopBottomType.Right)
 				{
 					// Start in the horizontal middle, draw the top left corner arc. 
-					s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", centre + halfArrowH, RowMid(top, arrow.To.First().Row, rowHeight) - arrow.To.First().Width * halfScaleWidth);
-					s.AppendFormat("a {0:F1},{0:F1} 0 0 0 {1:F1},{0:F1} ", halfArrowH * 2, -halfArrowH * 2);
+					s.AppendFormat("<path d=\"M {0:0.#},{1:0.#} ", centre + halfArrowH, RowMid(top, arrow.To.First().Row, rowHeight) - arrow.To.First().Width * halfScaleWidth);
+					s.AppendFormat("a {0:0.#},{0:0.#} 0 0 0 {1:0.#},{0:0.#} ", halfArrowH * 2, -halfArrowH * 2);
 					if (!arrow.From.Any())
-						s.AppendFormat("V {2:F1}\n", RowMid(top, arrow.To.Last().Row, rowHeight) + arrow.To.Last().Width * halfScaleWidth);
+						s.AppendFormat("V {2:0.#}\n", RowMid(top, arrow.To.Last().Row, rowHeight) + arrow.To.Last().Width * halfScaleWidth);
 				}
 				else  // Move cursor to top right end of first arrow.
-					s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", centre - halfArrowH, RowMid(top, topRow, rowHeight) - arrow.From.First().Width * halfScaleWidth);
+					s.AppendFormat("<path d=\"M {0:0.#},{1:0.#} ", centre - halfArrowH, RowMid(top, topRow, rowHeight) - arrow.From.First().Width * halfScaleWidth);
 
 				// Draw left-side "From" ends.
 				for (int i = 0; i < arrow.From.Count; i++)
@@ -1643,35 +1775,35 @@ namespace Zoom
 
 					if (end.Row != topRow)
 					{
-						s.AppendFormat("V {0:F1} ", RowMid(top, end.Row, rowHeight) - halfArrow * 2);
-						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {1:F1},{0:F1} ", halfArrow, -halfArrow);
+						s.AppendFormat("V {0:0.#} ", RowMid(top, end.Row, rowHeight) - halfArrow * 2);
+						s.AppendFormat("a {0:0.#},{0:0.#} 0 0 1 {1:0.#},{0:0.#} ", halfArrow, -halfArrow);
 					}
 					// Paint a left end: left, down, right.
-					s.AppendFormat("H {0:F1} ", FindArrowLeft(end, col, widths));
-					s.AppendFormat("v {0:F1} ", halfArrow * 2);
+					s.AppendFormat("H {0:0.#} ", FindArrowLeft(end, col, widths));
+					s.AppendFormat("v {0:0.#} ", halfArrow * 2);
 					if (end.Row != bottomRow)
 					{
-						s.AppendFormat("H {0:F1} ", centre - halfArrowH - halfArrow);
-						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {0:F1},{0:F1} ", halfArrow);
+						s.AppendFormat("H {0:0.#} ", centre - halfArrowH - halfArrow);
+						s.AppendFormat("a {0:0.#},{0:0.#} 0 0 1 {0:0.#},{0:0.#} ", halfArrow);
 					}
 				}
 
 				// Handle transition between "From" and "To": draw the very bottom.
 				if (bottomType == TopBottomType.Left)
 				{
-					s.AppendFormat("H {0:F1} ", centre - halfArrowH);
-					s.AppendFormat("a {0:F1},{0:F1} 0 0 0 {0:F1},{1:F1} \n", halfArrowH * 2, -halfArrowH * 2);
+					s.AppendFormat("H {0:0.#} ", centre - halfArrowH);
+					s.AppendFormat("a {0:0.#},{0:0.#} 0 0 0 {0:0.#},{1:0.#} \n", halfArrowH * 2, -halfArrowH * 2);
 				}
 				else if (bottomType == TopBottomType.Both)
 				{
-					s.AppendFormat("H {0:F1} ", centre - halfArrowH);
+					s.AppendFormat("H {0:0.#} ", centre - halfArrowH);
 					if (arrow.From.Last().Width != arrow.To.Last().Width)
-						s.AppendFormat("c {0:F1},0 {0:F1},{2:F1} {1:F1},{2:F1}\n", halfArrowH, halfArrowH * 2, (arrow.To.Last().Width - arrow.From.Last().Width) / 2);
+						s.AppendFormat("c {0:0.#},0 {0:0.#},{2:0.#} {1:0.#},{2:0.#}\n", halfArrowH, halfArrowH * 2, (arrow.To.Last().Width - arrow.From.Last().Width) / 2);
 				}
 				else if (bottomType == TopBottomType.Right)
 				{
-					s.AppendFormat("V {0:F1} ", RowMid(top, arrow.To.Last().Row, rowHeight) + arrow.To.Last().Width * halfScaleWidth - halfArrowH * 2);
-					s.AppendFormat("a {0:F1},{0:F1} 0 0 0 {0:F1},{0:F1} \n", halfArrowH * 2);
+					s.AppendFormat("V {0:0.#} ", RowMid(top, arrow.To.Last().Row, rowHeight) + arrow.To.Last().Width * halfScaleWidth - halfArrowH * 2);
+					s.AppendFormat("a {0:0.#},{0:0.#} 0 0 0 {0:0.#},{0:0.#} \n", halfArrowH * 2);
 				}
 
 				// Draw right-side "To" ends.
@@ -1683,8 +1815,8 @@ namespace Zoom
 					s.Append('\t', indent);
 					if (end.Row != bottomRow)
 					{
-						s.AppendFormat("V {0:F1} ", top + (end.Row + 0.5) * rowHeight + halfArrow * 2);
-						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {0:F1},{1:F1} ", halfArrow, -halfArrow);
+						s.AppendFormat("V {0:0.#} ", top + (end.Row + 0.5) * rowHeight + halfArrow * 2);
+						s.AppendFormat("a {0:0.#},{0:0.#} 0 0 1 {0:0.#},{1:0.#} ", halfArrow, -halfArrow);
 					}
 
 					// Don't need to draw an arrowhead if this arrow has Expand set and there's a matching From arrow end in a future arrow, with no cells in between this arrow end and that arrow end.
@@ -1703,33 +1835,33 @@ namespace Zoom
 										break;
 								}
 
-					s.AppendFormat("H {0:F1} ", FindArrowRight(end, col, widths) - halfArrow);
+					s.AppendFormat("H {0:0.#} ", FindArrowRight(end, col, widths) - halfArrow);
 
 					if (found)
-						s.AppendFormat("v {0:F1} ", -halfArrow * 2);
+						s.AppendFormat("v {0:0.#} ", -halfArrow * 2);
 					else
 					{
 						// Paint a right end arrowhead, starting at its bottom left: down, up/right, up/left, down.
-						s.AppendFormat("v {0:F1} ", halfArrow);
-						s.AppendFormat("l {0:F1},{1:F1} ", halfArrow * 2, -halfArrow * 2);
-						s.AppendFormat("l {0:F1},{0:F1} ", -halfArrow * 2);
-						s.AppendFormat("v {0:F1} ", halfArrow);
+						s.AppendFormat("v {0:0.#} ", halfArrow);
+						s.AppendFormat("l {0:0.#},{1:0.#} ", halfArrow * 2, -halfArrow * 2);
+						s.AppendFormat("l {0:0.#},{0:0.#} ", -halfArrow * 2);
+						s.AppendFormat("v {0:0.#} ", halfArrow);
 					}
 
-					s.AppendFormat("H {0:F1} ", centre + halfArrowH + halfArrow);
+					s.AppendFormat("H {0:0.#} ", centre + halfArrowH + halfArrow);
 
 					if (end.Row != topRow)
-						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {1:F1},{1:F1} ", halfArrow, -halfArrow);
+						s.AppendFormat("a {0:0.#},{0:0.#} 0 0 1 {1:0.#},{1:0.#} ", halfArrow, -halfArrow);
 				}
 
 				// Bring us back to top right and finish off.
 				if (topType == TopBottomType.Left)
 				{
-					s.AppendFormat("V {0:F1} ", top + (arrow.From.First().Row + 0.5) * rowHeight - arrow.From.First().Width * halfScaleWidth + halfArrowH * 2);
-					s.AppendFormat("a {0:F1},{0:F1} 0 0 0 {1:F1},{1:F1} ", halfArrowH * 2, -halfArrowH * 2);
+					s.AppendFormat("V {0:0.#} ", top + (arrow.From.First().Row + 0.5) * rowHeight - arrow.From.First().Width * halfScaleWidth + halfArrowH * 2);
+					s.AppendFormat("a {0:0.#},{0:0.#} 0 0 0 {1:0.#},{1:0.#} ", halfArrowH * 2, -halfArrowH * 2);
 				}
 				else if (topType == TopBottomType.Both && arrow.From.First().Width != arrow.To.First().Width)
-					s.AppendFormat("c {0:F1},0 {0:F1},{2:F1} {1:F1},{2:F1} ", -halfArrowH, -halfArrowH * 2, (arrow.To.First().Width - arrow.From.First().Width) / 2);
+					s.AppendFormat("c {0:0.#},0 {0:0.#},{2:0.#} {1:0.#},{2:0.#} ", -halfArrowH, -halfArrowH * 2, (arrow.To.First().Width - arrow.From.First().Width) / 2);
 				s.Append("Z\" fill=\"");
 			}
 
@@ -1905,25 +2037,25 @@ namespace Zoom
 					if (column.Rotate && nextRotated)  // This column heading and next are both rotated: left and right sides are at 46 degrees.
 					{
 						if (right - height < 1)  // Top two points of a parallelogram would be off left edge of report.
-							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\"";  // Paint a trapezoid. Start at top left; go down and right at 45 degrees to right edge of column; left by widths[col]; up and right at 45 degrees to left edge of report; then let it close itself.
+							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" ";  // Paint a trapezoid. Start at top left; go down and right at 45 degrees to right edge of column; left by widths[col]; up and right at 45 degrees to left edge of report; then let it close itself.
 						else if (x - height < 1)  // Top left point of a parallelogram would be off left edge of report.
-							format = "\t<polygon points=\"1,{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\"";  // Paint a pentagon. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+							format = "\t<polygon points=\"1,{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" ";  // Paint a pentagon. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
 						else
-							format = "\t<polygon points=\"{0:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\"";  // Paint a parallelogram. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+							format = "\t<polygon points=\"{0:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" ";  // Paint a parallelogram. Start at top left; go right by widths[col]; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
 					}
 					else if (column.Rotate && !nextRotated)  // This column heading is rotated but next column heading is flat: left at 45 degrees, right vertical.
 					{
 						if (x - height < 1)  // Top left point would be off left edge of report.
-							format = "\t<polygon points=\"1,{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\"";  // Paint a pentagon. Start at top left; go right; down by headingsHeight; left by widths[col]; up and right at 45 degrees to left edge of report; close.
+							format = "\t<polygon points=\"1,{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0} 1,{6:F0}\" ";  // Paint a pentagon. Start at top left; go right; down by headingsHeight; left by widths[col]; up and right at 45 degrees to left edge of report; close.
 						else
-							format = "\t<polygon points=\"{0:F0},{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\"";  // Paint a trapezoid. Start at top left, then go right, down by headingsHeight, left by widths[col], then let it close itself.
+							format = "\t<polygon points=\"{0:F0},{4:F0} {2:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" ";  // Paint a trapezoid. Start at top left, then go right, down by headingsHeight, left by widths[col], then let it close itself.
 					}
 					else  // This column heading is flat but next column heading is rotated: left vertical, right at 45 degrees.
 					{
 						if (right - height < 1)  // We are constrained by next column's heading above us.
-							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} 1,{5:F0}\"";  // Paint a triangle. Start at upper left; go down and right at 45 degrees to bottom; then left; close.
+							format = "\t<polygon points=\"1,{7:F0} {2:F0},{5:F0} 1,{5:F0}\" ";  // Paint a triangle. Start at upper left; go down and right at 45 degrees to bottom; then left; close.
 						else
-							format = "\t<polygon points=\"{3:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\"";  // Paint a trapezoid. Start at top left; go right; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
+							format = "\t<polygon points=\"{3:F0},{4:F0} {1:F0},{4:F0} {2:F0},{5:F0} {3:F0},{5:F0}\" ";  // Paint a trapezoid. Start at top left; go right; down and right at 45 degrees by headingsHeight,headingsHeight; left by widths[col]; close.
 					}
 
 					// x positions:        0: top left; 1: top right;   2: bottom right; 3: bottom left;

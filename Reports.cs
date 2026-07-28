@@ -140,6 +140,114 @@ namespace Torn.Report
 	/// <summary>Ladders, game-by-game, etc. Functions in this class mostly build and return a ZoomReport.</summary>
 	public static class Reports
 	{
+		/// <summary>Start with teams in rank order implied by prior games; follow teams through games, moving up/down as they win/lose; see their final rank.</summary>
+		public static ZoomReport AscensionWithArrows(League league, bool includeSecret, ReportTemplate rt)
+		{
+			ZoomReport report = new ZoomReport(ReportTitle("Ascension", league.Title, rt));
+
+			var ascensionGames = Games(league, includeSecret, rt);
+			if (!ascensionGames.Any())
+				return FinishReport(report, ascensionGames, rt);
+
+			var firstAscensionGameTime = ascensionGames.First().Time;
+			var ladder = Ladder(league, league.Games().Where(g => g.Time < firstAscensionGameTime).ToList(), new ReportTemplate());
+			if (!ladder.Any())
+				return WithDescription(report, "No games were found before the range selected for reporting. This report needs games before the ascension to give initial ladder positions for each team.");
+
+			var currentLadder = new Dictionary<int?, int>();  // Key: TeamId. Value: current ladder rank, where 0 is top of ladder.
+			for (int i = 0; i < ladder.Count; i++)
+			{
+				report.AddRow(new ZRow());  // Add a row for each team.
+				currentLadder.Add(ladder[i].Team.TeamId, currentLadder.Count);
+			}
+
+			bool hasPoints = league.IsPoints(ascensionGames) && rt.FindSetting("ignorePoints") == 0;
+
+			var nextColumnArrows = new List<Arrow>();
+
+			// Create columns.
+			for (int g = 0; g < ascensionGames.Count; g++)
+			{
+				int startCol = report.Columns.Count - 1;
+				var game = ascensionGames[g];
+
+				report.AddColumn(new ZColumn()).Arrows.AddRange(nextColumnArrows);
+				nextColumnArrows.Clear();
+
+				report.AddColumn(new ZColumn(game.Time.ToShortTimeString(), ZAlignment.Integer) { Hyper = GameHyper(game, rt) });  // Game scores.
+
+				if (hasPoints)
+					report.AddColumn(new ZColumn("Points") { Rotate = true });
+
+				var ranksUpForGrabs = currentLadder.Where(kv => game.Teams.Any(gt => gt.TeamId == kv.Key)).Select(kv => kv.Value).OrderBy(x => x).ToList();
+				var orderedGameTeams = game.Teams.OrderByDescending(gt => gt.Points).ThenByDescending(gt => gt.Score).ThenByDescending(gt => gt.GetZeroedScore()).ToList();
+				for (int gt = 0; gt < orderedGameTeams.Count; gt++)
+				{
+					var gameTeam = orderedGameTeams[gt];
+					var leagueTeam = league.LeagueTeam(gameTeam);
+					var rowIndex = currentLadder[gameTeam.TeamId];
+					var row = report.Rows[rowIndex];
+					row.Force(startCol);
+
+					row.Add(new ZCell(leagueTeam.Name) { Tag = leagueTeam });
+					if (g > 0 && !ascensionGames[g - 1].Teams.Any(gt2 => gt2.TeamId == gameTeam.TeamId))  // If there's room to the left,
+						row.Last().Alignment = ZAlignment.Right | ZAlignment.Overflow;  // overflow leftward.
+
+					row.Add(new ZCell(gameTeam.Score, ChartType.Bar, "N0", gameTeam.Colour.ToColor()));
+
+					if (hasPoints)
+						row.Add(new ZCell(gameTeam.Points));
+
+					// Update currentLadder.
+					currentLadder[gameTeam.TeamId] = ranksUpForGrabs[gt];
+
+					// Draw an arrow from this team's old rank to their new rank in their next game.
+					var arrow = new Arrow();
+					arrow.From.Add(new ZArrowEnd(rowIndex, 5));
+					arrow.To.Add(new ZArrowEnd(ranksUpForGrabs[gt], 5) { Expand = true });
+					arrow.Color = Utility.StringToColor(leagueTeam.Name);
+					nextColumnArrows.Add(arrow);
+				}
+
+				bool backToBack = g < ascensionGames.Count - 1 && ascensionGames[g + 1].Teams.Any(gt => game.Teams.Any(gt2 => gt2.TeamId == gt.TeamId));
+				if (backToBack)
+				{
+					report.AddColumn(new ZColumn()).Arrows.AddRange(nextColumnArrows);
+					nextColumnArrows.Clear();
+				}
+			}
+
+			report.AddColumn(new ZColumn()).Arrows.AddRange(nextColumnArrows);  // Show remaining arrows.
+			report.AddColumn(new ZColumn());  // Column for the final rankings of teams in the last ascension gaame.
+
+			var laddertoTeamId = currentLadder.ToDictionary(kv => kv.Value, kv => kv.Key);
+			var lastAscensionGameTime = ascensionGames.Last().Time;
+			var laterGames = league.Games().Where(g => g.Time > lastAscensionGameTime).ToList();
+			var laterTeamIds = laterGames.SelectMany(g => g.Teams.Select(gt => gt.TeamId));
+
+			// At the end of each row show each team's final ranking.
+			for (int i = 0; i < report.Rows.Count && i < currentLadder.Count; i++)
+			{
+				var row = report.Rows[i];
+				row.Add(new ZCell());
+
+				bool teamInLaterGames = laterTeamIds.Contains(laddertoTeamId[i]);
+
+				// For teams that have reached grand finals, pad cells to second-last column.
+				if (teamInLaterGames)
+					while (row.Count < report.Columns.Count - 1)
+						row.Add(new ZCell());
+
+				var alignment = row.Count < report.Columns.Count - 1 && !laterTeamIds.Contains(laddertoTeamId[i]) ? ZAlignment.Left | ZAlignment.Overflow : ZAlignment.None;
+				row.Add(new ZCell((teamInLaterGames ? "" : Utility.Ordinate(i + 1) + ": ") + league.LeagueTeam(laddertoTeamId[i]).Name) { Alignment = alignment });
+			}
+
+			if (rt.Settings.Contains("Description"))
+				report.Description = "Each column is one game. Follow arrows to see how a team performs.";
+
+			return FinishReport(report, ascensionGames, rt);
+		}
+
 		/// <summary>How many times does each colour come 1st, 2nd, 3rd (etc)?</summary>
 		public static ZoomReport ColourReport(List<League> leagues, bool includeSecret, ReportTemplate rt)
 		{
@@ -575,7 +683,7 @@ namespace Torn.Report
 				List<double> pointsList = new List<double>();
 				List<double> hitsList = new List<double>();
 
-				ZRow row = new ZRow(); ;
+				ZRow row = new ZRow();
 
 				row.Add(new ZCell(0, ChartType.None, "N0")); // Temporary blank rank.
 
@@ -1200,7 +1308,7 @@ namespace Torn.Report
 					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]) { Rotate = true });
 					report.AddColumn(new ZColumn());  // This column is for arrows.
 
-					var ascension = GamesGrid(league, thisGroupGames, new ReportTemplate(ReportType.Ascension, new string[] { }));
+					var ascension = GamesGrid(league, thisGroupGames, new ReportTemplate(ReportType.AscensionGrid, new string[] { }));
 
 					// Find if there are any teams that topped the previous round but aren't in this round. If so, provide blanks for them (because they're skipping this round).
 					int offset = 0;
@@ -2212,7 +2320,7 @@ namespace Torn.Report
 
 					string gameTitle = game.Title?.ToLower();
 					if (gamesWithPoints > games.Count() / 2 && (string.IsNullOrEmpty(game.Title) ||
-						(!gameTitle.Contains("ascension") && !gameTitle.Contains("format") && !gameTitle.Contains("final") && !gameTitle.Contains("track"))) &&
+						(!gameTitle.Contains("ascension") && !gameTitle.Contains("format") && !gameTitle.Contains("system d") && !gameTitle.Contains("final") && !gameTitle.Contains("track"))) &&
 						!game.Teams.Any(t => t.Points != 0))
 						AddSanityCheckRow(report, league, game, null, "Game does not have victory points set.");
 
@@ -3548,12 +3656,12 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			return dataCell;
 		}
 
-		static ZCell TeamCell(LeagueTeam leagueTeam, Color color = default)
+		static ZCell TeamCell(LeagueTeam leagueTeam)
 		{
 			if (leagueTeam == null)
-				return new ZCell("", color);
+				return new ZCell();
 
-			ZCell teamcell = new ZCell(leagueTeam.Name, color)
+			ZCell teamcell = new ZCell(leagueTeam.Name)
 			{
 				Hyper = TeamHyper(leagueTeam)
 			};
@@ -3819,7 +3927,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 								}
 							);
 					break;
-				case ReportType.Ascension:
+				case ReportType.AscensionGrid:
 					report.AddColumn(new ZColumn("Last game index"));
 					foreach (ZRow row in report.Rows)
 					{
@@ -3895,7 +4003,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			for (int i = 0; i < report.Rows.Count; i++)
 				report.Rows[i][0].Number = i + 1;
 
-			report.Title = ReportTitle(rt.ReportType == ReportType.Ascension ? "Ascension" : 
+			report.Title = ReportTitle(rt.ReportType == ReportType.AscensionGrid ? "Ascension" : 
 			                           rt.ReportType == ReportType.Pyramid   ? "Pyramid" : 
 			                                                                   "Games", league.Title, rt);
 		}
@@ -3914,7 +4022,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				return leagueName + " " + Utility.JoinWithoutDuplicate(group, reportName);
 		}
 
-		static void FinishReport(ZoomReport report, List<Game> games, ReportTemplate rt)
+		static ZoomReport FinishReport(ZoomReport report, List<Game> games, ReportTemplate rt)
 		{
 			report.Title += FromTo(games, rt.From, rt.To);
 
@@ -3939,6 +4047,14 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 				if (!string.IsNullOrEmpty(group))
 					report.Description += " The report has been limited to games with title \"" + group + "\".";
 			}
+
+			return report;
+		}
+
+		static ZoomReport WithDescription(ZoomReport report, string description)
+		{
+			report.Description = description;
+			return report;
 		}
 
 		private class ListViewItemConverter : JsonConverter

@@ -116,7 +116,7 @@ namespace Torn.Report
 				case ReportType.SoloLadder: return Reports.SoloLadder(league, includeSecret, rt);
 				case ReportType.GameByGame: return Reports.GamesList(league, includeSecret, rt);
 				case ReportType.DetailedGames: return Reports.DetailedGamesList(league, includeSecret, rt);
-				case ReportType.Ascension:
+				case ReportType.Ascension: return Reports.AscensionWithArrows(league, includeSecret, rt);
 				case ReportType.GameGrid:
 				case ReportType.AscensionGrid:
 				case ReportType.Pyramid:
