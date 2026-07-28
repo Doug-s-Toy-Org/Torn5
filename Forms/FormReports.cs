@@ -22,20 +22,15 @@ namespace Torn.UI
 			// The InitializeComponent() call is required for Windows Forms designer support.
 			//
 			InitializeComponent();
-			
+
 			formReport = new FormReport();
 		}
 
 		public FormReports(Holder holder): this()
 		{
 			Holder = holder;
-			var games = Holder.League.Games();
-			if (games.Any())
-			{
-				formReport.From = games.First().Time.Date;
-				formReport.To = games.Last().Time.Date;
-				formReport.League = Holder.League;
-			}
+			formReport.Leagues = new List<League>() { Holder.League };
+
 			RefreshListView();
 
 			switch (Holder.ReportTemplates.OutputFormat) {
@@ -77,6 +72,7 @@ namespace Torn.UI
 		void ButtonAddClick(object sender, EventArgs e)
 		{
 			formReport.ReportTemplate = null;
+			formReport.Icon = (Icon)Icon.Clone();
 
 			if (formReport.ShowDialog() == DialogResult.OK)
 			{
@@ -99,6 +95,8 @@ namespace Torn.UI
 		
 		void ButtonEditClick(object sender, EventArgs e)
 		{
+			formReport.Icon = (Icon)Icon.Clone();
+
 			if (listViewReports.SelectedItems.Count > 0)
 			{
 				formReport.ReportTemplate = (ReportTemplate)listViewReports.SelectedItems[0].Tag;

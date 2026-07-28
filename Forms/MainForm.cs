@@ -625,8 +625,7 @@ namespace Torn.UI
 		ReportTemplate adhocReportTemplate;
 		private void ButtonAdHocReportClick(object sender, EventArgs e)
 		{
-			Holder holder = SelectedLeagues().FirstOrDefault();
-			if (holder != null)
+			if (SelectedLeagues().Any())
 			{
 				if (adhocReportTemplate == null)
 				{
@@ -634,14 +633,12 @@ namespace Torn.UI
 					adhocReportTemplate.Settings.Add("Description");
 				}
 
-				var games = holder.League.Games(true);
+				var leagues = SelectedLeagues().Select(h => h.League).ToList();
+
 				if (new FormReport
 				{
-					Text = "Report on " + (SelectedLeagues().Count == 1 ? holder.League.Title : SelectedLeagues().Count.ToString() + " leagues"),
-					From = (games.FirstOrDefault()?.Time ?? DateTime.Now).Date,
-					To = (games.LastOrDefault()?.Time ?? DateTime.Now).Date,
 					ReportTemplate = adhocReportTemplate,
-					League = SelectedLeagues().FirstOrDefault()?.League,
+					Leagues = leagues,
 					Icon = (Icon)this.Icon.Clone()
 				}.ShowDialog() == DialogResult.OK)
 				{
@@ -651,7 +648,7 @@ namespace Torn.UI
 						GetExportFolder();
 						new FormAdhoc
 						{
-							Report = (ZoomReport)ReportPages.Report(SelectedLeagues().Select(h => h.League).ToList(), IncludeSecret(), adhocReportTemplate, exportFolder),
+							Report = (ZoomReport)ReportPages.Report(leagues, IncludeSecret(), adhocReportTemplate, exportFolder),
 							Icon = (Icon)this.Icon.Clone()
 						}.Show();
 					}

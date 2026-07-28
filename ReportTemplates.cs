@@ -8,12 +8,9 @@ using Zoom;
 
 namespace Torn.Report
 {
-	public enum ReportType { None = 0, TeamLadder, MultiLadder, TeamsVsTeams, SoloLadder, GameByGame, GameGrid, GameGridCondensed, DetailedGames, Ascension, Pyramid, PyramidCondensed,
-		                     ColourPerformance, TermReport, SanityCheck, Everything, Packs, PackHits, PageBreak };
-
-	//ChartType[] barTypes = { Zoom.ChartType.None, Zoom.ChartType.Bar | Zoom.ChartType.Rug, Zoom.ChartType.Bar | Zoom.ChartType.Rug, Zoom.ChartType.Bar | Zoom.ChartType.Rug, 
-	// Zoom.ChartType.Bar, Zoom.ChartType.Bar, Zoom.ChartType.Bar, Zoom.ChartType.Bar, Zoom.ChartType.Bar, Zoom.ChartType.Bar, Zoom.ChartType.Bar,
-	// Zoom.ChartType.KernelDensityEstimate | Zoom.ChartType.Rug, Zoom.ChartType.Histogram, Zoom.ChartType.None, Zoom.ChartType.Bar, Zoom.ChartType.None };
+	public enum ReportType { None = 0, TeamLadder, MultiLadder, TeamsVsTeams, SoloLadder,
+		GameByGame, GameGrid, GameGridCondensed, Pyramid, PyramidCondensed, Ascension, AscensionGrid,
+		ColourPerformance, TermReport, SanityCheck, DetailedGames, Everything, Packs, PackHits, PageBreak };
 
 	/// <summary>Holds details for a single report template -- a team ladder, a solo ladder, etc.</summary>
 	public class ReportTemplate

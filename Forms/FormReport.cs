@@ -16,50 +16,93 @@ namespace Torn.UI
 		public ReportTemplate ReportTemplate { get; set; }
 		public DateTime From { set { datePickerFrom.Value = value; } get { return datePickerFrom.Value; } }
 		public DateTime To { set { datePickerTo.Value = value; } get { return datePickerTo.Value; } }
-		public League League { get; set; }
+		public List<League> Leagues { get; set; }
 
 		private int secretClicked = 0;
-
 		bool chartTypeChanged = false;
+		Color disabledColor;
+		bool initialising;
+
 		public FormReport()
 		{
 			//
 			// The InitializeComponent() call is required for Windows Forms designer support.
 			//
 			InitializeComponent();
-			
+
 			timePickerFrom.CustomFormat = CultureInfo.CurrentUICulture.DateTimeFormat.ShortTimePattern;
 			timePickerTo.CustomFormat = CultureInfo.CurrentUICulture.DateTimeFormat.ShortTimePattern;
 		}
 
 		void FormReportShown(object sender, EventArgs e)
 		{
-			listBoxReportType.Items.Clear();
+			initialising = true;
+			Text = "Report on " + (Leagues.Count == 1 ? Leagues.First().Title : Leagues.Count.ToString() + " leagues");
+
 			List<string> reports = new List<string>
 			{
 				"Team Ladder",
-				"Multi Ladder (uses game descriptions)",
+				"Multi Ladder",
 				"Teams vs teams",
 				"Solo Ladder",
-				"Game by game (good for 3 team games)",
-				"Game grid (good for many team games)",
+				"Game by game",
+				"Game grid",
 				"Game grid condensed",
-				"Detailed Games",
-				"Ascension (for semifinals)",
 				"Pyramid",
 				"Pyramid condensed",
-				"Colours (performance of each colour)",
-				"Term Report (terminations, warnings, etc.)",
-				"Sanity Check (try me!)",
-				"Everything (good for data export)",
+				"Ascension",
+				"Ascension as a grid",
+				"Colours",
+				"Term Report",
+				"Sanity Check",
+				"Detailed Games",
+				"Everything",
 			};
-			listBoxReportType.Items.AddRange(reports.ToArray());
-			League.Load();
-			listBoxReportType.Focus();
 
-			if (League != null)
+			List<string> descriptions = new List<string>
 			{
-				var titles = League.Games().Select(g => g.Title ?? "").Distinct();
+				"Teams, ranked.",
+				"Uses game descriptions to group games into rounds.",
+				"How many times teams play and defeat each other.",
+				"Players, ranked.",
+				"Good for 3 team games.",
+				"Good for many team games.",
+				"Takes less width than Game grid.",
+				"Good where teams get eliminated after each round.",
+				"Takes less width than Pyramid.",
+				"For semifinals.",
+				"Takes less width than Ascension.",
+				"Performance of each colour.",
+				"Terminations, warnings, etc.",
+				"Try me!",
+				"",
+				"Good for data export.",
+			};
+
+			disabledColor = Utility.MixColors(listViewReportType.ForeColor, listViewReportType.BackColor, 0.25);
+			listViewReportType.Items.Clear();
+			for (int i = 0; i < reports.Count && i < descriptions.Count; i++)
+			{
+				var item = listViewReportType.Items.Add(reports[i]);
+				item.SubItems.Add(descriptions[i]);
+				if (Leagues.Count > 1 && i != 11 && i != 13)
+					item.ForeColor = disabledColor;
+			}
+
+			listViewReportType.Focus();
+
+			if (Leagues.Any())
+			{
+				var games = Leagues.SelectMany(l => l.Games());
+
+				var gameTimes = games.Select(g => g.Time).OrderBy(dt => dt).ToList();
+				if (!gameTimes.Any())
+					gameTimes.Add(DateTime.Now);
+
+				From = gameTimes.First().Date;
+				To = gameTimes.Last().Date;
+
+				var titles = games.Select(g => g.Title ?? "").Distinct();
 				if (titles.Any())
 				{
 					descriptionGroup.Items.Clear();
@@ -69,7 +112,8 @@ namespace Torn.UI
 
 			if (ReportTemplate != null)
 			{
-				listBoxReportType.SelectedIndex = listBoxReportType.Items.Count <= (int)ReportTemplate.ReportType - 1 ? listBoxReportType.Items.Count - 1 : (int)ReportTemplate.ReportType - 1;
+				listViewReportType.SelectedIndices.Clear();
+				listViewReportType.SelectedIndices.Add(listViewReportType.Items.Count <= (int)ReportTemplate.ReportType - 1 ? listViewReportType.Items.Count - 1 : (int)ReportTemplate.ReportType - 1);
 
 				title.Text = ReportTemplate.Title;
 
@@ -104,14 +148,12 @@ namespace Torn.UI
 				numericUpDownTopN.Value = i ?? 0;
 
 				i = ReportTemplate.SettingInt("AtLeastN");
-				numericUpDownAtLeastN.Enabled = i != null;
 				numericUpDownAtLeastN.Value = i ?? 0;
 
 				chartType.Text = ReportTemplate.Setting("ChartType") ?? "bar";
 				orderBy.Text = ReportTemplate.Setting("OrderBy") ?? "TR×SR";
 			}
-
-//			ListBoxReportTypeSelectedIndexChanged(null, null);
+			initialising = false;
 		}
 
 		void FormReportFormClosed(object sender, FormClosedEventArgs e)
@@ -121,7 +163,8 @@ namespace Torn.UI
 				if (ReportTemplate == null)
 					ReportTemplate = new ReportTemplate();
 
-				ReportTemplate.ReportType = (ReportType)(listBoxReportType.SelectedIndex + 1);
+				if (listViewReportType.SelectedIndices.Count > 0)
+					ReportTemplate.ReportType = (ReportType)(listViewReportType.SelectedIndices[0] + 1);
 
 				ReportTemplate.Title = title.Text;
 
@@ -169,7 +212,8 @@ namespace Torn.UI
 
 		string OrderByText()
 		{
-			switch (orderBy.SelectedIndex) {
+			switch (orderBy.SelectedIndex)
+			{
 				case 0: return "TRxSR";
 				case 1: return "tag ratio";
 				case 2: return "score ratio";
@@ -178,9 +222,9 @@ namespace Torn.UI
 			}
 		}
 
-		void ListBoxReportTypeSelectedIndexChanged(object sender, EventArgs e)
+		void ListViewReportTypeSelectedIndexChanged(object sender, EventArgs e)
 		{
-			int i = listBoxReportType.SelectedIndex;
+			int i = listViewReportType.SelectedIndices.Count > 0 ? listViewReportType.SelectedIndices[0] : 0;
 			ReportType r = (ReportType)(i + 1);
 			bool isTeamOrSolo = r == ReportType.TeamLadder || r == ReportType.SoloLadder;
 
@@ -229,29 +273,31 @@ namespace Torn.UI
 
 		void DatePickerFromValueChanged(object sender, EventArgs e)
 		{
-			dateFrom.Checked = true;
+			if (!initialising)
+				dateFrom.Checked = true;
 		}
-		
+
 		void DatePickerToValueChanged(object sender, EventArgs e)
 		{
-			dateTo.Checked = true;
+			if (!initialising)
+				dateTo.Checked = true;
 		}
 
 		void DropGamesCheckedChanged(object sender, EventArgs e)
 		{
 			groupBoxDrops.Enabled = dropGames.Checked;
 		}
-		
-		void ShowTopNCheckedChanged(object sender, EventArgs e)
+
+		private void NumericUpDownTopNValueChanged(object sender, EventArgs e)
 		{
-			numericUpDownTopN.Enabled = showTopN.Checked;
+			showTopN.Checked = numericUpDownTopN.Value > 0;
 		}
-		
-		void AtLeastNCheckedChanged(object sender, EventArgs e)
+
+		private void NumericUpDownAtLeastNValueChanged(object sender, EventArgs e)
 		{
-			numericUpDownAtLeastN.Enabled = atLeastN.Checked;
+			atLeastN.Checked = numericUpDownAtLeastN.Value > 0;
 		}
-		
+
 		void ScaleGamesCheckedChanged(object sender, EventArgs e)
 		{
 			if (scaleGames.Checked && orderBy.Items.Count == 2)
@@ -276,41 +322,24 @@ namespace Torn.UI
 				chartTypeChanged = true;
 		}
 
-		private void WithDescriptionCheckedChanged(object sender, EventArgs e)
+		private void DescriptionGroupTextChanged(object sender, EventArgs e)
 		{
-			descriptionGroup.Enabled = withDescription.Checked;
+			withDescription.Checked = descriptionGroup.Text.Length > 0;
 		}
 
 		private void button1_Click(object sender, EventArgs e)
 		{
 			secretClicked++;
-			if(secretClicked == 5)
+			if (secretClicked == 5)
 			{
-				listBoxReportType.Items.Add("Packs (Student's t test)");
-				listBoxReportType.Items.Add("Pack Hits");
+				listViewReportType.Items.Add("Packs").SubItems.Add("Student's t test");
+				listViewReportType.Items.Add("Pack Hits");
 			}
 		}
 
-		void ListBoxReportTypeDrawItem(object sender, DrawItemEventArgs e)
+		private void ListViewReportTypeResize(object sender, EventArgs e)
 		{
-			e.DrawBackground();
-			if (e.Index >= 0)
-			{
-				string text = listBoxReportType.Items[e.Index].ToString();
-				int bracketPos = text.IndexOf('(');
-				string first = bracketPos > -1 ? text.Substring(0, bracketPos - 1) : text;
-				e.Graphics.DrawString(first, e.Font, new SolidBrush(e.ForeColor), e.Bounds);
-
-				if (bracketPos > -1)
-				{
-					string second = text.Substring(bracketPos);
-					var firstWidth = (int)e.Graphics.MeasureString(first, e.Font).Width;
-					var color = Utility.MixColors(e.ForeColor, e.BackColor, 0.5);
-					var rect = new Rectangle(e.Bounds.X + firstWidth, e.Bounds.Y, e.Bounds.Width - firstWidth, e.Bounds.Height);
-					e.Graphics.DrawString(second, e.Font, new SolidBrush(color), rect);
-				}
-			}
-			e.DrawFocusRectangle();
+			colDescription.Width = listViewReportType.Width - colReportType.Width - SystemInformation.VerticalScrollBarWidth - 4;
 		}
 
 		float previousScale = 1;
@@ -320,7 +349,10 @@ namespace Torn.UI
 
 			float scale = factor.Width;
 			if (scale != previousScale)
-				listBoxReportType.ItemHeight = (int)Math.Ceiling(listBoxReportType.GetItemHeight(0) * scale / previousScale);
+			{
+				Utility.ScaleListViewColumns(listViewReportType, scale / previousScale);
+				splitContainer1.SplitterDistance = splitContainer1.Height - buttonOK.Bottom - 24;
+			}
 			previousScale = scale;
 		}
 	}
