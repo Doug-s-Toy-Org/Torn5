@@ -683,11 +683,11 @@ namespace Torn.Report
 				List<double> pointsList = new List<double>();
 				List<double> hitsList = new List<double>();
 
-				ZRow row = new ZRow();
-
-				row.Add(new ZCell(0, ChartType.None, "N0")); // Temporary blank rank.
-
-				row.AddCell(TeamCell(leagueTeam)).Tag = leagueTeam;
+				ZRow row = new ZRow
+				{
+					new ZCell(0, ChartType.None, "N0"), // Temporary blank rank.
+					TeamCell(leagueTeam)
+				};
 
 				// Add a cell for each game for this team. If the team is not in this game, add a blank.
 				foreach (Game game in games)
@@ -1272,7 +1272,8 @@ namespace Torn.Report
 			var groupGames = new List<Game>();  // This list can accumulate games across multiple groups, if results are supposed to accumulate across multiple groups (e.g. as they do from Round Robin to Cascade).
 			var teamColumns = new List<int>();  // List of indexes of columns that contain team names.
 
-			for (int i = 0; i < league.TeamCount(); i++)
+			var teamCount = league.Teams().Where(lt => games.Any(g => g.Teams.Any(gt => gt.TeamId == lt.TeamId))).Count();
+			for (int i = 0; i < teamCount; i++)
 				report.AddRow(new ZRow()).Add(new ZCell(i + 1));  // Rank
 
 			List<TeamLadderEntry> previousLadder = null;
@@ -1287,11 +1288,14 @@ namespace Torn.Report
 					groupGames.Clear();  // Disregard previous results -- use only results from this round to rank.
 
 				var thisGroupGames = games.Where(g => g.Title == groups[group]).ToList();
+				var lastTimeInThisGroup = thisGroupGames.Max(g => g.Time);
+				var futureTeamIds = games.Where(g => g.Time > lastTimeInThisGroup).SelectMany(g => g.Teams).Select(gt => gt.TeamId).Distinct();
 
 				bool isPoints = league.IsPoints(thisGroupGames);
 				int columnsThisGroup = isPoints ? 5 : 4;
 
 				groupGames.AddRange(thisGroupGames);
+				var maxPlays = thisGroupGames.SelectMany(g => g.Teams.Select(gt => gt.TeamId)).GroupBy(id => id).Max(g => g.Count());  // Greatest number of times any team plays in this round.
 
 				teamColumn = report.AddColumn(new ZColumn("Team", ZAlignment.Left, groups[group]));
 				teamColumns.Add(report.Columns.Count - 1);
@@ -1318,14 +1322,13 @@ namespace Torn.Report
 								break;
 					previousLadder = null;
 
-					for (int team = 0; team < offset; team++)
-						AddBlankCells(report.Rows[team], columnsThisGroup);
-
 					// For teams that are in this round, add cells for them.
 					for (int team = 0; team < Math.Min(report.Rows.Count, ascension.Rows.Count); team++)
 					{
 						ZRow ascensionRow = ascension.Rows[team];
 						ZRow row = report.Rows[team + offset];
+						row.Force(report.Columns.Count - columnsThisGroup - 1);
+
 						ZCell teamCell = row.AddCell(ascensionRow[1]);  // Team
 
 						var placings = new List<string>();
@@ -1349,30 +1352,31 @@ namespace Torn.Report
 					// Rank this round based on score and/or victory points accumulated to date.
 
 					report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average Score", ZAlignment.Float, groups[group]));
-					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]) { Rotate = true });
+					report.AddColumn(new ZColumn(maxPlays == 1 ? "Rank" : "Games", ZAlignment.Integer, groups[group]) { Rotate = true });
 					report.AddColumn(new ZColumn());  // This column is for arrows.
 
 					var ladder = Ladder(league, groupGames, rt, !isPoints);
-					int offset = 0;
-					if (previousLadder != null)
-						for (offset = 0; offset < previousLadder.Count; offset++)
-							if (ladder.Exists(x => x.Team == previousLadder[offset].Team))
-								break;
-					previousLadder = ladder;
-					for (int team = 0; team < offset; team++)
-						AddBlankCells(report.Rows[team], columnsThisGroup);
+					int rowIndex = 0;
 
 					for (int t = 0; t < ladder.Count; t++)
 					{
 						var entry = ladder[t];
 						var team = entry.Team;
 
-						var row = report.Rows[t + offset];
+						// Skip down past rows where the previous team in this row is _not_ in this round but _is_ in a future round, so as to leave room to draw that team's arrow.
+						while (rowIndex < report.Rows.Count)
+						{
+							var previousTeam = (LeagueTeam)report.Rows[rowIndex].LastOrDefault(c => c.Tag != null)?.Tag;
+							if (previousTeam == null || ladder.Any(tle => tle.Team == previousTeam) || !futureTeamIds.Any(id => id == previousTeam.TeamId))
+								break;
+							rowIndex++;
+						}
+
+						var row = report.Rows[rowIndex];
+						row.Force(report.Columns.Count - columnsThisGroup - 1);
 
 						var gamesPlayedThisGroup = league.Played(thisGroupGames, team).Count;
-						if (gamesPlayedThisGroup == 0)
-							AddBlankCells(row, columnsThisGroup);
-						else
+						if (gamesPlayedThisGroup > 0)
 						{
 							ZCell teamCell = row.AddCell(TeamCell(team));  // Team
 
@@ -1396,12 +1400,19 @@ namespace Torn.Report
 									scoreCell.Data.AddRange(entry.ScoreList);  // average game score
 							}
 							row.Add(scoreCell);  // Score
-							row.Add(new ZCell(gamesPlayedThisGroup));  // Games
+
+							if (maxPlays == 1 && league.Played(thisGroupGames, team).Any())
+								row.Add(new ZCell(thisGroupGames.First(g => g.Teams.Any(gt => gt.TeamId == team.TeamId)).Teams.FindIndex(gt => gt.TeamId == team.TeamId) + 1));  // Rank
+							else
+								row.Add(BlankZero(gamesPlayedThisGroup));  // Games
+
 							row.Add(new ZCell());  // Arrow
 
-							MultiLadderArrow(report, teamCell, group, teamColumns, t + offset);
+							MultiLadderArrow(report, teamCell, group, teamColumns, rowIndex);
 						}
+						rowIndex++;
 					}
+					previousLadder = ladder;
 				}
 				previousGroupName = groupName;
 			}
@@ -1454,12 +1465,6 @@ namespace Torn.Report
 					report.Columns[teamColumns[group] - 1].Arrows.Add(arrow);
 				}
 			}
-		}
-
-		static void AddBlankCells(ZRow row, int i)
-		{
-			for (int j = 0; j < i; j++)
-				row.Add(new ZCell());
 		}
 
 		/// <summary>Detailed report of a single game. One row for each player, plus total rows for each team and for the whole game.</summary>
@@ -3627,10 +3632,10 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		}
 
 		/// <summary>If i is 0, return a cell which has "" as its text (but still 0 as its number). Otherwise return a cell with this number.</summary>
-		static ZCell BlankZero(int i, ChartType chartType, Color color)
+		static ZCell BlankZero(int i, ChartType chartType = default, Color color = default)
 		{
 			return i == 0 ?
-				new ZCell("", color) { Number = 0 }:
+				new ZCell("", color) { Number = 0 } :
 				new ZCell(i, chartType, null, color);
 		}
 
@@ -3663,7 +3668,8 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 			ZCell teamcell = new ZCell(leagueTeam.Name)
 			{
-				Hyper = TeamHyper(leagueTeam)
+				Hyper = TeamHyper(leagueTeam),
+				Tag = leagueTeam
 			};
 			return teamcell;
 		}
