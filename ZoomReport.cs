@@ -906,7 +906,7 @@ namespace Zoom
 
 			for (int i = 0; i < Rows.Count; i++)
 			{
-				for (int j = 0; j < Rows[i].Count; j++)
+				for (int j = 0; j < Rows[i].Count && j < Columns.Count; j++)
 				{
 					ZCell cell = Rows[i][j];
 					if (string.IsNullOrEmpty(cell.Text))
