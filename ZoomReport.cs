@@ -1589,7 +1589,7 @@ namespace Zoom
 			col = FindArrowEnd(end, col, -1);
 
 			// If the cell we've stopped at exists, and is in a column that exists, and is align right, and has Overflow set,
-			if (Rows[end.Row].Valid(col) && Columns.Valid(col) &&
+			if (Rows[end.Row].Valid(col + 1) && Columns.Valid(col + 1) &&
 				(Rows[end.Row][col + 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow) || Columns[col + 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow)))
 				return widths.Take(col).Sum(w => w + 1) + 0.5F + TextWidth(Rows[end.Row][col + 1].Text);  // step right by the width of the text in the cell with Overflow set.
 			else
@@ -2468,61 +2468,83 @@ namespace Zoom
 		/// This writes an <svg> tag -- it does not include <head> or <body> tags etc.
 		public override void ToSvg(StringBuilder sb, double? aspectRatio, bool pure = false)
 		{
-			_pure = pure;
-			filterEmitted = false;
-			var widths = new List<float>();  // Width of each column in pixels. "float", because MeasureString().Width returns a float.
-			var mins = new List<double>();   // Minimum numeric value in each column, or if all numbers are positive, 0.
-			var maxs = new List<double>();   // Maximum numeric value in each column.
-			(int titleHeight, int headerHeight) = Metrics(widths, mins, maxs, out int maxPoints);
-			Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG (assuming multiColumns == 1) -- the sum of each column, plus pixels for spacing left, right and between.
-			double max = maxs.DefaultIfEmpty(1).Max();
-
-			Height = titleHeight + headerHeight + Rows.Count * (RowHeight + 1);  // Total height of the whole SVG (assuming multiColumns == 1).
-			int multiColumns = MultiColumnOK && aspectRatio is double ar ? Math.Max((int)Math.Round(Math.Sqrt(ar / Width * Height)), 1) : 1;  // If greater than 1, break the report into multiple sets of side-by-side columns; e.g. break a solo ladder of 120 players into 2 columns of 60 rows each, or 3 columns of 40 rows each, etc.
-			int rowsPerCol = (int)Math.Ceiling((double)Rows.Count / multiColumns);
-			Height = titleHeight + headerHeight + rowsPerCol * (RowHeight + 1);
-			Right = (int)(Width * 1.1 * multiColumns - Width * 0.1);
-
-			titleHeight = SvgBegin(sb, Right, ref Height);
-
-			// Headers
-			for (int col = 0; col < multiColumns; col++)
+			try
 			{
-				int left = (int)(Width * 1.1 * col + 1);
-				Right = left + Width;
-				SvgHeader(sb, left, titleHeight, headerHeight - 1, widths);
-			}
-			
-			// Row backgrounds
-			ForAllRows((s, left, top, width, height, row, odd, discard1, discard2, discard3, discard4) =>
+				_pure = pure;
+				filterEmitted = false;
+				var widths = new List<float>();  // Width of each column in pixels. "float", because MeasureString().Width returns a float.
+				var mins = new List<double>();   // Minimum numeric value in each column, or if all numbers are positive, 0.
+				var maxs = new List<double>();   // Maximum numeric value in each column.
+				(int titleHeight, int headerHeight) = Metrics(widths, mins, maxs, out int maxPoints);
+				Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG (assuming multiColumns == 1) -- the sum of each column, plus pixels for spacing left, right and between.
+				double max = maxs.DefaultIfEmpty(1).Max();
+
+				Height = titleHeight + headerHeight + Rows.Count * (RowHeight + 1);  // Total height of the whole SVG (assuming multiColumns == 1).
+				int multiColumns = MultiColumnOK && aspectRatio is double ar ? Math.Max((int)Math.Round(Math.Sqrt(ar / Width * Height)), 1) : 1;  // If greater than 1, break the report into multiple sets of side-by-side columns; e.g. break a solo ladder of 120 players into 2 columns of 60 rows each, or 3 columns of 40 rows each, etc.
+				int rowsPerCol = (int)Math.Ceiling((double)Rows.Count / multiColumns);
+				Height = titleHeight + headerHeight + rowsPerCol * (RowHeight + 1);
+				Right = (int)(Width * 1.1 * multiColumns - Width * 0.1);
+
+				titleHeight = SvgBegin(sb, Right, ref Height);
+
+				// Headers
+				for (int col = 0; col < multiColumns; col++)
 				{
-					SvgRect(s, 1, left, top, width, height, Colors.GetBackColor(row, odd));  // Paint the background for a row.
-				},
-				sb, multiColumns, titleHeight + headerHeight);
+					int left = (int)(Width * 1.1 * col + 1);
+					Right = left + Width;
+					SvgHeader(sb, left, titleHeight, headerHeight - 1, widths);
+				}
 
-			// Arrows
-			float arrowTop = titleHeight + headerHeight - 0.5F;
-			for (int col = 0; col < Columns.Count; col++)
-				foreach (var arrow in Columns[col].Arrows.OrderByDescending(a => (a.From.Count + a.To.Count) * 100 + Math.Abs((a.From.FirstOrDefault()?.Row - a.To.FirstOrDefault()?.Row) ?? 0)))
-					SvgArrow(sb, 1, col, arrow, widths, arrowTop, RowHeight + 1);
+				// Row backgrounds
+				ForAllRows((s, left, top, width, height, row, odd, discard1, discard2, discard3, discard4) =>
+					{
+						SvgRect(s, 1, left, top, width, height, Colors.GetBackColor(row, odd));  // Paint the background for a row.
+					},
+					sb, multiColumns, titleHeight + headerHeight);
 
-			// Data cells, including charts
-			ForAllRows(SvgRow, sb, multiColumns, titleHeight + headerHeight, widths, mins, maxs, maxPoints);
+				// Arrows
+				float arrowTop = titleHeight + headerHeight - 0.5F;
+				for (int col = 0; col < Columns.Count; col++)
+					foreach (var arrow in Columns[col].Arrows.OrderByDescending(a => (a.From.Count + a.To.Count) * 100 + Math.Abs((a.From.FirstOrDefault()?.Row - a.To.FirstOrDefault()?.Row) ?? 0)))
+						SvgArrow(sb, 1, col, arrow, widths, arrowTop, RowHeight + 1);
 
-			Width = (int)(Width * 1.1 * multiColumns - Width * 0.1);
+				// Data cells, including charts
+				ForAllRows(SvgRow, sb, multiColumns, titleHeight + headerHeight, widths, mins, maxs, maxPoints);
 
-			sb.Length -= 1;  // Remove trailing \n
-			sb.Append("</svg>");
+				Width = (int)(Width * 1.1 * multiColumns - Width * 0.1);
 
-			if (!pure && !string.IsNullOrEmpty(HtmlDescription))
-				AppendStrings(sb, "\n<p>", HtmlDescription, "</p>\n");
-			else if (!pure && !string.IsNullOrEmpty(Description))
-				AppendStrings(sb, "\n<p>", Description.Replace("\n", "<br/>\n"), "</p>\n");
+				sb.Length -= 1;  // Remove trailing \n
+				sb.Append("</svg>");
 
-			if (!pure)
-				sb.Append("</div>\n");
+				if (!pure && !string.IsNullOrEmpty(HtmlDescription))
+					AppendStrings(sb, "\n<p>", HtmlDescription, "</p>\n");
+				else if (!pure && !string.IsNullOrEmpty(Description))
+					AppendStrings(sb, "\n<p>", Description.Replace("\n", "<br/>\n"), "</p>\n");
 
-			sb.Append('\n');
+				if (!pure)
+					sb.Append("</div>\n");
+
+				sb.Append('\n');
+			}
+			catch (Exception e)
+			{
+				Description = "An exception occurred while generating the report. :-(\n" + e.Message + "\n" + e.StackTrace;
+
+				string[] trace = e.StackTrace.Split('\n');
+
+				sb.Clear();
+				sb.Append("<svg viewBox=\"0 0 1000 " + (trace.Length * 10 + 25).ToString() + "\" width=\"1000\">\n");
+				sb.Append("<text x=\"1\" y=\"10\" width=\"999\" font-size=\"9\">An exception occurred while generating the report. :-(</text>\n");
+				sb.Append("<text x=\"1\" y=\"20\" width=\"999\" font-size=\"9\">");
+				sb.Append(e.Message);
+
+				for (int i = 0; i < trace.Length; i++)
+				{
+					sb.Append("</text>\n<text x=\"1\" y=\"" + (i * 10 + 30).ToString() + "\" width=\"999\" font-size=\"9\">");
+					sb.Append(trace[i]);
+				}
+				sb.Append("</text>\n</svg>\n");
+			}
 		}
 
 		delegate void RowAction(StringBuilder s, int left, int top, int width, int height, ZRow row, bool odd, List<float> widths = default, List<double> mins = default, List<double> maxs = default, int maxPoints = default);
