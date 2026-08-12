@@ -248,6 +248,9 @@ namespace Torn
 			minor = 0;
 			patch = 0;
 
+			if (string.IsNullOrEmpty(version))
+				return false;
+
 			string[] parts = version.Split('.');
 
 			if (parts.Length < 3)
