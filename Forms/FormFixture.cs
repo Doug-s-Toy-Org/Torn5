@@ -125,7 +125,7 @@ namespace Torn.UI
 				PopulateColours();
 				PopulateScoreScalers();
 				gridFinder.ShuffleType = GetShuffleType();
-				fixtureSessions.Populate(gridFinder.Sessions);
+				fixtureSessions.PopulateIntoSessions(gridFinder.Sessions);
 				gridFinder.Rings = checkRings.Checked;
 
 				if (checkRings.Checked)
@@ -145,7 +145,7 @@ namespace Torn.UI
 			{
 				// Generate a starting-point fixture.
 				var grid = new RingGrid();
-				textBoxScore.Text = grid.GenerateRingGrid(holder.League, holder.Fixture, teams, (int)numericTeamsPerGame.Value, (int)numericGamesPerTeam.Value, gridFinder.Sessions.First().Start, (int)gridFinder.Sessions.First().Between.TotalMinutes, numericReferees.Value > 0);
+				textBoxScore.Text = grid.GenerateRingGrid(holder.League, holder.Fixture, teams, (int)numericTeamsPerGame.Value, (int)numericGamesPerTeam.Value, gridFinder.Sessions.First().Start, (int)gridFinder.Sessions.Between.TotalMinutes, numericReferees.Value > 0);
 
 				if (holder.Fixture.Games.Any())  // If that generate succeeded,
 				{
@@ -404,7 +404,6 @@ namespace Torn.UI
 
 			if (Holder.Fixture != null)
 			{
-				Holder.League.Load();
 				List<LeagueTeam> leagueTeams = Holder.League.GetTeamLadder();
 				if (Holder.Fixture.Teams.Count == 0)
 				{
@@ -470,6 +469,8 @@ namespace Torn.UI
 				loading = false;
 				TeamCheckedChanged(null, null);
 				FixtureTeamCheckedChanged(null, null);
+
+				fixtureSessions.PopulateFromFixtureGames(Holder.Fixture.Games);
 			}
 		}
 
@@ -598,7 +599,7 @@ namespace Torn.UI
 				else if (!lotr)
 					numericTeamsPerGame.Value = 3;
 
-				numericGamesPerTeam.Value = roundRobin ? (int)(numericTeams.Value / 2 - 1) : cascade || lotr ? 6 : league ? 3 : 2;
+				numericGamesPerTeam.Value = roundRobin ? (int)(numericTeams.Value / 2) : cascade || lotr ? 6 : league ? 3 : 2;
 			}
 
 			numericReferees.Value = referees ? 2 : league || lotr ? 1 : 0;  // I want to set cascade || roundRobin to have 2 referees per game, but I can't get there in one hop: we have to generate the fixture without referees, then have the user hit Stop, add referees, and hit Generate again.

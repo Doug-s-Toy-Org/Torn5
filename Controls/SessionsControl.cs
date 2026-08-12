@@ -5,17 +5,20 @@ using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
+using Torn;
 using Torn.Grids;
 
 namespace Torn5.Controls
 {
 	public partial class SessionsControl : UserControl
 	{
+		int desiredGames;
 		public int Games
 		{
 			get => Controls.OfType<SessionControl>().Sum(s => s.Games);
 			set
 			{
+				desiredGames = value;
 				var sessions = Controls.OfType<SessionControl>().OrderBy(s => s.Start).ToList();
 				if (!sessions.Any())
 					return;
@@ -38,7 +41,7 @@ namespace Torn5.Controls
 			Add();
 		}
 
-		private void Add()
+		private SessionControl Add()
 		{
 			var sessions = Controls.OfType<SessionControl>().OrderBy(s => s.Start).ToList();
 
@@ -57,9 +60,13 @@ namespace Torn5.Controls
 				between = TimeSpan.FromMinutes(15);
 			}
 
-			new SessionControl { Changed = Changed, Dock = DockStyle.Top, Parent = this, Start = start, Between = between };
+			int gamesToAdd = desiredGames - sessions.Sum(s => s.Games);
+
+			var sc = new SessionControl { Changed = Changed, Dock = DockStyle.Top, Parent = this, Start = start, Between = between, Games = Math.Min(Math.Max(gamesToAdd, 1), 9999) };
 			buttonRemove.Enabled = Controls.OfType<SessionControl>().Count() > 1;
 			Changed();
+
+			return sc;
 		}
 
 		private void ButtonRemoveClick(object sender, EventArgs e)
@@ -192,15 +199,45 @@ namespace Torn5.Controls
 			return s.Trim(' ');
 		}
 
-		public void Populate(Sessions sessions)
+		public void PopulateFromFixtureGames(FixtureGames fixtureGames)
+		{
+			var sessions = Controls.OfType<SessionControl>().OrderBy(s => s.Start).ToList();
+			var sessionControl = sessions.Any() ? sessions.First() : Add();
+
+			if (fixtureGames.Any())
+			{
+				int game = 0;
+				while (game < fixtureGames.Count)
+				{
+					sessionControl.Start = fixtureGames[game].Time;
+
+					int gamesThisSession = 0;
+					while (game < fixtureGames.Count - 1 && fixtureGames[game + 1].Time - TimeSpan.FromMinutes(30) < fixtureGames[game].Time)  // while the break between two games is no more than 30 minutes,
+					{
+						game++;  // walk forward.
+						gamesThisSession++;
+					}
+					game++;
+					gamesThisSession++;
+
+					sessionControl.Games = gamesThisSession;
+
+					if (game < fixtureGames.Count)
+						sessionControl = Add();
+				}
+			}
+		}
+
+		public void PopulateIntoSessions(Sessions sessions)
 		{
 			sessions.Clear();
+			sessions.Between = TimeSpan.FromMinutes((double)numericBetween.Value);
 			var controls = Controls.OfType<SessionControl>().OrderBy(s => s.Start).ToList();
 			int game = 0;
 			for (var i = 0; i < controls.Count; i++)
 			{
 				var s = controls[i];
-				bool nextSessionSameDay = i < controls.Count - 1 && s.End.Date == controls[i + 1].Start.Date;
+				bool nextSessionSameDay = i < controls.Count - 1 && s.Start.Date == controls[i + 1].Start.Date;
 				sessions.Add(s.Session(game, nextSessionSameDay ? BreakType.WithinDay : BreakType.Night));
 				game += s.Games;
 			}
