@@ -26,6 +26,7 @@ namespace Torn5.Controls
 		public DisplayReport()
 		{
 			InitializeComponent();
+			DoubleBuffered = true;
 			BackgroundImageLayout = ImageLayout.Zoom;
 			RedrawTimer.Interval = 1000;
 			RedrawTimer.Tick += RedrawTimerTick;
