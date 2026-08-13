@@ -86,6 +86,7 @@ namespace Torn.Grids
 					oneImprover.RefGames = best.RefGames;
 			}
 
+			Sessions.Amend(best.PlayGames.Count);
 			ToFixtureGames(best, fixture);
 		}
 
@@ -151,8 +152,7 @@ namespace Torn.Grids
 			for (int i = 0; i < tasks.Length; i++)
 			{
 				tasks[i] = Task<GamesResult>.Factory.StartNew((Object obj) => {
-					Bundle bundle = obj as Bundle;
-					if (bundle == null)
+					if (!(obj is Bundle bundle))
 						return null;
 
 					return Improver.Improve(bundle);
@@ -289,7 +289,7 @@ namespace Torn.Grids
 				}
 
 				fixture.Games.Add(fg);
-				time = time.Add(Sessions[session].Between);
+				time = time.Add(Sessions.Between);
 			}
 
 			if (errors.Length > 0)
@@ -317,7 +317,7 @@ namespace Torn.Grids
 		private void Error(string format, params object[] arg)
 		{
 			string s = string.Format(format, arg);
-			Console.WriteLine(s, arg);
+			Console.WriteLine(s);
 			errors.Append(s);
 		}
 	}
@@ -627,7 +627,7 @@ namespace Torn.Grids
 		private int successes = 0;
 		private DateTime lastSuccessTime;
 		private SwapRecord lastSuccessfulSwap = new SwapRecord();
-		private Dictionary<ShuffleType, int> swaps = new Dictionary<ShuffleType, int>();
+		private readonly Dictionary<ShuffleType, int> swaps = new Dictionary<ShuffleType, int>();
 		private bool allColoursPerfect = true;
 
 		public static GamesResult Improve(Bundle b)
@@ -821,18 +821,18 @@ namespace Torn.Grids
 		private double ScoreGames(IndexGames playGames, IndexGames refGames)
 		{
 			plays.Calc(playGames, ExistingPlays, Colours, Rings);
-			onSite.CalcOnSite(playGames, refGames, Sessions); // Set up OnSite.
+			double orphanScore = onSite.CalcOnSite(playGames, refGames, Sessions) * ScoreScalers.OneGameInSession; // Set up onSite.
 
 			double timesPlayedScore = TimesPlayedScore(playGames.AveragePlays + ExistingPlays.Average());
 			int playSelfScore = PlaySelfScore(playGames, refGames);
 			double backToBackScore = BackToBackScore(playGames, refGames);
-			double timeOnSite = TimeOnSiteScore(playGames);
-			(double teamsOnSite, int maxOnSite) = TeamsOnSiteScore(playGames);
+			double dayNightLength = DayNightLengthScore(playGames);
+			(double teamsOnSite, int maxOnSite) = onSite.TeamsOnSiteScore(ScoreScalers.TeamsOnSite);
 			double difficultyError = DifficultyScore(playGames);
 			double colourError = ColourScore(playGames, refGames);
 			int refereeClustering = RefereeClustering(refGames);
 
-			return timesPlayedScore + playSelfScore + backToBackScore + timeOnSite + teamsOnSite + maxOnSite + difficultyError + colourError + refereeClustering;
+			return timesPlayedScore + playSelfScore + backToBackScore + dayNightLength + orphanScore + teamsOnSite + maxOnSite + difficultyError + colourError + refereeClustering;
 		}
 
 		/// <summary>Score teams for how many times they play each other.</summary>
@@ -933,11 +933,13 @@ namespace Torn.Grids
 			return sb;
 		}
 
-		private double TimeOnSiteScore(IndexGames playGames)
+		private double DayNightLengthScore(IndexGames playGames)
 		{
-			if (ScoreScalers.DayLength == 0 && ScoreScalers.NightLength == 0 && ScoreScalers.NoGamesInSession == 0 && ScoreScalers.OneGameInSession == 0)
+			if (ScoreScalers.DayLength == 0 && ScoreScalers.NightLength == 0 && ScoreScalers.NoGamesInSession == 0)
 				return 0;
 
+			var days = Sessions.Select(s => s.Start.Date).Distinct().OrderBy(d => d).ToList();
+			var sessionDays = Sessions.ToLookup(s => s.Start.Date);
 			shortNights.Clear();
 			longDays.Clear();
 			double score = 0;
@@ -953,67 +955,43 @@ namespace Torn.Grids
 				}
 				else
 				{
-					int startGame = 0;  // Beginning of the current day.
-					int last = 0;
-					int session = Sessions.FindIndex(s => s.First <= startGame);  // Session that begins the current day.
+					int last = 0;  // This team's last game on a day. Declared out here so its value persists into the next foreach day so we can calculate short nights.
 
-					while (startGame < playGames.Count)
+					foreach (var day in days)
 					{
-						int endSession = Sessions.NextEndOfDayIndex(session);  // Session that ends the current day.
-						int endGame = Sessions[endSession].Last;  // End of the current day.
+						var today = sessionDays[day];
+						int dayStart = today.Min(s => s.First);  // Game index that begins the current day.
+						int dayEnd = today.Max(s => s.Last);  // Game index that ends the current day.
 
-						int first = onSite.FirstGame(teamIndex, startGame, endGame);
+						int first = onSite.FirstGame(teamIndex, dayStart, dayEnd);  // First game for this team today.
 						if (first == -1)
-							score += ScoreScalers.NoGamesInSession;  // Team has no games on this day.
+							score += ScoreScalers.NoGamesInSession;  // Team has no games today.
 						else
 						{
-							if (last != 0 && last < first && first - last < 17)  // If overnight break less than 16 games
+							var firstTime = Sessions.GameTime(first);
+							var lastTime = Sessions.GameTime(last);
+
+							if (last != 0 && last < first && (firstTime - lastTime).TotalHours < 12)  // If overnight break less than 12 hours
 							{
-								double nightLengthScore = Math.Pow(17 - first + last, 2);  // Score for length of overnight break: longer night is better.
+								double nightLengthScore = Math.Pow(12 - (firstTime - lastTime).TotalHours, 2) * 2;  // Score for length of overnight break: longer night is better.
 								score += nightLengthScore * ScoreScalers.NightLength;
 								if (nightLengthScore >= 1)
-									shortNights.Add(new DayOrNightLength() { TeamIndex = teamIndex, FirstGame = first, LastGame = last });
+									shortNights.Add(new DayOrNightLength() { TeamIndex = teamIndex, FirstGame = lastTime + Sessions.Between, LastGame = firstTime });
 							}
 
-							last = onSite.LastGame(teamIndex, startGame, endGame);
-							double dayLengthScore = Math.Pow(Math.Max(1.0 * (last - first + (endSession - session) * 32 - playGames.PlaysPerTeam * 2), 0), 2) / playGames.Count;
+							last = onSite.LastGame(teamIndex, dayStart, dayEnd);
+							lastTime = Sessions.GameTime(last);
+							double dayLengthScore = Math.Pow(Math.Max(1.0 * ((lastTime - firstTime).TotalHours * 4 - playGames.PlaysPerTeam * 2), 0), 2) / playGames.Count;
+
 							score += dayLengthScore * ScoreScalers.DayLength;  // Score for length of day: shorter is better.
 							if (dayLengthScore >= 1)
-								longDays.Add(new DayOrNightLength() { TeamIndex = teamIndex, FirstGame = first, LastGame = last });
+								longDays.Add(new DayOrNightLength() { TeamIndex = teamIndex, FirstGame = firstTime, LastGame = lastTime + Sessions.Between });
 						}
-
-						if (first == last)  // This team has just one game on this day -- that's bad.
-							score += ScoreScalers.OneGameInSession;
-
-						session = Sessions.NextSessionIndex(endGame);
-						startGame = endGame + 1;
 					}  // while startGame is valid
 				}  // if Sessions.Count > 1
 			}  // for teamIndex
 
 			return score;
-		}
-
-		/// <summary>Return a score for the average number of teams on site, and the maximum number of teams on site.</summary>
-		private (double, int) TeamsOnSiteScore(IndexGames playGames)
-		{
-			int teamsOnSite = 0;
-			int maxOnSite = 0;
-			for (int game = 0; game < playGames.Count; game++)
-			{
-				int onSiteNow = 0;
-				for (int teamIndex = 0; teamIndex <= playGames.MaxIndex; teamIndex++)
-				{
-					if (onSite[game][teamIndex])
-					{
-						teamsOnSite++;
-						onSiteNow++;
-					}
-				}
-				maxOnSite = Math.Max(maxOnSite, onSiteNow);
-			}
-
-			return (teamsOnSite * ScoreScalers.TeamsOnSite / 10.0, maxOnSite);
 		}
 
 		private double DifficultyScore(IndexGames playGames)
@@ -1053,7 +1031,6 @@ namespace Torn.Grids
 				for (int team = 0; team < numTeams; team++)
 				{
 					// Score teams for the error in their difficulty, as compared to the next team: cascade difficulties.
-					//double difficultyError = (difficulties[team + 1] - targetDifficulties[team + 1]) - (difficulties[team] - targetDifficulties[team]);
 					double difficultyError = difficulties[team] - targetDifficulties[team];
 					score += Math.Pow(difficultyError, 4) * ScoreScalers.CascadeDifficulty;
 
@@ -1172,30 +1149,31 @@ namespace Torn.Grids
 		private string ScoreString()
 		{
 			plays.Calc(PlayGames, ExistingPlays, Colours, Rings);
-			onSite.CalcOnSite(PlayGames, RefGames, Sessions); // Set up OnSite.
+			double orphanScore = onSite.CalcOnSite(PlayGames, RefGames, Sessions) * ScoreScalers.OneGameInSession; // Set up OnSite.
 
 			double timesPlayedScore = TimesPlayedScore(PlayGames.AveragePlays + ExistingPlays.Average());  // Score teams for how many times they play each other.
 			int playSelfScore = PlaySelfScore(PlayGames, RefGames);
 			double backToBackScore = BackToBackScore(PlayGames, RefGames);
-			double timeOnSite = TimeOnSiteScore(PlayGames);
-			(double teamsOnSite, int maxOnSite) = TeamsOnSiteScore(PlayGames);
+			double dayNightLength = DayNightLengthScore(PlayGames);
+			(double teamsOnSite, int maxOnSite) = onSite.TeamsOnSiteScore(ScoreScalers.TeamsOnSite);
 			double difficultyError = DifficultyScore(PlayGames);
 			double colourError = ColourScore(PlayGames, RefGames);
 			int refereeClustering = RefereeClustering(RefGames);
 
 			var sb = new StringBuilder();
-			AppendIfNot0(sb, "Score: ", timesPlayedScore + playSelfScore + backToBackScore + timeOnSite + teamsOnSite + maxOnSite + difficultyError + colourError + refereeClustering, ".  ", "F3");
-			AppendIfNot0(sb, "Times played: ", timesPlayedScore, ", ", "F1");
+			AppendIfNot0(sb, "Score: ", timesPlayedScore + playSelfScore + backToBackScore + dayNightLength + orphanScore + teamsOnSite + maxOnSite + difficultyError + colourError + refereeClustering, "F3", ".  ");
+			AppendIfNot0(sb, "Times played: ", timesPlayedScore, "F1");
 			AppendIfNot0(sb, "play self: ", playSelfScore);
 			AppendIfNot0(sb, "back-to-back: ", backToBackScore);
-			AppendIfNot0(sb, "time on site: ", timeOnSite, ", ", "F1");
-			AppendIfNot0(sb, "teams on site: ", teamsOnSite, ", ", "F1");
+			AppendIfNot0(sb, "day/night length: ", dayNightLength, "F1");
+			AppendIfNot0(sb, "one game by itself: ", orphanScore);
+			AppendIfNot0(sb, "teams on site: ", teamsOnSite, "F1");
 			AppendIfNot0(sb, "max teams on site: ", maxOnSite);
-			AppendIfNot0(sb, "difficulty: ", difficultyError, ", ", "F3");
-			AppendIfNot0(sb, "colour: ", colourError, ", ", "F1");
-			AppendIfNot0(sb, "referees: ", refereeClustering, ".  ", "F3");
-			AppendIfNot0(sb, "", successes, " successes. ");
-			AppendIfNot0(sb, "", attemptsThisSecond, " attempts per second. ");
+			AppendIfNot0(sb, "difficulty: ", difficultyError, "F3");
+			AppendIfNot0(sb, "colour: ", colourError, "F1");
+			AppendIfNot0(sb, "referees: ", refereeClustering, "F3", ".  ");
+			AppendIfNot0(sb, "", successes, suffix: " successes. ");
+			AppendIfNot0(sb, "", attemptsThisSecond, suffix: " attempts per second. ");
 
 			if (successes > 0)
 				sb.AppendFormat("Last success: {0:T}; swapped {1}.", lastSuccessTime, lastSuccessfulSwap);
@@ -1205,7 +1183,7 @@ namespace Torn.Grids
 			return sb.ToString();
 		}
 
-		private void AppendIfNot0(StringBuilder sb, string prefix, double x, string suffix = ", ", string format = "")
+		private void AppendIfNot0(StringBuilder sb, string prefix, double x, string format = "", string suffix = ", ")
 		{
 			if (x == 0)
 				return;
@@ -1257,7 +1235,7 @@ namespace Torn.Grids
 
 			// Header row above main grid.
 			sb.Append("\r\nGames");
-			sb.Append(' ', Math.Max(PlayGames.Count - 8, 0));
+			sb.Append(' ', Math.Max(PlayGames.Count - 8, 0) + Sessions.Count - 1);
 			sb.Append(difficulties.Any() ? "Difficulty   #  " : "      #  ");
 
 			var coloursPlayed = Colours.Where(c => c != Colour.Referee);
@@ -1282,7 +1260,7 @@ namespace Torn.Grids
 				for (int g = 0; g < PlayGames.Count; g++)
 				{
 					var game = PlayGames[g];
-					if (Sessions.Any(s => s.Last == g))
+					if (Sessions.Any(s => s.Last == g - 1))
 						sb.Append(' ');
 
 					char ch = onSite[g][teamIndex] ? '-' : '.';
@@ -1332,25 +1310,24 @@ namespace Torn.Grids
 				sb.Append("\r\n");
 			}
 
-			if (longDays.Count > 0)
+			if (longDays.Any())
 			{
-				longDays.Sort((x, y) => (y.LastGame - y.FirstGame - x.LastGame + x.FirstGame));
-				sb.Append("Longest day: team index ");
-				sb.Append(longDays[0].TeamIndex + 1);
-				sb.Append(", from ");
-				sb.Append(longDays[0].FirstGame + 1);
-				sb.Append(" to ");
-				sb.Append(longDays[0].LastGame + 1);
-				sb.Append(".\\r\n");
+				sb.Append("Long days:\r\n");
+
+				foreach (var day in longDays.OrderBy(x => x.FirstGame - x.LastGame).ThenBy(x => x.TeamIndex))
+					sb.Append(day);
+
+				sb.Append("\r\n");
 			}
 
-			//int len = first - last;
-			//AppendFormat("Team {0:2N} game {1:3N}; {2:3N}: {4:2N} {5}{6}\t", team, last + 1, first + 1, len, new string('*', len / 4), new string(' ', 8 - (len / 4)));
-
-			if (shortNights.Count > 0)
+			if (shortNights.Any())
 			{
-				shortNights.Sort((x, y) => (x.LastGame - x.FirstGame - y.LastGame + y.FirstGame));
-				sb.AppendFormat("Shortest night: team {0}, from {1} to {2}.\r\n", shortNights[0].TeamIndex + 1, shortNights[0].FirstGame, shortNights[0].LastGame);
+				sb.Append("Short nights:\r\n");
+
+				foreach (var night in shortNights.OrderBy(x => x.FirstGame - x.LastGame).ThenBy(x => x.TeamIndex))
+					sb.Append(night);
+
+				sb.Append("\r\n\r\n");
 			}
 
 			// List of games as space-separated for teams in games; semicolon-separated between games.
@@ -1525,7 +1502,8 @@ namespace Torn.Grids
 		}
 
 		///<summary>Mark true for teams that are playing or reffing a game, or are sitting around in the lobby after a recent game and waiting for their next game.</summary> 
-		public void CalcOnSite(IndexGames source1, IndexGames source2, Sessions sessions)
+		/// <returns>Number of "orphan" games where a team comes on site, plays one game, then leaves again.</returns>
+		public int CalcOnSite(IndexGames source1, IndexGames source2, Sessions sessions)
 		{
 			CalcInGame(source1);
 
@@ -1534,31 +1512,52 @@ namespace Torn.Grids
 					for (int teamIndex = 0; teamIndex <= source2.MaxIndex; teamIndex++)
 						this[g][teamIndex] |= source2[g].HasTeam(teamIndex);  // Note we use |= "or equals" here to add on to existing data, not to clear-and-set.
 
-			for (int teamIndex = 0; teamIndex <= source1.MaxIndex; teamIndex++)
+			int orphans = 0;
+			if (sessions.Count <= 1)
+				for (int teamIndex = 0; teamIndex <= source1.MaxIndex; teamIndex++)
+					MarkOnSite(teamIndex, FirstGame(teamIndex, 0, source1.Count - 1), LastGame(teamIndex, 0, source1.Count - 1));
+			else
 			{
-				if (sessions.Count <= 1)
-				{
-					int first = FirstGame(teamIndex, 0, source1.Count - 1);
-					MarkOnSite(teamIndex, ref first, LastGame(teamIndex, 0, source1.Count - 1));
-				}
-				else
-				{
-					int startGame = 0;  // Beginning of the current day.
-					int session = sessions.FindIndex(s => s.First <= startGame);  // Session that begins the current day.
+				var days = sessions.Select(s => s.Start.Date).Distinct().OrderBy(d => d).ToList();
+				var sessionDays = sessions.ToLookup(s => s.Start.Date);
 
-					while (startGame < source1.Count)
+				for (int teamIndex = 0; teamIndex <= source1.MaxIndex; teamIndex++)
+				{
+					foreach (var day in days)
 					{
-						int endOfDayGame = sessions[sessions.NextEndOfDayIndex(session)].Last;
+						var today = sessionDays[day];
+						int dayStart = today.Min(s => s.First);  // Game index that begins the current day.
+						int dayEnd = today.Max(s => s.Last);  // Game index that ends the current day.
 
-						int first = FirstGame(teamIndex, startGame, endOfDayGame);
+						int first = FirstGame(teamIndex, dayStart, dayEnd);
 						if (first != -1)
-							MarkOnSite(teamIndex, ref first, LastGame(teamIndex, startGame, endOfDayGame));
-
-						session = sessions.NextSessionIndex(endOfDayGame);
-						startGame = endOfDayGame + 1;
+							orphans += MarkOnSite(teamIndex, first, LastGame(teamIndex, dayStart, dayEnd));
 					}
 				}
 			}
+			return orphans;
+		}
+
+		/// <summary>Return a score for the average number of teams on site, and the maximum number of teams on site.</summary>
+		public (double, int) TeamsOnSiteScore(double teamsOnSiteScaler)
+		{
+			int teamsOnSite = 0;
+			int maxOnSite = 0;
+			for (int game = 0; game < Count; game++)
+			{
+				int onSiteNow = 0;
+				for (int teamIndex = 0; teamIndex < this[game].Count; teamIndex++)
+				{
+					if (this[game][teamIndex])
+					{
+						teamsOnSite++;
+						onSiteNow++;
+					}
+				}
+				maxOnSite = Math.Max(maxOnSite, onSiteNow);
+			}
+
+			return (teamsOnSite * teamsOnSiteScaler / 10.0, maxOnSite);
 		}
 
 		public int FirstGame(int teamIndex, int startGame, int endGame)
@@ -1568,7 +1567,7 @@ namespace Torn.Grids
 
 		public int LastGame(int teamIndex, int startGame, int endGame)
 		{
-			return this.FindLastIndex(endGame, Math.Min(endGame, Count - 1) - startGame, x => x[teamIndex]);
+			return this.FindLastIndex(endGame, Math.Min(endGame, Count - 1) - startGame + 1, x => x[teamIndex]);
 		}
 
 		///<summary>
@@ -1593,8 +1592,10 @@ namespace Torn.Grids
 		/// Starting from a game we already know this team is in, look ahead up to 8 games, 
 		/// and if we find one the team is in, mark them as being on site right through that whole group.</summary> 
 		/// </summary>
-		public void MarkOnSite(int teamIndex, ref int first, int last)
+		/// <returns>Number of "orphan" games where a team comes on site, plays one game, then leaves again.</returns>
+		private int MarkOnSite(int teamIndex, int first, int last)
 		{
+			int orphans = 0;
 			while (first < last)
 				if (!(MarkOnSite(teamIndex, ref first, last, 2) ||
 					  MarkOnSite(teamIndex, ref first, last, 3) ||
@@ -1605,9 +1606,11 @@ namespace Torn.Grids
 					  MarkOnSite(teamIndex, ref first, last, 8)))
 				{
 					first += 8;
+					orphans++;
 					while (first < last && !this[first][teamIndex])
 						first++;
 				}
+			return orphans;
 		}
 	}
 
@@ -1779,39 +1782,56 @@ namespace Torn.Grids
 		public int Last;
 		/// <summary>Start time of first game in this session.</summary>
 		public DateTime Start;
-		/// <summary>Time between game starts within the session.</summary>
-		public TimeSpan Between;
 		/// <summary>After this session, what type of break occurs?</summary>
 		public BreakType Break;
 
 		public Session Clone()
 		{
-			return new Session() { First = First, Last = Last, Start = Start, Between = Between, Break = Break };
+			return new Session() { First = First, Last = Last, Start = Start, Break = Break };
+		}
+
+		public override string ToString()
+		{
+			return $"Session {First} to {Last}; starts at {Start}; {Break}";
 		}
 	}
 
 	public class Sessions : List<Session>
 	{
-		/// <summary>Find the first session after the specified game number.</summary>
-		public int NextSessionIndex(int fromGame)
-		{
-			return FindLastIndex(s => s.First >= fromGame);
-		}
-
-		/// <summary>Find the first session after the specified session, which ends a day.</summary>
-		public int NextEndOfDayIndex(int startindex)
-		{
-			return FindIndex(startindex, s => s.Break != BreakType.WithinDay);
-		}
+		/// <summary>Time between game starts within sessions.</summary>
+		public TimeSpan Between;
 
 		public Sessions Clone()
 		{
-			var clone = new Sessions();
+			var clone = new Sessions { Between = Between };
 
 			foreach (var session in this)
 				clone.Add(session.Clone());
 
 			return clone;
+		}
+
+		/// <summary>Ensure that the number of games in this set of sessions matches the number of games desired.</summary>
+		public void Amend(int length)
+		{
+			if (this.Any())
+				this.Last().Last = length - 1;
+
+			while (Count > 1 && this[Count - 2].Last > length - 1)
+			{
+				this[Count - 2].Last = length - 1;
+				RemoveAt(Count - 1);
+			}
+		}
+
+		/// <summary>Given a game number, return the start time of that game.</summary>
+		public DateTime GameTime(int game)
+		{
+			var session = Find(s => s.First <= game && game <= s.Last);
+
+			return session == null ?
+				DateTime.MinValue :
+				(session.Start + TimeSpan.FromTicks(Between.Ticks * (game - session.First)));
 		}
 	}
 
@@ -1819,8 +1839,13 @@ namespace Torn.Grids
 	class DayOrNightLength
 	{
 		public int TeamIndex;
-		public int FirstGame;
-		public int LastGame;
+		public DateTime FirstGame;
+		public DateTime LastGame;
+
+		public override string ToString()
+		{
+			return $"Team index {TeamIndex + 1}, from {FirstGame:g} to {LastGame:t}: {(LastGame - FirstGame).TotalHours} hours.\t";
+		}
 	}
 
 	[Flags]

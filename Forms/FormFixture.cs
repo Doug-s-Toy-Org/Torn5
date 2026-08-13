@@ -156,24 +156,28 @@ namespace Torn.UI
 			}
 
 			if (holder.Fixture.Games.Any())
-				Improve();
+				Improve(CountModifierKeys() >= 2);
 		}
 
 		private void GenerateTeamGrid(List<LeagueTeam> teams)
 		{
 			gridFinder.Setup(Holder.League, Holder.Fixture, teams, (int)numericGamesPerTeam.Value, (int)numericReferees.Value);
 
-			Improve();
+			Improve(CountModifierKeys() >= 2);
 		}
 
-		private bool Improve()
+		private bool Improve(bool singleThread)
 		{
 			RefreshReports();
 			textBoxScore.Text = gridFinder.Details;
 
 			while (run && gridFinder.ShuffleType != ShuffleType.None)
 			{
-				gridFinder.ImproveParallel(Holder.Fixture);
+				if (singleThread)
+					gridFinder.Improve(Holder.Fixture);  // During generation, hold down at least two of Shift, Ctrl, Alt to Improve single-threaded for easier debugging.
+				else
+					gridFinder.ImproveParallel(Holder.Fixture);
+
 				if (gridFinder.Changed)
 				{
 					gridFinder.Changed = false;
@@ -186,6 +190,13 @@ namespace Torn.UI
 			}
 
 			return gridFinder.Changed;
+		}
+
+		int CountModifierKeys()
+		{
+			return (ModifierKeys.HasFlag(Keys.Control) ? 1 : 0) +
+				(ModifierKeys.HasFlag(Keys.Shift) ? 1 : 0) +
+				(ModifierKeys.HasFlag(Keys.Alt) ? 1 : 0);
 		}
 
 		/// <summary>
@@ -727,7 +738,7 @@ namespace Torn.UI
 		/// <summary>When user presses Ctrl-A in this control, Select All.</summary>
 		void TextBoxKeyDown(object sender, KeyEventArgs e)
 		{
-			if (e.Control && e.KeyCode == Keys.A &&sender != null)
+			if (e.Control && e.KeyCode == Keys.A && sender != null)
 				((TextBox)sender).SelectAll();
 		}
 
