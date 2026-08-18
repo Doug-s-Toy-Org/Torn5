@@ -694,7 +694,9 @@ namespace Torn.UI
 					{
 						holder.League.ForgetGame(serverGame.Time);
 						item.SubItems[1].Text = null;
-						item.SubItems[2].Text = serverGame.Description;
+
+						if (item.SubItems.Count > 2)
+							item.SubItems[2].Text = serverGame.Description;
 
 						if (!updatedLeagues.Contains(holder.League))
 							updatedLeagues.Add(holder.League);
