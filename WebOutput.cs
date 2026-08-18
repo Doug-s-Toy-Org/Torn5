@@ -161,6 +161,12 @@ namespace Torn.Report
 			reports.Colors.OddColor = Color.Empty;
 			reports.Add(Reports.OneGame(league, game));
 
+			if (game.ServerGame?.Events?.Any() ?? false)
+			{
+				string imageName = "score" + game.Time.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture) + ".png";
+				reports.Add(new ZoomHtmlInclusion("\n<p> &nbsp; &nbsp; </p>\n<div><img src=\"" + imageName + "\"></div>\n"));
+			}
+
 			reports.Add(new ZoomHtmlInclusion("</div><br/><div align=\"center\">"));
 
 			var gameTimes = league.Games().Select(g => g.Time);
@@ -360,10 +366,8 @@ namespace Torn.Report
 			// when a reply as to the latest game date/time comes in, the Javascript immediately calls xhrScoreboard.send() with that date/time as parameter,
 			// and when a reply as to the latest scoreboard data comes in, the Javascript immediately requeries the game date/time (because if we're getting scoreboard data, MostRecentGame must have changed).
 			// The final few lines of Javascript set off an initial request for game date/time, in order to get that first xhrLatest.onreadystatechange to fire.
-			// We also svg.setAttribute('width') so that the scoreboard SVG mostly fills the browser window -- full width minus 2 pixels, or 90% of height (to leave room for extra text at the bottom).
-			reports.Add(new ZoomHtmlInclusion(@"</div>
-<br/><a href=\index.html>Index</a><div>
-<script>
+			// We also svg.setAttribute('width') so that the report plus image mostly fill the browser window; either side by side or one above the other -- whichever fits better.
+			reports.Add(new ZoomHtmlInclusion(@"<script>
 var latest = '(none)';
 var xhrLatest = new XMLHttpRequest();
 var xhrScoreboard = new XMLHttpRequest();
@@ -378,19 +382,32 @@ xhrLatest.onreadystatechange = function () {
 	}
 };
 
+
 xhrScoreboard.onreadystatechange = function () {
 	if (this.readyState == 4)
 	{
 		if (this.status == 200)
 		{
-			document.getElementById('scoreboard').innerHTML = xhrScoreboard.responseText;
+			var s = document.getElementById('scoreboard');
+			s.innerHTML = xhrScoreboard.responseText;
 			window.onload();
 
-			for (const svg of document.querySelectorAll('svg'))
-				svg.setAttribute('width', Math.min(document.documentElement.clientWidth - 2, document.documentElement.clientHeight / svg.clientHeight * svg.clientWidth * 0.9));
+			var svg = document.querySelector('svg');
+
+			var png = document.querySelector('img');
+			var pngWidth = png ? png.width : 0;
+			var pngHeight = png ? png.height : 0;
+
+			var availableWidth = document.documentElement.clientWidth - 22;
+			var availableHeight = document.documentElement.clientHeight * 0.95;
+
+			var widthwise = (availableWidth - pngWidth) / svg.clientWidth;
+			var heightwise = (availableHeight - pngHeight) / svg.clientHeight;
+
+			svg.setAttribute('width', Math.min(Math.min(Math.max(widthwise, heightwise) * svg.clientWidth, availableWidth), availableHeight / svg.clientHeight * svg.clientWidth));
 		}
 		else
-			document.getElementById('scoreboard').innerHTML = '<p>' + this.status + ': ' + this.statusText + '</p>';
+			s.innerHTML = '<p>Server query failed. Check if Torn is running. Status code: ' + this.status + '. Status text: ' + this.statusText + '. <a href=\scoreboard.html>Refresh</a>.</p>' + document.getElementById('scoreboard').innerHTML;
 
 		xhrLatest.open('GET', 'latest', true);
 		xhrLatest.send();
@@ -461,16 +478,28 @@ xhrScoreboard.send();
 			else if (lastPart == "scoreboard.html")
 				return ScoreboardPage();
 			else if (holder == null)
-				return string.Format(CultureInfo.InvariantCulture, "<html><body>Couldn't find a league key in \"<br>{0}\". Try <a href=\"now.html\">Now Playing</a> instead.</body></html>", rawUrl);
+				return Error(context, 400, "<html><body>Couldn't find a valid league key in <br>{0}<br>. Try <a href=\"/index.html\">Index</a> or <a href=\"/now.html\">Now Playing</a> instead.</body></html>", rawUrl);
 			else if (lastPart == "index.html")
 				return ReportPages.OverviewReports(holder, false, true).ToSvg();
 			else if (lastPart.StartsWith("games", StringComparison.OrdinalIgnoreCase))
 			{
 				DateTime day = DateTime.ParseExact(lastPart.Substring(5, 8), "yyyyMMdd", CultureInfo.InvariantCulture);
+
+				string fileName = Path.Combine(ExportFolder, holder.League.Key, lastPart);
+				if (File.Exists(fileName))  // See if ExportFolder\holder.League\gamesyyyyMMdd.html report exists.
+					try
+					{
+						return File.ReadAllText(fileName);  // If so, return it.
+					}
+					catch (Exception e)
+					{
+						return Error(context, 500, "<html><body>Found file {0}, but an error occurred while trying to deliver it to you:<br/>{1}</body></html>", fileName, e.Message);
+					}
+
 				Game game = holder.League.Games().Find(x => x.Time >= day);  // The URL is likely like "gamesyyyyMMdd.html#gameHHmm", but the stuff after the # never gets passed to us -- it's handled internally by the web browser. So just return the first game after midnight on this day.
 
 				if (game == null)
-					return string.Format(CultureInfo.InvariantCulture, "<html><body>No games found on or after <br>{0}</body></html>", rawUrl);
+					return Error(context, 404, "<html><body>No games found on or after {0}.<br>{1}</body></html>", day, rawUrl);
 
 				Reports.EnsureEvents(ExportFolder, holder.League, game);
 				return ReportPages.GamePage(holder.League, game);
@@ -481,7 +510,7 @@ xhrScoreboard.send();
 				Game game = holder.League.Games().Find(x => x.Time >= dt && x.Time.Subtract(dt).TotalSeconds < 60);
 
 				if (game == null)
-					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid game: <br>{0}</body></html>", rawUrl);
+					return Error(context, 404, "<html><body>No game found at {0}.<br>{1}</body></html>", dt, rawUrl);
 
 				Reports.EnsureEvents(ExportFolder, holder.League, game);
 				return ReportPages.GamePage(holder.League, game);
@@ -492,19 +521,25 @@ xhrScoreboard.send();
 				{
 					LeagueTeam leagueTeam = holder.League.LeagueTeam(teamId);
 					if (leagueTeam == null)
-						return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid team number: <br>{0}</body></html>", rawUrl);
+						return Error(context, 404, "<html><body>Invalid team number {0}.<br>{1}</body></html>", teamId, rawUrl);
 					else
 						return ReportPages.TeamPage(holder.League, false, leagueTeam, ExportFolder, OutputFormat.Svg);
 				}
 				else
-					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid team: <br>{0}</body></html>", rawUrl);
+					return Error(context, 404, "<html><body>Invalid team: <br>{0}</body></html>", rawUrl);
 			}
 			else if (lastPart.StartsWith("fixture", StringComparison.OrdinalIgnoreCase))
 			{
 				return ReportPages.FixturePage(holder.Fixture, holder.League);
 			}
 			else
-				return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid path: <br>{0}</body></html>", rawUrl);
+				return Error(context, 404, "<html><body>Invalid path: <br>{0}</body></html>", rawUrl);
+		}
+
+		private string Error(HttpListenerContext context, int statusCode, string error, params object[] arg)
+		{
+			context.Response.StatusCode = statusCode;
+			return string.Format(CultureInfo.InvariantCulture, error, arg);
 		}
 
 		/// <summary>Put the specified image into an HttpListenerContext.Response.</summary>
@@ -581,40 +616,50 @@ xhrScoreboard.send();
 			if (MostRecentGame == null)
 				Update();
 
-			if (MostRecentGame == null)
+			var game = MostRecentGame;
+			if (game == null)
 				return "No game found.";
+
+			var league = MostRecentHolder?.League;
+			if (league == null)
+				return "No league found.";
 
 			// X-Previous is the game the scoreboard is already displaying when it sends us this request. We don't want to respond to the request until we have a new game for it to show.
 			// (If there's no X-Previous header, request.Headers["X-Previous"] returns the null string.)
-			while (request != null && JsonSerializer.Serialize<DateTime>(MostRecentGame.Time) == request.Headers["X-Previous"])
+			while (request != null && JsonSerializer.Serialize<DateTime>(game.Time) == request.Headers["X-Previous"])
 				System.Threading.Thread.Sleep(1000);
 
-			ZoomReports reports = new ZoomReports();
-			reports.Colors.BackgroundColor = Color.Empty;
-			reports.Colors.OddColor = Color.Empty;
+			Reports.EnsureEvents(ExportFolder, league, game);
+			bool detailed = game.ServerGame != null && game.ServerGame.Events.Any() && !game.ServerGame.InProgress;
+			StringBuilder sb = new StringBuilder();
 
-			Reports.EnsureEvents(ExportFolder, MostRecentHolder?.League, MostRecentGame);
-			reports.Add(Reports.OneGame(MostRecentHolder?.League, MostRecentGame));
+			if (detailed)
+				sb.Append("<div style =\"display: flex; flex-flow: row wrap; justify-content: center; align-items: center; \">\n");
 
-			return
-				reports[0].ToSvg() + NextGameHtml();
+			Reports.OneGame(league, game).ToSvg(sb, null);
+			
+			if (detailed)
+			{
+				string imageName = "score" + game.Time.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture) + ".png";
+				sb.Append("\n<div> &nbsp; </div>\n<div><img src=\"/" + league.Key + "/" + imageName + "\"></div></div>\n");
+			}
+
+			NextGameHtml(sb);
+			return sb.ToString();
 		}
 
-		string NextGameHtml()
+		void NextGameHtml(StringBuilder sb)
 		{
 			if (NextGame == null)
-				return null;
+				return;
 
-			StringBuilder sb = new StringBuilder();
-			{
-				sb.Append("</div><br/><a href=\"fixture.html\">Up Next</a>:");
+			sb.Append("</div><br/><a href=\"fixture.html\">Up Next</a>:");
 
-				foreach (var ft in NextGame.Teams)
-					sb.Append(ft.Key.Name + "; ");
-				sb.Length -= 2;
-				sb.Append("<div>");
-			}
-			return sb.ToString();
+			foreach (var ft in NextGame.Teams)
+				sb.Append(ft.Key.Name + "; ");
+
+			sb.Length -= 2;
+			sb.Append("<div>");
 		}
 
 		string RestResponse(HttpListenerRequest request)
