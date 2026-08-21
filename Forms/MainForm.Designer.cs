@@ -456,6 +456,7 @@ namespace Torn.UI
 			this.ribbonButtonExportJson.SmallImage = ((System.Drawing.Image)(resources.GetObject("ribbonButtonExportJson.SmallImage")));
 			this.ribbonButtonExportJson.Tag = "json.png";
 			this.ribbonButtonExportJson.Text = "Export Json";
+			this.ribbonButtonExportJson.Visible = false;
 			this.ribbonButtonExportJson.Click += new System.EventHandler(this.ButtonExportJsonClick);
 			// 
 			// updateScoreboard
@@ -823,29 +824,28 @@ namespace Torn.UI
 			this.imageListRibbon24.Images.SetKeyName(0, "about.png");
 			this.imageListRibbon24.Images.SetKeyName(1, "ad hoc report.png");
 			this.imageListRibbon24.Images.SetKeyName(2, "addcolumn.png");
-			this.imageListRibbon24.Images.SetKeyName(3, "addrow 24.png");
-			this.imageListRibbon24.Images.SetKeyName(4, "addrow.png");
-			this.imageListRibbon24.Images.SetKeyName(5, "close.png");
-			this.imageListRibbon24.Images.SetKeyName(6, "configurereports.png");
-			this.imageListRibbon24.Images.SetKeyName(7, "cross.png");
-			this.imageListRibbon24.Images.SetKeyName(8, "down.png");
-			this.imageListRibbon24.Images.SetKeyName(9, "editleague.png");
-			this.imageListRibbon24.Images.SetKeyName(10, "fixtures.png");
-			this.imageListRibbon24.Images.SetKeyName(11, "help.png");
-			this.imageListRibbon24.Images.SetKeyName(12, "json.png");
-			this.imageListRibbon24.Images.SetKeyName(13, "new.png");
-			this.imageListRibbon24.Images.SetKeyName(14, "open.png");
-			this.imageListRibbon24.Images.SetKeyName(15, "prefs.png");
-			this.imageListRibbon24.Images.SetKeyName(16, "print.png");
-			this.imageListRibbon24.Images.SetKeyName(17, "remember all.png");
-			this.imageListRibbon24.Images.SetKeyName(18, "removecolumn.png");
-			this.imageListRibbon24.Images.SetKeyName(19, "removerow.png");
-			this.imageListRibbon24.Images.SetKeyName(20, "right.png");
-			this.imageListRibbon24.Images.SetKeyName(21, "save.png");
-			this.imageListRibbon24.Images.SetKeyName(22, "scoreboard.png");
-			this.imageListRibbon24.Images.SetKeyName(23, "set description.png");
-			this.imageListRibbon24.Images.SetKeyName(24, "tickdark.png");
-			this.imageListRibbon24.Images.SetKeyName(25, "up.png");
+			this.imageListRibbon24.Images.SetKeyName(3, "addrow.png");
+			this.imageListRibbon24.Images.SetKeyName(4, "close.png");
+			this.imageListRibbon24.Images.SetKeyName(5, "configurereports.png");
+			this.imageListRibbon24.Images.SetKeyName(6, "cross.png");
+			this.imageListRibbon24.Images.SetKeyName(7, "down.png");
+			this.imageListRibbon24.Images.SetKeyName(8, "editleague.png");
+			this.imageListRibbon24.Images.SetKeyName(9, "fixtures.png");
+			this.imageListRibbon24.Images.SetKeyName(10, "help.png");
+			this.imageListRibbon24.Images.SetKeyName(11, "json.png");
+			this.imageListRibbon24.Images.SetKeyName(12, "new.png");
+			this.imageListRibbon24.Images.SetKeyName(13, "open.png");
+			this.imageListRibbon24.Images.SetKeyName(14, "prefs.png");
+			this.imageListRibbon24.Images.SetKeyName(15, "print.png");
+			this.imageListRibbon24.Images.SetKeyName(16, "remember all.png");
+			this.imageListRibbon24.Images.SetKeyName(17, "removecolumn.png");
+			this.imageListRibbon24.Images.SetKeyName(18, "removerow.png");
+			this.imageListRibbon24.Images.SetKeyName(19, "right.png");
+			this.imageListRibbon24.Images.SetKeyName(20, "save.png");
+			this.imageListRibbon24.Images.SetKeyName(21, "scoreboard.png");
+			this.imageListRibbon24.Images.SetKeyName(22, "set description.png");
+			this.imageListRibbon24.Images.SetKeyName(23, "tickdark.png");
+			this.imageListRibbon24.Images.SetKeyName(24, "up.png");
 			// 
 			// imageListRibbon32
 			// 
