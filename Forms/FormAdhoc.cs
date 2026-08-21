@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
+using Torn.Report;
 using Zoom;
 
 namespace Torn.UI
@@ -19,6 +20,8 @@ namespace Torn.UI
 				}
 			}
 		}
+
+		public event EventHandler<ReportEventArgs> SendToScoreboard { add => printReport.SendToScoreboard += value; remove => printReport.SendToScoreboard -= value; }
 
 		public FormAdhoc()
 		{

@@ -423,8 +423,6 @@ namespace Torn.UI
 					RefreshGamesList();
 					RankTeams();
 					listViewGames.Focus();
-					if (autoUpdateScoreboard)
-						UpdateScoreboard(serverGame);
 				}
 			}
 
@@ -440,6 +438,13 @@ namespace Torn.UI
 				{
 					FinishProgress();
 				}
+			}
+
+			if (serverGames.Any())
+			{
+				UpdateNowPage();
+				if (autoUpdateScoreboard)
+					UpdateScoreboard(serverGames.OrderBy(sg => sg.Time).Last());
 			}
 		}
 
@@ -530,6 +535,10 @@ namespace Torn.UI
 
 		private void UpdateScoreboard(ServerGame serverGame)
 		{
+			League league = leagues.Find(h => h.League.Games().Any(g => g.Time == serverGame.Time))?.League ?? serverGame.League;
+			Game game = league.Game(serverGame);
+			webOutput.SendToScoreboard(league, game);
+
 			int TBOARD_SOCKET = 21570;
 
 			UdpClient udp = new UdpClient();
@@ -538,9 +547,6 @@ namespace Torn.UI
 			string fontColour = "$02000000"; //black
 
 			string message = "DISPLAYREPORTS";
-
-			League league = serverGame.League;
-			Game game = league.Game(serverGame);
 
 			foreach (GameTeam team in game.Teams)
 			{
@@ -646,11 +652,13 @@ namespace Torn.UI
 					try
 					{
 						GetExportFolder();
-						new FormAdhoc
+						var a = new FormAdhoc()
 						{
 							Report = (ZoomReport)ReportPages.Report(leagues, IncludeSecret(), adhocReportTemplate, exportFolder),
 							Icon = (Icon)this.Icon.Clone()
-						}.Show();
+						};
+						a.SendToScoreboard += webOutput.SendToScoreboard;
+						a.Show();
 					}
 					finally
 					{
@@ -670,7 +678,11 @@ namespace Torn.UI
 		void ButtonFixtureClick(object sender, EventArgs e)
 		{
 			if (formFixture == null || formFixture.IsDisposed)
+			{
 				formFixture = new FormFixture() { Icon = (Icon)Icon.Clone() };
+				formFixture.SendToScoreboard += webOutput.SendToScoreboard;
+			}
+
 			if (listViewLeagues.SelectedItems.Count == 1)
 			{
 				formFixture.Holder = (Holder)listViewLeagues.SelectedItems[0].Tag;
@@ -709,6 +721,8 @@ namespace Torn.UI
 				league.Save();
 
 			playersBox.Clear();
+
+			UpdateNowPage();
 		}
 
 		void ButtonHelpClick(object sender, EventArgs e)
@@ -1224,10 +1238,7 @@ namespace Torn.UI
 
 		void UpdateNow()
 		{
-			webOutput.MostRecentHolder = leagues.MostRecent();
-
-			if (webOutput.MostRecentHolder != null)
-				webOutput.MostRecentGame = webOutput.MostRecentHolder.League.Games().LastOrDefault();
+			UpdateNowPage();
 
 			if (laserGameServer == null)
 				labelTime.Text = "No lasergame server";
@@ -1246,6 +1257,14 @@ namespace Torn.UI
 				labelNow.Text = laserGameServer.Status;
 			else
 				labelNow.Text = webOutput.NowText();
+		}
+
+		void UpdateNowPage()
+		{
+			webOutput.MostRecentHolder = leagues.MostRecent();
+
+			if (webOutput.MostRecentHolder != null)
+				webOutput.MostRecentGame = webOutput.MostRecentHolder.League.Games().LastOrDefault();
 		}
 
 		void NumericPortValueChanged(object sender, EventArgs e)

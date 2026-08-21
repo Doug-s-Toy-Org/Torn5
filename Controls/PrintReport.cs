@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using Torn.Report;
 using Zoom;
 
 namespace Torn5.Controls
@@ -47,6 +48,8 @@ namespace Torn5.Controls
 		public event EventHandler SaveCsv;
 		[Browsable(true), Category("Action"), Description("Occurs when user clicks Save when PNG is selected.")]
 		public event EventHandler SavePng;
+		[Browsable(true), Category("Action"), Description("Occurs when user clicks Scoreboard button.")]
+		public event EventHandler<ReportEventArgs> SendToScoreboard;
 
 		readonly SaveFileDialog saveFileDialog = new SaveFileDialog();
 		readonly PrintDialog printDialog = new PrintDialog();
@@ -137,8 +140,8 @@ namespace Torn5.Controls
 			numericScale.Enabled = radioPng.Checked && checkBoxScale.Checked;
 		}
 
-		private void ShowOnTBoardClicked(object sender, EventArgs e)
-        {
+		private void ShowOnScoreboardClicked(object sender, EventArgs e)
+		{
 			int TBOARD_SOCKET = 21570;
 
 			UdpClient udp = new UdpClient();
@@ -149,7 +152,7 @@ namespace Torn5.Controls
 			List<string> strs = result.Split(510).ToList();
 
 			foreach(string str in strs)
-            {
+			{
 				string index = strs.IndexOf(str).ToString().PadLeft(2, '0');
 				string chunk = index + str + "\x00";
 				byte[] sendBytes = Encoding.ASCII.GetBytes(chunk);
@@ -159,6 +162,8 @@ namespace Torn5.Controls
 			string emptyIndex = strs.Count().ToString().PadLeft(2, '0');
 			byte[] sendBytesEnd = Encoding.ASCII.GetBytes(emptyIndex + "\x00");
 			udp.Send(sendBytesEnd, sendBytesEnd.Length, groupEP);
+
+			SendToScoreboard?.Invoke(this, new ReportEventArgs() { Report = DisplayReport.Report });
 		}
 	}
 	public static class Extensions

@@ -259,15 +259,37 @@ namespace Torn.Report
 		public string Message { get; set; }
 	}
 
+	public class ReportEventArgs : EventArgs
+	{
+		public ZoomReport Report { get; set; }
+	}
+
 	/// <summary>Serve web pages on demand.</summary>
 	public class WebOutput: IDisposable
 	{
 		WebServer ws;
 		List<ServerGame> serverGames;
 
+		League scoreboardLeague;
+		Game scoreboardGame;
+		string scoreKey = "";  // We will send this to the scoreboard so it can send it back to us to request a game or report for display.
+		string scoreboardReport;
+
 		public Holders Leagues { get; set; }
 		public Holder MostRecentHolder { get; set; }  // This is the league that owns the game with the most recent DateTime.
-		public Game MostRecentGame { get; set; }
+		
+		Game mostRecentGame;
+		public Game MostRecentGame
+		{
+			get => mostRecentGame;
+			set
+			{
+				mostRecentGame = value;
+				if (string.IsNullOrEmpty(scoreKey))
+					scoreKey = JsonSerializer.Serialize(value.Time);
+			}
+		}
+
 		public FixtureGame NextGame { get; set; }
 		public ServerGame MostRecentServerGame { get; set; }
 		public string ExportFolder { get; set; }
@@ -319,17 +341,17 @@ namespace Torn.Report
 			StringBuilder sb = new StringBuilder();
 			sb.Append("<html><body style=\"background-color: #EEF\"><p>");
 
-			if (MostRecentGame == null)
+			if (mostRecentGame == null)
 				Update();
 
-			if (MostRecentGame == null)
+			if (mostRecentGame == null)
 				sb.Append("No game found.");
 			else
 			{
 				if (MostRecentServerGame == null)
 					sb.Append("<a href=\"" + MostRecentHolder?.Key + "/game" +
-					          MostRecentGame.Time.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture) + ".html\">Just Played</a>: " +
-					          MostRecentHolder?.League.GameString(MostRecentGame));
+					          mostRecentGame.Time.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture) + ".html\">Just Played</a>: " +
+					          MostRecentHolder?.League.GameString(mostRecentGame));
 				else
 					sb.Append((MostRecentServerGame.InProgress ? "Now Playing: " : Utility.JustPlayed(MostRecentServerGame.EndTime) + ": " ) +
 					          MostRecentHolder?.League.GameString(MostRecentServerGame));
@@ -360,35 +382,32 @@ namespace Torn.Report
 
 			// Two XmlHttpRequest objects: one to ask the date/time of the latest game; the second to request an HTML fragment containing an SVG of the scoreboard.
 			// But the second one passes the date/time of the game the scoreboard is _currently_ displaying as a parameter in the X-Previous header.
-			// XmlHttpRequestScoreBoard() (C# code, further down) checks that parameter, and while it's the same as Torn's MostRecentGame, it sleeps.
-			// When a game gets committed in Torn, MostRecentGame changes, and XmlHttpRequestScoreBoard() sends the new scoreboard SVG to that XmlHttpRequest object.
+			// XmlHttpRequestScoreBoard() (C# code, further down) checks that parameter, and while it's the same as scoreKey, it sleeps.
+			// When a game gets committed in Torn, or a report gets queued for sending to the scoreboard, scoreKey changes, and XmlHttpRequestScoreBoard() sends the new scoreboard SVG to that XmlHttpRequest object.
 			// Note that each onreadystatechange function calls the _other_ XmlHttpRequest object's send() --
 			// when a reply as to the latest game date/time comes in, the Javascript immediately calls xhrScoreboard.send() with that date/time as parameter,
 			// and when a reply as to the latest scoreboard data comes in, the Javascript immediately requeries the game date/time (because if we're getting scoreboard data, MostRecentGame must have changed).
-			// The final few lines of Javascript set off an initial request for game date/time, in order to get that first xhrLatest.onreadystatechange to fire.
+			// The final few lines of Javascript set off an initial request for game date/time, in order to get that first xhrKey.onreadystatechange to fire.
 			// We also svg.setAttribute('width') so that the report plus image mostly fill the browser window; either side by side or one above the other -- whichever fits better.
 			reports.Add(new ZoomHtmlInclusion(@"<script>
-var latest = '(none)';
-var xhrLatest = new XMLHttpRequest();
+var xhrKey = new XMLHttpRequest();
 var xhrScoreboard = new XMLHttpRequest();
 
-xhrLatest.onreadystatechange = function () {
+xhrKey.onreadystatechange = function () {
 	if (this.readyState == 4 && this.status == 200)
 	{
 		xhrScoreboard.open('POST', 'scoreboard', true);
-		xhrScoreboard.setRequestHeader('X-Previous', latest);
-		latest = xhrLatest.responseText;
+		xhrScoreboard.setRequestHeader('X-Previous', xhrKey.responseText);
 		xhrScoreboard.send();		
 	}
 };
 
-
 xhrScoreboard.onreadystatechange = function () {
 	if (this.readyState == 4)
 	{
+		var s = document.getElementById('scoreboard');
 		if (this.status == 200)
 		{
-			var s = document.getElementById('scoreboard');
 			s.innerHTML = xhrScoreboard.responseText;
 			window.onload();
 
@@ -409,17 +428,32 @@ xhrScoreboard.onreadystatechange = function () {
 		else
 			s.innerHTML = '<p>Server query failed. Check if Torn is running. Status code: ' + this.status + '. Status text: ' + this.statusText + '. <a href=\scoreboard.html>Refresh</a>.</p>' + document.getElementById('scoreboard').innerHTML;
 
-		xhrLatest.open('GET', 'latest', true);
-		xhrLatest.send();
+		xhrKey.open('GET', 'scorekey', true);
+		xhrKey.send();
 	}
 };
 
-xhrScoreboard.open('GET', 'scoreboard', true);
-xhrScoreboard.setRequestHeader('X-Previous', '(none)');
-xhrScoreboard.send();
+xhrKey.open('GET', 'scorekey', true);
+xhrKey.send();
 </script>
 "));
+
 			return reports.ToOutput(outputFormat);
+		}
+
+		/// <summary>Queue a report for sending to the web browser scoreboard.</summary>
+		public void SendToScoreboard(object sender, ReportEventArgs e)
+		{
+			scoreboardReport = e.Report.ToSvg();
+			scoreKey = scoreKey == "report" ? "report2" : "report";
+		}
+
+		/// <summary>Queue a report for sending to the web browser scoreboard.</summary>
+		public void SendToScoreboard(League league, Game game)
+		{
+			scoreboardLeague = league;
+			scoreboardGame = game;
+			scoreKey = JsonSerializer.Serialize(game.Time);
 		}
 
 		void SendResponse(HttpListenerContext context)
@@ -613,21 +647,28 @@ xhrScoreboard.send();
 		/// <summary>Return an HTML fragment to be displayed within the 'scoreboard' div on scoreboard.html.</summary>
 		string XmlHttpRequestScoreBoard(HttpListenerRequest request)  // Get parameters from InputStream, QueryString, ContentType, or Headers.
 		{
-			if (MostRecentGame == null)
-				Update();
+			// X-Previous is the game (or report) the scoreboard is already displaying when it sends us this request.
+			// We don't want to respond to the request until we have a new game (or report) for it to show.
+			// (If there's no X-Previous header, request.Headers["X-Previous"] returns the null string.)
+			while (request != null && scoreKey == request.Headers["X-Previous"])
+				System.Threading.Thread.Sleep(1000);
 
-			var game = MostRecentGame;
+			if (scoreKey == "report" || scoreKey == "report2")
+				return scoreboardReport;
+
+			var game = scoreboardGame;
 			if (game == null)
-				return "No game found.";
+			{
+				Update();
+				game = mostRecentGame;
 
-			var league = MostRecentHolder?.League;
+				if (game == null)
+					return "No game found.";
+			}
+
+			var league = scoreboardLeague ?? MostRecentHolder?.League;
 			if (league == null)
 				return "No league found.";
-
-			// X-Previous is the game the scoreboard is already displaying when it sends us this request. We don't want to respond to the request until we have a new game for it to show.
-			// (If there's no X-Previous header, request.Headers["X-Previous"] returns the null string.)
-			while (request != null && JsonSerializer.Serialize<DateTime>(game.Time) == request.Headers["X-Previous"])
-				System.Threading.Thread.Sleep(1000);
 
 			Reports.EnsureEvents(ExportFolder, league, game);
 			bool detailed = game.ServerGame != null && game.ServerGame.Events.Any() && !game.ServerGame.InProgress;
@@ -669,9 +710,9 @@ xhrScoreboard.send();
 				return JsonSerializer.Serialize<int>(Elapsed());
 			if (rawUrl.EndsWith("latest"))
 			{
-				if (MostRecentGame == null)
+				if (mostRecentGame == null)
 					Update();
-				return JsonSerializer.Serialize<DateTime>(MostRecentGame == null ? default : MostRecentGame.Time);
+				return JsonSerializer.Serialize(mostRecentGame?.Time ?? default);
 			}
 			else if (rawUrl.EndsWith("games.json"))
 				return RestGames();
@@ -681,6 +722,8 @@ xhrScoreboard.send();
 				return RestPlayers("");  // return the list of all players available from this lasergame server.
 			else if (rawUrl.EndsWith("scoreboard"))
 				return XmlHttpRequestScoreBoard(request);
+			else if (rawUrl.EndsWith("scorekey"))
+				return scoreKey;
 			else
 				return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid path: <br>{0}</body></html>", rawUrl);
 		}
@@ -694,9 +737,9 @@ xhrScoreboard.send();
 				if (MostRecentHolder == null || !MostRecentHolder.League.AnyGames())
 					return;
 
-				MostRecentGame = MostRecentHolder.League.Games().Last();
+				mostRecentGame = MostRecentHolder.League.Games().Last();
 
-				FixtureGame fg = MostRecentHolder.Fixture.BestMatch(MostRecentGame);
+				FixtureGame fg = MostRecentHolder.Fixture.BestMatch(mostRecentGame);
 				if (fg == null)
 					NextGame = null;
 				else
@@ -714,8 +757,8 @@ xhrScoreboard.send();
 			string nowText = "";
 			if (MostRecentServerGame == null)
 			{
-				if (MostRecentHolder != null && MostRecentGame != null)
-					nowText = "Just Played: " + MostRecentHolder.League.GameString(MostRecentGame);
+				if (MostRecentHolder != null && mostRecentGame != null)
+					nowText = "Just Played: " + MostRecentHolder.League.GameString(mostRecentGame);
 			}
 			else if (MostRecentHolder != null)
 				nowText = (MostRecentServerGame.InProgress ? "Now Playing: " : "Just Played: ") +

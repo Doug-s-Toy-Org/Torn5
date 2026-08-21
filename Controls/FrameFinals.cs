@@ -37,6 +37,8 @@ namespace Torn5.Controls
 			}
 		}
 
+		public event EventHandler<Torn.Report.ReportEventArgs> SendToScoreboard { add => printReportFinals.SendToScoreboard += value; remove => printReportFinals.SendToScoreboard -= value; }
+
 		public FrameFinals()
 		{
 			InitializeComponent();

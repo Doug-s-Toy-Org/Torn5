@@ -31,6 +31,8 @@ namespace Torn5.Controls
 
 		League PreviousLeague;
 
+		public event EventHandler<ReportEventArgs> SendToScoreboard { add => printReportDraw.SendToScoreboard += value; remove => printReportDraw.SendToScoreboard -= value; }
+
 		public FramePyramidRound()
 		{
 			InitializeComponent();

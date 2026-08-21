@@ -49,6 +49,24 @@ namespace Torn.UI
 			}
 		}
 
+		public event EventHandler<ReportEventArgs> SendToScoreboard
+		{
+			add
+			{
+				printReport1.SendToScoreboard += value;
+				frameFinals1.SendToScoreboard += value;
+				framePyramid1.SendToScoreboard += value;
+				framePyramidRound1.SendToScoreboard += value;
+			}
+			remove
+			{
+				printReport1.SendToScoreboard -= value;
+				frameFinals1.SendToScoreboard -= value;
+				framePyramid1.SendToScoreboard -= value;
+				framePyramidRound1.SendToScoreboard -= value;
+			}
+		}
+
 		private void SetExportFileName()
 		{
 			if (!string.IsNullOrEmpty(exportFolder) && holder != null)

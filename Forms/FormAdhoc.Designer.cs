@@ -28,9 +28,9 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.displayReport = new Torn5.Controls.DisplayReport();
 			this.panelRight = new System.Windows.Forms.Panel();
 			this.printReport = new Torn5.Controls.PrintReport();
+			this.displayReport = new Torn5.Controls.DisplayReport();
 			this.panelRerender = new System.Windows.Forms.Panel();
 			this.buttonRerender = new System.Windows.Forms.Button();
 			this.panelBottom = new System.Windows.Forms.Panel();
@@ -39,16 +39,6 @@
 			this.panelRerender.SuspendLayout();
 			this.panelBottom.SuspendLayout();
 			this.SuspendLayout();
-			// 
-			// displayReport
-			// 
-			this.displayReport.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-			this.displayReport.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.displayReport.Location = new System.Drawing.Point(0, 0);
-			this.displayReport.Name = "displayReport";
-			this.displayReport.Report = null;
-			this.displayReport.Size = new System.Drawing.Size(720, 650);
-			this.displayReport.TabIndex = 0;
 			// 
 			// panelRight
 			// 
@@ -63,11 +53,22 @@
 			// printReport
 			// 
 			this.printReport.DisplayReport = this.displayReport;
-			this.printReport.Dock = System.Windows.Forms.DockStyle.Top;
+			this.printReport.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.printReport.FileName = null;
 			this.printReport.Location = new System.Drawing.Point(0, 64);
 			this.printReport.Name = "printReport";
-			this.printReport.Size = new System.Drawing.Size(64, 508);
+			this.printReport.Size = new System.Drawing.Size(64, 586);
 			this.printReport.TabIndex = 2;
+			// 
+			// displayReport
+			// 
+			this.displayReport.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
+			this.displayReport.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.displayReport.Location = new System.Drawing.Point(0, 0);
+			this.displayReport.Name = "displayReport";
+			this.displayReport.Report = null;
+			this.displayReport.Size = new System.Drawing.Size(720, 650);
+			this.displayReport.TabIndex = 0;
 			// 
 			// panelRerender
 			// 
@@ -85,7 +86,7 @@
 			this.buttonRerender.Size = new System.Drawing.Size(52, 37);
 			this.buttonRerender.TabIndex = 0;
 			this.buttonRerender.Text = "Re- render";
-			this.buttonRerender.UseVisualStyleBackColor = true;
+			this.buttonRerender.UseVisualStyleBackColor = false;
 			this.buttonRerender.Click += new System.EventHandler(this.ButtonRerenderClick);
 			// 
 			// panelBottom
