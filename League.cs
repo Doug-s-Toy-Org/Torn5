@@ -236,6 +236,20 @@ namespace Torn
 			};
 		}
 
+		public List<GamePlayer> Played(IEnumerable<Game> games, bool includeSecret = true)
+		{
+			var played = new List<GamePlayer>();
+
+			foreach (var game in games)
+			{
+				GamePlayer gamePlayer = includeSecret || !game.Secret ? game.Players().Find(gp => gp.PlayerId == Id) : null;
+				if (gamePlayer != null)
+					played.Add(gamePlayer);
+			}
+
+			return played;
+		}
+
 		public override string ToString()
 		{
 			return Name;
@@ -1958,24 +1972,7 @@ namespace Torn
 		public List<GamePlayer> Played(LeaguePlayer leaguePlayer, bool includeSecret = true)
 		{
 			lock (games)
-				return Played(games, leaguePlayer, includeSecret);
-		}
-
-		public static List<GamePlayer> Played(IEnumerable<Game> games, LeaguePlayer leaguePlayer, bool includeSecret)
-		{
-			var played = new List<GamePlayer>();
-
-			if (leaguePlayer == null)
-				return played;
-
-			foreach (var game in games)
-			{
-				GamePlayer gamePlayer = includeSecret || !game.Secret ? game.Players().Find(gp => gp.PlayerId == leaguePlayer.Id) : null;
-				if (gamePlayer != null)
-					played.Add(gamePlayer);
-			}
-
-			return played;
+				return leaguePlayer.Played(games, includeSecret);
 		}
 
 		#region LeaguePlayer
@@ -2084,11 +2081,6 @@ namespace Torn
 				entry.Value.Add(tpc.LeagueTeam);
 			}
 			return playerTeamList.Distinct().OrderBy(pt => pt.Value[0].Name).ThenBy(pt => pt.Key.Name).ToList();
-		}
-
-		int Plays(LeagueTeam leagueTeam, LeaguePlayer leaguePlayer)
-		{
-			return Played(leaguePlayer).Where(x => this.LeagueTeam(x.GameTeam(this)) == leagueTeam).Count();
 		}
 
 		public string GameString(Game game)

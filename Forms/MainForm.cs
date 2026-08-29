@@ -614,7 +614,7 @@ namespace Torn.UI
 				try
 				{
 					GetExportFolder();
-					pd = ReportPages.OverviewReports(holder, true, false, exportFolder).ToPrint();
+					pd = ReportPages.OverviewReports(holder, IncludeSecret(), false, exportFolder).ToPrint();
 				}
 				finally
 				{
@@ -641,12 +641,21 @@ namespace Torn.UI
 
 				var leagues = SelectedLeagues().Select(h => h.League).ToList();
 
-				if (new FormReport
+				var selectedGames = new List<DateTime>();
+				foreach (ListViewItem item in listViewGames.SelectedItems)
+					if (item.Tag is ServerGame serverGame)
+						selectedGames.Add(serverGame.Time);
+
+				var formReport = new FormReport()
 				{
 					ReportTemplate = adhocReportTemplate,
 					Leagues = leagues,
+					SelectedGameTimes = selectedGames,
+					IncludeSecretGames = IncludeSecret(),
 					Icon = (Icon)this.Icon.Clone()
-				}.ShowDialog() == DialogResult.OK)
+				};
+
+				if (formReport.ShowDialog() == DialogResult.OK)
 				{
 					Cursor.Current = Cursors.WaitCursor;
 					try
@@ -654,7 +663,7 @@ namespace Torn.UI
 						GetExportFolder();
 						var a = new FormAdhoc()
 						{
-							Report = (ZoomReport)ReportPages.Report(leagues, IncludeSecret(), adhocReportTemplate, exportFolder),
+							Report = (ZoomReport)ReportPages.Report(leagues, formReport.Games, adhocReportTemplate, exportFolder),
 							Icon = (Icon)this.Icon.Clone()
 						};
 						a.SendToScoreboard += webOutput.SendToScoreboard;

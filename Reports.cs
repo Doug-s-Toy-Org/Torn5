@@ -141,15 +141,14 @@ namespace Torn.Report
 	public static class Reports
 	{
 		/// <summary>Start with teams in rank order implied by prior games; follow teams through games, moving up/down as they win/lose; see their final rank.</summary>
-		public static ZoomReport AscensionWithArrows(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport AscensionWithArrows(League league, List<Game> games, ReportTemplate rt)
 		{
-			ZoomReport report = new ZoomReport(ReportTitle("Ascension", league.Title, rt));
+			ZoomReport report = new ZoomReport(ReportTitle("Ascension", league, rt));
 
-			var ascensionGames = Games(league, includeSecret, rt);
-			if (!ascensionGames.Any())
-				return FinishReport(report, ascensionGames, rt);
+			if (!games.Any())
+				return FinishReport(report, games, rt);
 
-			var firstAscensionGameTime = ascensionGames.First().Time;
+			var firstAscensionGameTime = games.First().Time;
 			var ladder = Ladder(league, league.Games().Where(g => g.Time < firstAscensionGameTime).ToList(), new ReportTemplate());
 			if (!ladder.Any())
 				return WithDescription(report, "No games were found before the range selected for reporting. This report needs games before the ascension to give initial ladder positions for each team.");
@@ -161,15 +160,15 @@ namespace Torn.Report
 				currentLadder.Add(ladder[i].Team.TeamId, currentLadder.Count);
 			}
 
-			bool hasPoints = league.IsPoints(ascensionGames) && rt.FindSetting("ignorePoints") == 0;
+			bool hasPoints = league.IsPoints(games) && rt.FindSetting("ignorePoints") == 0;
 
 			var nextColumnArrows = new List<Arrow>();
 
 			// Create columns.
-			for (int g = 0; g < ascensionGames.Count; g++)
+			for (int g = 0; g < games.Count; g++)
 			{
 				int startCol = report.Columns.Count - 1;
-				var game = ascensionGames[g];
+				var game = games[g];
 
 				report.AddColumn(new ZColumn()).Arrows.AddRange(nextColumnArrows);
 				nextColumnArrows.Clear();
@@ -190,7 +189,7 @@ namespace Torn.Report
 					row.Force(startCol);
 
 					row.Add(new ZCell(leagueTeam.Name) { Tag = leagueTeam });
-					if (g > 0 && !ascensionGames[g - 1].Teams.Any(gt2 => gt2.TeamId == gameTeam.TeamId))  // If there's room to the left,
+					if (g > 0 && !games[g - 1].Teams.Any(gt2 => gt2.TeamId == gameTeam.TeamId))  // If there's room to the left,
 						row.Last().Alignment = ZAlignment.Right | ZAlignment.Overflow;  // overflow leftward.
 
 					row.Add(new ZCell(gameTeam.Score, ChartType.Bar, "N0", gameTeam.Colour.ToColor()));
@@ -209,7 +208,7 @@ namespace Torn.Report
 					nextColumnArrows.Add(arrow);
 				}
 
-				bool backToBack = g < ascensionGames.Count - 1 && ascensionGames[g + 1].Teams.Any(gt => game.Teams.Any(gt2 => gt2.TeamId == gt.TeamId));
+				bool backToBack = g < games.Count - 1 && games[g + 1].Teams.Any(gt => game.Teams.Any(gt2 => gt2.TeamId == gt.TeamId));
 				if (backToBack)
 				{
 					report.AddColumn(new ZColumn()).Arrows.AddRange(nextColumnArrows);
@@ -221,7 +220,7 @@ namespace Torn.Report
 			report.AddColumn(new ZColumn());  // Column for the final rankings of teams in the last ascension gaame.
 
 			var laddertoTeamId = currentLadder.ToDictionary(kv => kv.Value, kv => kv.Key);
-			var lastAscensionGameTime = ascensionGames.Last().Time;
+			var lastAscensionGameTime = games.Last().Time;
 			var laterGames = league.Games().Where(g => g.Time > lastAscensionGameTime).ToList();
 			var laterTeamIds = laterGames.SelectMany(g => g.Teams.Select(gt => gt.TeamId));
 
@@ -245,37 +244,29 @@ namespace Torn.Report
 			if (rt.Settings.Contains("Description"))
 				report.Description = "Each column is one game. Follow arrows to see how a team performs.";
 
-			return FinishReport(report, ascensionGames, rt);
+			return FinishReport(report, games, rt);
 		}
 
 		/// <summary>How many times does each colour come 1st, 2nd, 3rd (etc)?</summary>
-		public static ZoomReport ColourReport(List<League> leagues, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport ColourReport(List<League> leagues, List<Game> games, ReportTemplate rt)
 		{
-			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
-
-			ZoomReport report = new ZoomReport(ReportTitle("Colour Performance", (leagues.Count == 1 ? leagues[0].Title: ""), rt), "Rank", "center");
-
-			var games = new List<Game>();
-			foreach (var league in leagues)
-				games.AddRange(Games(league, includeSecret, rt));
-			games.Sort();
+			ZoomReport report = new ZoomReport(ReportTitle("Colour Performance", leagues.Count == 1 ? leagues.First() : null, rt), "Rank", "center");
 
 			var coloursUsed = games.SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct();
 			var colourTotals = new Dictionary<Colour, List<int>>();
 			foreach (Colour c in coloursUsed)
 				colourTotals.Add(c, new List<int>());
 
-			foreach (var league in leagues)
-				foreach (Game game in Games(league, includeSecret, rt))
-					foreach (GameTeam gameTeam in game.Teams)
+				foreach (Game game in games)
+					for (int i = 0; i < game.Teams.Count; i++)
 					{
 						// Add the team's rank in this game to the colourTotals.
-						int rank = league.Game(gameTeam).Teams.IndexOf(gameTeam);
+						var gameTeam = game.Teams[i];
 
-						while (colourTotals[gameTeam.Colour].Count <= rank)
+						while (colourTotals[gameTeam.Colour].Count <= i)
 							colourTotals[gameTeam.Colour].Add(0);
-						if (rank > -1)
-							colourTotals[gameTeam.Colour][rank]++;
+						if (i > -1)
+							colourTotals[gameTeam.Colour][i]++;
 					}
 
 			coloursUsed = coloursUsed.OrderBy(c => -colourTotals[c].FirstOrDefault());
@@ -313,9 +304,9 @@ namespace Torn.Report
 		}
 
 		/// <summary>Every player in every game. Useful for data export.</summary>
-		public static ZoomReport EverythingReport(League league, string title, DateTime? from, DateTime? to, bool description)
+		public static ZoomReport EverythingReport(League league, List<Game> games, ReportTemplate rt)
 		{
-			var report = new ZoomReport(string.IsNullOrEmpty(title) ? league.Title + " Everything Report" : title + FromTo(league.Games(), from, to),
+			var report = new ZoomReport(string.IsNullOrEmpty(rt.Title) ? league.Title + " Everything Report" : rt.Title + FromTo(league.Games(), rt.From, rt.To),
 											   "Player,Pack,Team,Rank,Score,Tags +,Tags -,Tag Ratio,Score Ratio,TR\u00D7SR,Destroys,Denies,Got Denied,Yellow Card,Red Card",
 											   "left,left,left,integer,integer,integer,integer,float,float,float,integer,integer,integer,integer,integer,integer",
 											   ",,,,,Tags,Tags,Ratio,Ratio,Ratio,Base,Base,Base,Penalties,Penalties")
@@ -325,8 +316,7 @@ namespace Torn.Report
 				NumberStyle = ZNumberStyle.Plain
 			};
 
-			foreach (var game in league.Games().FindAll(x => x.Time.CompareTo(from ?? DateTime.MinValue) >= 0 &&
-														 x.Time.CompareTo(to ?? DateTime.MaxValue) <= 0))
+			foreach (var game in games)
 			{
 				var gameTotal = new GamePlayer();
 
@@ -602,12 +592,7 @@ namespace Torn.Report
 		}
 
 		/// <summary> Build a grid of games. One team per row; one game per column.
-		public static ZoomReport GamesGrid(League league, bool includeSecret, ReportTemplate rt)
-		{
-			return GamesGrid(league, Games(league, includeSecret, rt), rt);
-		}
-
-		static ZoomReport GamesGrid(League league, List<Game> games, ReportTemplate rt)
+		public static ZoomReport GamesGrid(League league, List<Game> games, ReportTemplate rt)
 		{
 			bool ignorePoints = rt.FindSetting("ignorePoints") >= 0;
 			bool hasHits = rt.FindSetting("showHits") >= 0;
@@ -735,15 +720,13 @@ namespace Torn.Report
 		}
 
 		/// <summary> Build a list of games. One team per row.</summary>
-		public static ZoomReport GamesGridCondensed(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport GamesGridCondensed(League league, List<Game> games, ReportTemplate rt)
 		{
 			bool isDecimal = rt.FindSetting("isDecimal") >= 0;
 			ZoomReport report = new ZoomReport("", "Rank,Team", "center,left");
 			report.Columns[0].Rotate = true;
 
-			List<Game> games = Games(league, includeSecret, rt);
 			DateTime newTo = rt.To ?? DateTime.MaxValue;
-			Game after = league.Games(includeSecret).Exists(x => x.Time > newTo) ? games.Find(x => x.Time > newTo) : null;
 			List<string> titles = games.Select(x => x.Title).Distinct().ToList();
 			var titleCount = new Dictionary<string, int>();
 
@@ -865,11 +848,11 @@ namespace Torn.Report
 		}
 
 		/// <summary>Build a list of games. One game per row.</summary>
-		public static ZoomReport GamesList(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport GamesList(League league, List<Game> games, ReportTemplate rt)
 		{
 			bool hasHits = rt.FindSetting("showHits") >= 0;
 
-			ZoomReport report = new ZoomReport("", "Game", "right")
+			ZoomReport report = new ZoomReport(ReportTitle("Games", league, rt), "Game", "right")
 			{
 				MultiColumnOK = true
 			};
@@ -877,12 +860,10 @@ namespace Torn.Report
 			report.Colors.OddColor = default;
 
 			int thisgame = 0;
-			List<Game> games = Games(league, includeSecret, rt);
-			games.Sort();
 
 			int mostTeams = games.Count == 0 ? 0 : games.Max(g => g.Teams.Count);
 
-			while (thisgame < games.Count)// && (to == null || games[thisgame].Time < to))  // loop through each game, and create a row for it
+			while (thisgame < games.Count)  // loop through each game, and create a row for it
 			{
 				Game game = games[thisgame];
 				if (thisgame == 0 || (games[thisgame - 1].Time.Date < game.Time.Date))  // We've crossed a date boundary, so
@@ -955,7 +936,6 @@ namespace Torn.Report
 
 			if (games.Any() && games.First().Time.Date == games.Last().Time.Date)
 				report.Rows.RemoveAt(0);  // The first entry in rows is a date line; since there's only one date for the whole report, we can delete it.
-			report.Title = (ReportTitle("Games", league.Title, rt));
 
 			for (int i = 0; i < mostTeams; i++)  // set up the Headings text, to cater for however many columns the report has turned out to be
 			{
@@ -989,7 +969,7 @@ namespace Torn.Report
 		}
 
 		/// <summary>Build a report showing games. Each game fills several rows: one row for team scores, followed by rows for player scores, in the same column as their team.</summary>
-		public static ZoomReport DetailedGamesList(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport DetailedGamesList(League league, List<Game> games, ReportTemplate rt)
 		{
 			bool hasHits = rt.FindSetting("showHits") >= 0;
 			bool showZeroed = rt.FindSetting("showZeroed") >= 0;
@@ -999,8 +979,6 @@ namespace Torn.Report
 			};
 
 			int thisgame = 0;
-			List<Game> games = Games(league, includeSecret, rt);
-			games.Sort();
 
 			int mostTeams = games.Count == 0 ? 0 : games.Max(g => g.Teams.Count);
 
@@ -1139,7 +1117,7 @@ namespace Torn.Report
 
 			if (games.Any() && games.First().Time.Date == games.Last().Time.Date)
 				report.Rows.RemoveAt(0);  // The first entry in rows is a date line; since there's only one date for the whole report, we can delete it.
-			report.Title = (ReportTitle("Games", league.Title, rt));
+			report.Title = (ReportTitle("Games", league, rt));
 
 			for (int i = 0; i < mostTeams; i++)  // set up the Headings text, to cater for however many columns the report has turned out to be
 			{
@@ -1183,13 +1161,10 @@ namespace Torn.Report
 		}
 
 		/// <summary>Show hyperlinks to games. One row per day; one game per cell.</summary>
-		public static ZoomReport GamesToc(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport GamesToc(IEnumerable<Game> games, ReportTemplate rt)
 		{
 			ZoomReport report = new ZoomReport("Table of Contents: Games");
 			report.Columns.Add(new ZColumn("", ZAlignment.Right));
-
-			List<Game> games = Games(league, includeSecret, rt);
-			games.Sort();
 
 			var dates = games.Select(g => g.Time.Date).Distinct().ToList();
 			var gameGroups = new List<List<Game>>(); // Groups of games. Games in a group will all be on the same day and have the same title. No group is empty.
@@ -1255,19 +1230,18 @@ namespace Torn.Report
 		}
 
 		/// <summary>List each team and their rank, several times over: once for each titled group of games.</summary>
-		public static ZoomReport MultiLadder(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport MultiLadder(League league, List<Game> games, ReportTemplate rt)
 		{
 			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 			bool ratio = rt.Setting("OrderBy") == "score ratio";
 			bool scaled = rt.FindSetting("OrderBy") > 0 && rt.Setting("OrderBy").StartsWith("scaled");
 
-			ZoomReport report = new ZoomReport(ReportTitle("Team Ladders", league.Title, rt), "Rank", "center")
+			ZoomReport report = new ZoomReport(ReportTitle("Team Ladders", league, rt), "Rank", "center")
 			{
 				MaxChartByColumn = true
 			};
 			report.Columns[0].Rotate = true;
 
-			var games = Games(league, includeSecret, rt);
 			var groups = games.Select(g => g.Title).Distinct().ToList();
 			var groupGames = new List<Game>();  // This list can accumulate games across multiple groups, if results are supposed to accumulate across multiple groups (e.g. as they do from Round Robin to Cascade).
 			var teamColumns = new List<int>();  // List of indexes of columns that contain team names.
@@ -1996,8 +1970,10 @@ namespace Torn.Report
 		// Applied Linear Statistical Models, Kutner et al: ch 7, ch 11.5 bootstrapping, p 1034 questions of interest, ch27
 		// Overlapping 95% confidence intervals. If top pack's confidence interval overlaps bottom pack's interval, there are no outliers.
 		// Ellipse containing 95% of values on a scatter plot. (X and y axes are hits by and hits on.) Draw an ellipse for each pack; see if they overlap.
-		public static ZoomReport PackReport(List<League> leagues, List<Game> round1Games, string title, DateTime? from, DateTime? to, ChartType chartType, bool description, bool longitudinal)
+		public static ZoomReport PackReport(List<League> leagues, ReportTemplate rt)
 		{
+			bool longitudinal = rt.Settings.Contains("Longitudinal");
+
 			// Build a list of player IDs.
 			var solos = new List<string>();
 
@@ -2005,6 +1981,17 @@ namespace Torn.Report
 				foreach (var player in league.Players())
 					if (player.Id != null && !solos.Contains(player.Id))
 						solos.Add(player.Id);
+
+			var round1Games = new Dictionary<League, IEnumerable<Game>>();
+			foreach (var league in leagues)
+			{
+				var thisLeagueRound1Games = league.Games().Where(g => g.Title == "Round Robin" || g.Title == "Round 1");
+
+				if (!thisLeagueRound1Games.Any())
+					thisLeagueRound1Games = league.Games();
+
+				round1Games.Add(league, thisLeagueRound1Games);
+			}
 
 			// Then build a solo ladder, showing tag ratios for each player ID, so we can normalise the data for the pack report.
 			var soloLadder = new Dictionary<string, double>();
@@ -2014,10 +2001,11 @@ namespace Torn.Report
 				int hitsOn = 0;
 				double scoreSum = 0;
 				double gameAverageSum = 0;
+
 				foreach (var league in leagues)
 				{
 					var player = league.LeaguePlayer(solo);
-					var played = league.Played(player);
+					var played = player?.Played(round1Games[league]);
 
 					if (player != null && played.Any())
 					{
@@ -2028,9 +2016,11 @@ namespace Torn.Report
 						gameAverageSum += played.Average(x => league.Game(x) == null ? 0 : league.Game(x).TotalScore() / league.Game(x).Players().Count);
 					}
 				}
-				soloLadder.Add(solo, hitsBy == 0 && hitsOn == 0 ?
-							   (gameAverageSum == 0 ? 1000000 : scoreSum / gameAverageSum) :  // When there's no hit data, fall back to score data.
-							   hitsOn == 0 ? 1000000 : (double)hitsBy / hitsOn);
+
+				if (hitsBy != 0 && hitsOn != 0)
+					soloLadder.Add(solo, (double)hitsBy / hitsOn);
+				else if (scoreSum != 0 && gameAverageSum != 0)
+					soloLadder.Add(solo, scoreSum / gameAverageSum);  // When there's no hit data, fall back to score data.
 			}
 
 			// Assign each league a color, for longitudinal chart points.
@@ -2043,7 +2033,7 @@ namespace Torn.Report
 			var gameColors = new Dictionary<Game, Color>();
 			foreach (var league in leagues)
 			{
-				var games2 = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue));
+				var games2 = league.Games().Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue));
 				games.AddRange(games2);
 				foreach (var game in games2)
 					gameColors.Add(game, leagueColors[league]);
@@ -2052,6 +2042,7 @@ namespace Torn.Report
 			games.Sort((x, y) => DateTime.Compare(x.Time, y.Time));
 
 			// Now build the pack report.
+			string title = rt.Title;
 			var report = new ZoomReport((string.IsNullOrEmpty(title) ? (leagues.Count == 1 ? leagues[0].Title + " " : "") + "Pack Report" : title),
 										"Rank,Pack,Score Ratio,t,p,Count,Tag Ratio,t,p,Count",
 										"center,left,integer,float,float,integer,float,float,float,integer");
@@ -2063,6 +2054,7 @@ namespace Torn.Report
 
 			var packs = games.SelectMany(game => game.Players().Select(player => player.Pack)).Distinct().ToList();
 			bool missingTags = false;  // True if any pack is missing some tag ratios.
+			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
 			foreach (string pack in packs)
 			{
@@ -2250,7 +2242,7 @@ namespace Torn.Report
 				}
 			}
 
-			if (description)
+			if (rt.Settings.Contains("Description"))
 			{
 				report.Description = "This report shows the performance of each pack, each time it is used by a logged-on player. " +
 					"Each score the pack gains is scaled by the player's ratio, effectively 'handicapping'. \n" +
@@ -2268,112 +2260,128 @@ namespace Torn.Report
 
 				if (longitudinal)
 					report.Description += "The \"Longitudinal\" column shows the performance of each pack in each game over time -- higher means the pack did better. \n";
-
-				if (from != null || to != null)
-					report.Description += "The report has been limited to games" + FromTo(games, from, to) + ".";
 			}
+			FinishReport(report, games, rt);
 
 			return report;
 		}
 
 		/// <summary>Try to identify common errors in committed games.</summary>
-		public static ZoomReport SanityReport(List<League> leagues, string path, string title, DateTime? from, DateTime? to, bool description)
+		public static ZoomReport SanityReport(League league, List<Game> games, ReportTemplate rt, string path)
 		{
-			var report = new ZoomReport(string.IsNullOrEmpty(title) ? (leagues.Count == 1 ? leagues[0].Title + " " : "") + "Sanity Check Report" : title,
+			var report = new ZoomReport(ReportTitle("Sanity Check Report", league, rt),
+										"League,Game,Team,Issue",
+										"left,left,left,left");
+
+			SanityReport(report, league, games, path);
+			FinishSanityReport(report, rt);
+			report.RemoveColumn(0);
+
+			return report;
+		}
+		
+		public static ZoomReport SanityReport(List<League> leagues, ReportTemplate rt, string path)
+		{
+			var report = new ZoomReport(string.IsNullOrEmpty(rt.Title) ? "Sanity Check Report for " + leagues.Count.ToString() + " leagues" : rt.Title,
 										"League,Game,Team,Issue",
 										"left,left,left,left");
 
 			foreach (var league in leagues)
+				SanityReport(report, league, league.Games().Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue)).ToList(), path);
+
+			FinishSanityReport(report, rt);
+
+			return report;
+		}
+
+		static void SanityReport(ZoomReport report, League league, List<Game> games, string path)
+		{
+			if (!games.Any())
 			{
-				var games = league.Games().Where(g => g.Time > (from ?? DateTime.MinValue) && g.Time < (to ?? DateTime.MaxValue)).ToList();
-				if (!games.Any())
-				{
-					AddSanityCheckRow(report, "", "No games found in league " + league.Title + " for specified date/time range.");
-					continue;
-				}
-
-				var gameTeams = games.SelectMany(g => g.Teams);
-				if (!gameTeams.Any())
-				{
-					AddSanityCheckRow(report, "", "No games with teams in them found in league " + league.Title);
-					continue;
-				}
-
-				int gamesWithPoints = games.Count(g => g.Teams.Any(t => t.Points != 0));
-				double averageTeamPlayers = gameTeams.Average(t => t.Players.Count);
-				double playersLoggedOn = gameTeams.Average(t => t.Players.Any() ? t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1) : 0);
-				double coloursPerTeam = gameTeams.Average(gt => gt.Players.Select(gp => gp.Colour).Distinct().Count());
-
-				foreach (var game in games)
-				{
-					var teams = game.Teams.Where(t => t.Players.Count < Math.Truncate(averageTeamPlayers));
-					foreach (var team in teams)
-						AddSanityCheckRow(report, league, game, team, string.Format("Team has only {0} players", team.Players.Count));
-
-					teams = game.Teams.Where(t => t.Players.Count > Math.Round(averageTeamPlayers));
-					foreach (var team in teams)
-						AddSanityCheckRow(report, league, game, team, string.Format("Team has {0} players. (A player might have switched packs.)", team.Players.Count));
-
-					if (playersLoggedOn > 0.75)
-						foreach (var team in game.Teams)
-							foreach (var player in team.Players.Where(p => string.IsNullOrEmpty(p.PlayerId)))
-								AddSanityCheckRow(report, league, game, team, string.Format("Pack {0} did not log on. Score: {1}", player.Pack, player.Score));
-
-					if (coloursPerTeam < 1.5)
-						foreach (var team in game.Teams.Where(gt => gt.Players.Select(gp => gp.Colour).Distinct().Count() > 1))
-							AddSanityCheckRow(report, league, game, team, string.Format("Team has multiple colour players: " + string.Join(", ", team.Players.Select(gp => gp.Colour).Distinct())));
-
-					string gameTitle = game.Title?.ToLower();
-					if (gamesWithPoints > games.Count() / 2 && (string.IsNullOrEmpty(game.Title) ||
-						(!gameTitle.Contains("ascension") && !gameTitle.Contains("format") && !gameTitle.Contains("system d") && !gameTitle.Contains("final") && !gameTitle.Contains("track"))) &&
-						!game.Teams.Any(t => t.Points != 0))
-						AddSanityCheckRow(report, league, game, null, "Game does not have victory points set.");
-
-					EnsureEvents(path, league, game);
-				}
-
-				if (games.Count(g => g.ServerGame?.EndTime != null) > league.GameCount() * 0.9)  // if most games have end times
-				{
-					// Look for games that have too short a duration. These may be games that have been ended early and replayed later and unintentionally committed.
-					bool isGameDurationVariable = games.Select(g => g.Duration()).Distinct().Count() > games.Count() / 4.0;  // Probably true for elimination or other formats that can intentionally end early; probably false for formats not intended to end early.
-					double averageDuration = games.Average(g => g.Duration().TotalSeconds);
-
-					foreach (var game in games)
-						if (!isGameDurationVariable && game.Duration().TotalSeconds < averageDuration - 1)
-							AddSanityCheckRow(report, league, game, null, string.Format("Game is only {0} long, less than the average of {1}. This game might have been ended early and committed accidentally.", game.Duration().ToString("m\\:ss"), new TimeSpan(0, 0, (int)averageDuration).ToString("m\\:ss")));
-				}
-				else if (games.Count > 1)
-				{
-					// Look for games that are too short (by time between the start of this game and the start of the next). These may be games that have been ended early and replayed later and unintentionally committed.
-					var durations = new List<TimeSpan>();
-					for (int i = 0; i < games.Count() - 1; i++)
-						durations.Add(games[i + 1].Time - games[i].Time);
-
-					var durationsWithoutOutliers = durations.Where(d => d.TotalSeconds < 1800);  // Exclude last game of a day, etc. -- we only want games that have another game after them.
-					double averageDuration = durationsWithoutOutliers.Average(d => d.TotalSeconds);
-					double stdDevDuration = Math.Sqrt(durationsWithoutOutliers.Average(d => Math.Pow(d.TotalSeconds - averageDuration, 2)));
-
-					for (int i = 0; i < games.Count() - 1; i++)
-						if (durations[i].TotalSeconds < averageDuration - stdDevDuration)
-							AddSanityCheckRow(report, league, games[i], null, string.Format("Time between this game and the next is only {0}, much less than the average of {1}. This game might have been ended early and committed accidentally.", durations[i].ToString("m\\:ss"), new TimeSpan(0,0, (int)averageDuration).ToString("m\\:ss")));
-				}
-
-				foreach (var team in league.Teams())
-					foreach (var player in team.Players)
-						if (!games.Any(g => g.AllPlayers().Any(p => p.PlayerId == player.Id && p.TeamId == team.TeamId)))
-							AddSanityCheckRow(report, team.Name, string.Format("Player {0} is listed on this team but plays no games for it.", player.Name));
+				AddSanityCheckRow(report, "", "No games found in league " + league.Title + " for specified date/time range.");
+				return;
 			}
 
+			var gameTeams = games.SelectMany(g => g.Teams);
+			if (!gameTeams.Any())
+			{
+				AddSanityCheckRow(report, "", "No games with teams in them found in league " + league.Title);
+				return;
+			}
+
+			int gamesWithPoints = games.Count(g => g.Teams.Any(t => t.Points != 0));
+			double averageTeamPlayers = gameTeams.Average(t => t.Players.Count);
+			double playersLoggedOn = gameTeams.Average(t => t.Players.Any() ? t.Players.Average(p => string.IsNullOrEmpty(p.PlayerId) ? 0 : 1) : 0);
+			double coloursPerTeam = gameTeams.Average(gt => gt.Players.Select(gp => gp.Colour).Distinct().Count());
+
+			foreach (var game in games)
+			{
+				var teams = game.Teams.Where(t => t.Players.Count < Math.Truncate(averageTeamPlayers));
+				foreach (var team in teams)
+					AddSanityCheckRow(report, league, game, team, string.Format("Team has only {0} players", team.Players.Count));
+
+				teams = game.Teams.Where(t => t.Players.Count > Math.Round(averageTeamPlayers));
+				foreach (var team in teams)
+					AddSanityCheckRow(report, league, game, team, string.Format("Team has {0} players. (A player might have switched packs.)", team.Players.Count));
+
+				if (playersLoggedOn > 0.75)
+					foreach (var team in game.Teams)
+						foreach (var player in team.Players.Where(p => string.IsNullOrEmpty(p.PlayerId)))
+							AddSanityCheckRow(report, league, game, team, string.Format("Pack {0} did not log on. Score: {1}", player.Pack, player.Score));
+
+				if (coloursPerTeam < 1.5)
+					foreach (var team in game.Teams.Where(gt => gt.Players.Select(gp => gp.Colour).Distinct().Count() > 1))
+						AddSanityCheckRow(report, league, game, team, string.Format("Team has multiple colour players: " + string.Join(", ", team.Players.Select(gp => gp.Colour).Distinct())));
+
+				string gameTitle = game.Title?.ToLower();
+				if (gamesWithPoints > games.Count() / 2 && (string.IsNullOrEmpty(game.Title) ||
+					(!gameTitle.Contains("ascension") && !gameTitle.Contains("format") && !gameTitle.Contains("system d") && !gameTitle.Contains("final") && !gameTitle.Contains("track"))) &&
+					!game.Teams.Any(t => t.Points != 0))
+					AddSanityCheckRow(report, league, game, null, "Game does not have victory points set.");
+
+				EnsureEvents(path, league, game);
+			}
+
+			if (games.Count(g => g.ServerGame?.EndTime != null) > league.GameCount() * 0.9)  // if most games have end times
+			{
+				// Look for games that have too short a duration. These may be games that have been ended early and replayed later and unintentionally committed.
+				bool isGameDurationVariable = games.Select(g => g.Duration()).Distinct().Count() > games.Count() / 4.0;  // Probably true for elimination or other formats that can intentionally end early; probably false for formats not intended to end early.
+				double averageDuration = games.Average(g => g.Duration().TotalSeconds);
+
+				foreach (var game in games)
+					if (!isGameDurationVariable && game.Duration().TotalSeconds < averageDuration - 1)
+						AddSanityCheckRow(report, league, game, null, string.Format("Game is only {0} long, less than the average of {1}. This game might have been ended early and committed accidentally.", game.Duration().ToString("m\\:ss"), new TimeSpan(0, 0, (int)averageDuration).ToString("m\\:ss")));
+			}
+			else if (games.Count > 1)
+			{
+				// Look for games that are too short (by time between the start of this game and the start of the next). These may be games that have been ended early and replayed later and unintentionally committed.
+				var durations = new List<TimeSpan>();
+				for (int i = 0; i < games.Count() - 1; i++)
+					durations.Add(games[i + 1].Time - games[i].Time);
+
+				var durationsWithoutOutliers = durations.Where(d => d.TotalSeconds < 1800);  // Exclude last game of a day, etc. -- we only want games that have another game after them.
+				double averageDuration = durationsWithoutOutliers.Average(d => d.TotalSeconds);
+				double stdDevDuration = Math.Sqrt(durationsWithoutOutliers.Average(d => Math.Pow(d.TotalSeconds - averageDuration, 2)));
+
+				for (int i = 0; i < games.Count() - 1; i++)
+					if (durations[i].TotalSeconds < averageDuration - stdDevDuration)
+						AddSanityCheckRow(report, league, games[i], null, string.Format("Time between this game and the next is only {0}, much less than the average of {1}. This game might have been ended early and committed accidentally.", durations[i].ToString("m\\:ss"), new TimeSpan(0, 0, (int)averageDuration).ToString("m\\:ss")));
+			}
+
+			var allGames = league.Games(true);
+			foreach (var team in league.Teams())
+				foreach (var player in team.Players)
+					if (!allGames.Any(g => g.AllPlayers().Any(p => p.PlayerId == player.Id && p.TeamId == team.TeamId)))
+						AddSanityCheckRow(report, team.Name, string.Format("Player {0} is listed on this team but plays no games for it.", player.Name));
+		}
+
+		static void FinishSanityReport(ZoomReport report, ReportTemplate rt)
+		{
 			if (report.Rows.Count == 0)
 				AddSanityCheckRow(report, "", "No problems found. Hooray!");
 
-			if (leagues.Count == 1)
-				report.RemoveColumn(0);
-
-			if (description)
+			if (rt.Settings.Contains("Description"))
 				report.Description = "This report lists possible problems with committed games.\nTake remedial action (e.g. by fixing the problem and recommitting the game) where appropriate.";
-
-			return report;
 		}
 
 		static bool LogFileNameBetween(string fileName, DateTime? from, DateTime? to)
@@ -2405,9 +2413,9 @@ namespace Torn.Report
 			}
 		}
 
-		public static ZoomReport PackHitsReport(ReportTemplate rt, string exportFolder, DateTime? from, DateTime? to)
+		public static ZoomReport PackHitsReport(ReportTemplate rt, string exportFolder)
 		{
-			ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", "", rt),
+			ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", null, rt),
 												"Pack,Games,Chest,Back,Phasor,Left Shoulder,Right Shoulder,Chest,Back,Phasor,Left Shoulder,Right Shoulder,Total",
 												"left,integer,integer,right,integer,right,integer,right,integer,right,integer,right,integer",
 												",,Percentage,Percentage,Percentage,Percentage,Percentage,Hits Per Game,Hits Per Game,Hits Per Game,Hits Per Game,Hits Per Game,Hits Per Game");
@@ -2422,7 +2430,7 @@ namespace Torn.Report
 
 			string jsonPath = Path.Combine(exportFolder, "json");
 
-			var files = Directory.EnumerateFiles(jsonPath).Where(fileName => LogFileNameBetween(fileName, from, to));
+			var files = Directory.EnumerateFiles(jsonPath).Where(fileName => LogFileNameBetween(fileName, rt.From, rt.To));
 
 			List<PackHits> packs = new List<PackHits>();
 
@@ -2512,13 +2520,13 @@ namespace Torn.Report
 		}
 
 		/// <summary>List each player and their number of games, average score, tag ratio, etc.</summary>
-		public static ZoomReport SoloLadder(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport SoloLadder(League league, List<Game> games, ReportTemplate rt)
 		{
 			bool isDecimal = rt.FindSetting("isDecimal") >= 0;
 			bool showZeroed = rt.FindSetting("showZeroed") >= 0;
 			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
-			ZoomReport report = new ZoomReport(ReportTitle("Solo Ladder", league.Title, rt),
+			ZoomReport report = new ZoomReport(ReportTitle("Solo Ladder", league, rt),
 											   "Rank,Player,Team,Average Score," + (showZeroed ? "Average Non-Zeroed Score," : "") + "TR\u00D7SR,Tag Ratio,Score Ratio,Tags +,Tags -,Av Rank,Destroys,Denies,Got Denied,Yellow Card,Red Card,Eliminated,Games,Dropped,Grade,Comments,Longitudinal",
 											   "center,left,left,integer," + (showZeroed ? "integer," : "") + "float,float,float,float,float,float,integer,integer,integer,integer,integer,integer,integer,integer,integer,left,left",
 											   ",,," + (showZeroed ? "," : "") + ",Ratios,Ratios,Ratios,Tags,Tags,,Base,Base,Base,Penalties,Penalties,,,,,,")
@@ -2555,9 +2563,9 @@ namespace Torn.Report
 			foreach (var pt in playerTeams)
 			{
 				var player = pt.Key;
-				var games = Games(league, includeSecret, rt).Where(x => x.Players().Exists(y => y.PlayerId == player.Id));
+				var thisPlayersGames = games.Where(x => x.Players().Exists(y => y.PlayerId == player.Id));
 
-				if (games.Count() >= atLeastN && player.Name != null)
+				if (thisPlayersGames.Count() >= atLeastN && player.Name != null)
 				{
 					ZRow row = report.AddRow(new ZRow());
 					row.Add(new ZCell(0, ChartType.None, "N0"));  // Temporary rank
@@ -2568,7 +2576,7 @@ namespace Torn.Report
 					else
 						row.Add(new ZCell(string.Join(", ", pt.Value.Select(x => x.Name))));  // Team(s) played for
 
-					var played = League.Played(games, player, includeSecret);
+					var played = player.Played(thisPlayersGames);
 
 					row.Add(DataCell(played.Select(x => (double)x.Score).ToList(), rt.Drops, chartType, isDecimal ? "N1" : "N0"));  // Av score
 					if(showZeroed)
@@ -2706,11 +2714,11 @@ namespace Torn.Report
 			report.HtmlDescription += string.Format("Best {0} was {1:" + format + "} by {2}. ", caption, best, string.Join(", ", bests.Select(p => "<a href=\"team" + league.LeagueTeam(p).TeamId + ".html#player" + p.Id + "\">" + p.Name + "</a>")));
 		}
 
-		public static ZoomReport TermReport(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport TermReport(League league, List<Game> games, ReportTemplate rt)
 		{
 			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
-			ZoomReport report = new ZoomReport(ReportTitle("Term Report", league.Title, rt),
+			ZoomReport report = new ZoomReport(ReportTitle("Term Report", league, rt),
 												"Rank,Player,Team,Total,Red,Yellow,Verbals,Other,Games",
 												"center,left,left,integer,integer,integer,integer,integer,integer",
 												",,,Penalties,Penalties,Penalties,Penalties,Penalties,")
@@ -2724,9 +2732,9 @@ namespace Torn.Report
 			foreach (var pt in playerTeams)
 			{
 				var player = pt.Key;
-				var games = Games(league, includeSecret, rt).Where(x => x.Players().Exists(y => y.PlayerId == player.Id));
+				var thisPlayersGames = games.Where(x => x.Players().Exists(y => y.PlayerId == player.Id));
 
-				if (games.Count() >= atLeastN && player.Name != null)
+				if (thisPlayersGames.Count() >= atLeastN && player.Name != null)
 				{
 					ZRow row = report.AddRow(new ZRow());
 					row.Add(new ZCell(0, ChartType.None, "N0"));  // Temporary rank
@@ -2737,7 +2745,7 @@ namespace Torn.Report
 					else
 						row.Add(new ZCell(string.Join(", ", pt.Value.Select(x => x.Name))));  // Team(s) played for
 
-					var played = League.Played(games, player, includeSecret);
+					var played = player.Played(thisPlayersGames);
 
 					row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0"));
 					row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Red)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0"));
@@ -2793,7 +2801,7 @@ namespace Torn.Report
 		}
 
 		/// <summary>List each team and their number of games, average score, victory points, etc.</summary>
-		public static ZoomReport TeamLadder(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport TeamLadder(League league, List<Game> games, ReportTemplate rt)
 		{
 			bool isDecimal = rt.FindSetting("isDecimal") >= 0;
 			bool showZeroed = rt.FindSetting("showZeroed") >= 0;
@@ -2802,13 +2810,12 @@ namespace Torn.Report
 			bool scaled = rt.FindSetting("OrderBy") > 0 && rt.Setting("OrderBy").StartsWith("scaled");
 			bool showColours = rt.Settings.Contains("ShowColours");
 
-			ZoomReport report = new ZoomReport(ReportTitle("Team Ladder", league.Title, rt), "Rank,Team", "center,left")
+			ZoomReport report = new ZoomReport(ReportTitle("Team Ladder", league, rt), "Rank,Team", "center,left")
 			{
 				MaxChartByColumn = true,
 				MultiColumnOK = true
 			};
 
-			List<Game> games = Games(league, includeSecret, rt);
 			var ladder = Ladder(league, games, rt);
 
 			int atLeastN = rt.SettingInt("AtLeastN") ?? 1;
@@ -3107,12 +3114,11 @@ namespace Torn.Report
 		}
 
 		/// <summary>Build a square table showing how many times each team has played (and beaten) each other team.</summary>
-		public static ZoomReport TeamsVsTeams(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport TeamsVsTeams(League league, List<Game> games, ReportTemplate rt)
 		{
-			ZoomReport report = new ZoomReport(ReportTitle("Teams vs Teams", league.Title, rt), "Team", "left");
+			ZoomReport report = new ZoomReport(ReportTitle("Teams vs Teams", league, rt), "Team", "left");
 			
-			List<LeagueTeam> teams = league.GetTeamLadder(includeSecret);
-			List<Game> games = Games(league, includeSecret, rt);
+			List<LeagueTeam> teams = league.GetTeamLadder();
 
 			foreach (var team1 in teams)
 			{
@@ -3623,14 +3629,6 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			report.Rows.Add(new ZRow() { new ZCell(""), new ZCell(""), new ZCell(teamName), new ZCell(issue) });
 		}
 
-		static List<Game> Games(League league, bool includeSecret, ReportTemplate rt)
-		{
-			string group = rt.Setting("Group");
-			return league.Games(includeSecret)
-				.Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue) && (string.IsNullOrEmpty(group) || (g.Title ?? "").Contains(group)))
-				.ToList();
-		}
-
 		/// <summary>If i is 0, return a cell which has "" as its text (but still 0 as its number). Otherwise return a cell with this number.</summary>
 		static ZCell BlankZero(int i, ChartType chartType = default, Color color = default)
 		{
@@ -3811,9 +3809,9 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		}
 
 		/// <summary>Returns text description like " from 1-1-2020 to 2/2/2020".</summary>
-		static string FromTo(List<Game> games, DateTime? from, DateTime? to)
+		static string FromTo(IEnumerable<Game> games, DateTime? from, DateTime? to)
 		{
-			if (games.Count == 0)
+			if (!games.Any())
 				return " from " + (from == null ? "(none)" : ((DateTime)from).ToShortDateString()) +
 				       " to " + (to == null ? "(none)" : ((DateTime)to).ToShortDateString());
 
@@ -4009,13 +4007,13 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			for (int i = 0; i < report.Rows.Count; i++)
 				report.Rows[i][0].Number = i + 1;
 
-			report.Title = ReportTitle(rt.ReportType == ReportType.AscensionGrid ? "Ascension" : 
-			                           rt.ReportType == ReportType.Pyramid   ? "Pyramid" : 
-			                                                                   "Games", league.Title, rt);
+			report.Title = ReportTitle(rt.ReportType == ReportType.AscensionGrid ? "Ascension" :
+									   rt.ReportType == ReportType.Pyramid ? "Pyramid" :
+																			   "Games", league, rt);
 		}
 
 		/// <summary>Return a title suitable for use at the top of a report. Remove duplicated words where appropriate.</summary>
-		static string ReportTitle(string reportName, string leagueName, ReportTemplate rt)
+		static string ReportTitle(string reportName, League league, ReportTemplate rt)
 		{
 			string templateName = rt.Title;
 			if (!string.IsNullOrEmpty(templateName))
@@ -4023,16 +4021,16 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 			string group = rt.Setting("Group");
 			if (string.IsNullOrEmpty(group))
-				return Utility.JoinWithoutDuplicate(leagueName, reportName);
+				return Utility.JoinWithoutDuplicate(league?.Title, reportName);
 			else
-				return leagueName + " " + Utility.JoinWithoutDuplicate(group, reportName);
+				return league?.Title + " " + Utility.JoinWithoutDuplicate(group, reportName);
 		}
 
-		static ZoomReport FinishReport(ZoomReport report, List<Game> games, ReportTemplate rt)
+		static ZoomReport FinishReport(ZoomReport report, IEnumerable<Game> games, ReportTemplate rt)
 		{
 			report.Title += FromTo(games, rt.From, rt.To);
 
-			if (games.Count == 0)
+			if (!games.Any())
 			{
 				if (rt.From == null && rt.To == null)
 					report.Description += " No games were found.";

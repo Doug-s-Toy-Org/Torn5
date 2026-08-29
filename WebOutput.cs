@@ -95,7 +95,7 @@ namespace Torn.Report
 			{
 				var rt2 = rt.Clone();
 				rt2.OneGamePerPage = oneGamePerPage;
-				reports.Add(Report(holder.League, includeSecret, rt2, exportFolder));
+				reports.Add(Report(holder.League, Games(holder.League, includeSecret, rt), rt2, exportFolder));
 			}
 
 			reports.Add(new ZoomHtmlInclusion("<br/></div><a href=\"../index.html\">Index</a><div>"));
@@ -103,54 +103,53 @@ namespace Torn.Report
 			return reports;
 		}
 
-		/// <summary>Generate one report. The type of report generated is specified in the ReportTemplate.</summary>
-		public static ZoomReportBase Report(League league, bool includeSecret, ReportTemplate rt, string exportFolder)
+		static List<Game> Games(League league, bool includeSecret, ReportTemplate rt)
 		{
-			bool description = rt.Settings.Contains("Description");
+			string group = rt.Setting("Group");
+			return league.Games(includeSecret)
+				.Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue) && (string.IsNullOrEmpty(group) || (g.Title ?? "").Contains(group)))
+				.ToList();
+		}
+
+		/// <summary>Generate one report. The type of report generated is specified in the ReportTemplate.</summary>
+		public static ZoomReportBase Report(League league, List<Game> games, ReportTemplate rt, string exportFolder)
+		{
 			switch (rt.ReportType)
 			{
-				case ReportType.TeamLadder: return Reports.TeamLadder(league, includeSecret, rt);
-				case ReportType.MultiLadder: return Reports.MultiLadder(league, includeSecret, rt);
-				case ReportType.TeamsVsTeams: return Reports.TeamsVsTeams(league, includeSecret, rt);
-				case ReportType.ColourPerformance: return Reports.ColourReport(new List<League> { league }, includeSecret, rt);
-				case ReportType.SoloLadder: return Reports.SoloLadder(league, includeSecret, rt);
-				case ReportType.GameByGame: return Reports.GamesList(league, includeSecret, rt);
-				case ReportType.DetailedGames: return Reports.DetailedGamesList(league, includeSecret, rt);
-				case ReportType.Ascension: return Reports.AscensionWithArrows(league, includeSecret, rt);
+				case ReportType.TeamLadder: return Reports.TeamLadder(league, games, rt);
+				case ReportType.MultiLadder: return Reports.MultiLadder(league, games, rt);
+				case ReportType.TeamsVsTeams: return Reports.TeamsVsTeams(league, games, rt);
+				case ReportType.ColourPerformance: return Reports.ColourReport(new List<League> { league }, games, rt);
+				case ReportType.SoloLadder: return Reports.SoloLadder(league, games, rt);
+				case ReportType.GameByGame: return Reports.GamesList(league, games, rt);
+				case ReportType.DetailedGames: return Reports.DetailedGamesList(league, games, rt);
+				case ReportType.Ascension: return Reports.AscensionWithArrows(league, games, rt);
 				case ReportType.GameGrid:
 				case ReportType.AscensionGrid:
 				case ReportType.Pyramid:
-					return Reports.GamesGrid(league, includeSecret, rt);
+					return Reports.GamesGrid(league, games, rt);
 				case ReportType.GameGridCondensed:
 				case ReportType.PyramidCondensed:
-					return Reports.GamesGridCondensed(league, includeSecret, rt);
-				case ReportType.Packs:
-					return Reports.PackReport(new List<League> { league }, league.Games(includeSecret), rt.Title, rt.From, rt.To,
-						ChartTypeExtensions.ToChartType(rt.Setting("ChartType")), description, rt.Settings.Contains("Longitudinal"));
-				case ReportType.PackHits: return Reports.PackHitsReport(rt, exportFolder, rt.From, rt.To);
-				case ReportType.SanityCheck:
-					return Reports.SanityReport(new List<League> { league }, exportFolder, rt.Title, rt.From, rt.To, description);
-				case ReportType.Everything: return Reports.EverythingReport(league, rt.Title, rt.From, rt.To, description);
+					return Reports.GamesGridCondensed(league, games, rt);
+				case ReportType.Packs: return Reports.PackReport(new List<League> { league }, rt);
+				case ReportType.PackHits: return Reports.PackHitsReport(rt, exportFolder);
+				case ReportType.SanityCheck: return Reports.SanityReport(league, games, rt, exportFolder);
+				case ReportType.Everything: return Reports.EverythingReport(league, games, rt);
 				case ReportType.PageBreak: return new ZoomSeparator();
-				case ReportType.TermReport: return Reports.TermReport(league, includeSecret, rt);
+				case ReportType.TermReport: return Reports.TermReport(league, games, rt);
 				default: return null;
 			}
 		}
 
 		/// <summary>Generate a report on data from multiple league files. The type of report generated is specified in the ReportTemplate.</summary>
-		public static ZoomReportBase Report(List<League> leagues, bool includeSecret, ReportTemplate rt, string exportFolder)
+		public static ZoomReportBase Report(List<League> leagues, List<Game> games, ReportTemplate rt, string exportFolder)
 		{
-			bool description = rt.Settings.Contains("Description");
 			switch (rt.ReportType)
 			{
-				case ReportType.ColourPerformance:
-					return Reports.ColourReport(leagues, includeSecret, rt);
-				case ReportType.Packs:
-					return Reports.PackReport(leagues, null, rt.Title, rt.From, rt.To,
-						ChartTypeExtensions.ToChartType(rt.Setting("ChartType")), description, rt.Settings.Contains("Longitudinal"));
-				case ReportType.SanityCheck:
-					return Reports.SanityReport(leagues, exportFolder, rt.Title, rt.From, rt.To, description);
-				default: return Report(leagues.FirstOrDefault(), includeSecret, rt, exportFolder);
+				case ReportType.ColourPerformance: return Reports.ColourReport(leagues, games, rt);
+				case ReportType.Packs: return Reports.PackReport(leagues, rt);
+				case ReportType.SanityCheck: return Reports.SanityReport(leagues, rt, exportFolder);
+				default: return Report(leagues.FirstOrDefault(), games, rt, exportFolder);
 			}
 		}
 
@@ -949,7 +948,7 @@ xhrKey.send();
 				bool anyDetailed = false;
 
 				var rt = new ReportTemplate() { From = day, To = day.AddSeconds(86399) };
-				reports.Add(Reports.GamesToc(league, false, rt));
+				reports.Add(Reports.GamesToc(dayGames, rt));
 				string gameTitle = "";
 
 				foreach (Game game in dayGames)
@@ -1138,41 +1137,6 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 			{
 				Cursor.Current = Cursors.Default;
 			}
-		}
-
-		/// <summary>Write a single pack report incorporating data from all the selected leagues.</summary>
-		public static void PackReport(string path, List<League> leagues, ReportTemplate reportTemplate, OutputFormat outputFormat)
-		{
-			if (path != null)
-			{
-				var round1Games = new List<Game>();
-				foreach (var league in leagues)
-					round1Games.AddRange(league.Games().Where(g => g.Title == "Round Robin" || g.Title == "Round 1" ||
-					                                         g.Title == "Rep 1" || g.Title == "Repechage 1" || g.Title == "Repêchage 1"));
-				
-				if (round1Games.Count == 0)
-					foreach (var league in leagues)
-						round1Games.AddRange(league.Games());
-
-				using (StreamWriter sw = File.CreateText(Path.Combine(path, "packreport." + outputFormat.ToExtension())))
-					sw.Write(new ZoomReports
-						{
-							Reports.PackReport(leagues, round1Games, reportTemplate.Title, reportTemplate.From, reportTemplate.To, 
-								ChartTypeExtensions.ToChartType(reportTemplate.Setting("ChartType")), reportTemplate.Settings.Contains("Description"), reportTemplate.Settings.Contains("Longitudinal"))
-						}.ToOutput(outputFormat));
-			}
-		}
-
-		/// <summary>Write a single tech report incorporating data from all the selected leagues.</summary>
-		public static void TechReport(string path, List<League> leagues, ReportTemplate reportTemplate, OutputFormat outputFormat)
-		{
-			if (path != null)
-				using (StreamWriter sw = File.CreateText(Path.Combine(path, "techreport." + outputFormat.ToExtension())))
-					sw.Write(new ZoomReports
-						{
-							Reports.TechReport(leagues, reportTemplate.Title, reportTemplate.From, reportTemplate.To,
-								ChartTypeExtensions.ToChartType(reportTemplate.Setting("ChartType")), reportTemplate.Settings.Contains("Description"))
-						}.ToOutput(outputFormat));
 		}
 	}
 }

@@ -13,15 +13,21 @@ namespace Torn.UI
 	/// </summary>
 	public partial class FormReport : Form
 	{
-		public ReportTemplate ReportTemplate { get; set; }
-		public DateTime From { set { datePickerFrom.Value = value; } get { return datePickerFrom.Value; } }
-		public DateTime To { set { datePickerTo.Value = value; } get { return datePickerTo.Value; } }
+		public ReportTemplate ReportTemplate { get; set; } = new ReportTemplate();
+		/// <summary>Leagues to report on.</summary>
 		public List<League> Leagues { get; set; }
+		/// <summary>Output: games from Leagues, filtered by the user's selections.</summary>
+		public List<Game> Games { get; internal set; }
+		/// <summary>Input: when the user launches this dialog, what games were selected in the main form?</summary>
+		public List<DateTime> SelectedGameTimes { get; set; }
+		/// <summary>If a game's Secret property is true, should we include it in our output Games list?</summary>
+		public bool IncludeSecretGames { get; set; }
 
 		private int secretClicked = 0;
 		bool chartTypeChanged = false;
 		Color disabledColor;
 		bool initialising;
+		List<Game> allGames = new List<Game>();
 
 		public FormReport()
 		{
@@ -93,16 +99,15 @@ namespace Torn.UI
 
 			if (Leagues.Any())
 			{
-				var games = Leagues.SelectMany(l => l.Games());
+				allGames = Leagues.SelectMany(l => l.Games()).OrderBy(g => g.Time).ToList();
 
-				var gameTimes = games.Select(g => g.Time).OrderBy(dt => dt).ToList();
+				var gameTimes = allGames.Select(g => g.Time).OrderBy(dt => dt).ToList();
 				if (!gameTimes.Any())
 					gameTimes.Add(DateTime.Now);
 
-				From = gameTimes.First().Date;
-				To = gameTimes.Last().Date;
-
-				var titles = games.Select(g => g.Title ?? "").Distinct();
+				datePickerFrom.Value = gameTimes.First().Date;
+				datePickerTo.Value = gameTimes.Last().Date;
+				var titles = allGames.Select(g => g.Title ?? "").Distinct();
 				if (titles.Any())
 				{
 					descriptionGroup.Items.Clear();
@@ -117,23 +122,23 @@ namespace Torn.UI
 
 				title.Text = ReportTemplate.Title;
 
-				foreach (Control c in this.Controls)
-					if (c is CheckBox checkBox && c.Tag != null)
-						checkBox.Checked = ReportTemplate.Settings.Contains((string)c.Tag);
+				foreach (Control c in splitContainer1.Panel2.Controls)
+					if (c is CheckBox checkBox && c.Tag is string s)
+						checkBox.Checked = ReportTemplate.Settings.Contains(s);
 
 				radioButtonGames.Checked = ReportTemplate.Drops != null && (ReportTemplate.Drops.CountBest > 0 || ReportTemplate.Drops.CountWorst > 0);
 				radioButtonPercent.Checked = ReportTemplate.Drops != null && (ReportTemplate.Drops.PercentBest > 0 || ReportTemplate.Drops.PercentWorst > 0);
 				numericUpDownBest.Value = ReportTemplate.Drops == null ? 0 : (Decimal)Math.Max(ReportTemplate.Drops.CountBest, ReportTemplate.Drops.PercentBest);
 				numericUpDownWorst.Value = ReportTemplate.Drops == null ? 0 : (Decimal)Math.Max(ReportTemplate.Drops.CountWorst, ReportTemplate.Drops.PercentWorst);
 
-				dateFrom.Checked = ReportTemplate.From != null && (DateTime)ReportTemplate.From >= datePickerFrom.MinDate && (DateTime)ReportTemplate.From <= datePickerFrom.MaxDate;
+				dateFrom.Checked = ReportTemplate.From is DateTime from && from >= datePickerFrom.MinDate && from <= datePickerFrom.MaxDate;
 				if (dateFrom.Checked)
 				{
 					datePickerFrom.Value = ((DateTime)ReportTemplate.From).Date;
 					timePickerFrom.Value = (DateTime)ReportTemplate.From;
 				}
 
-				dateTo.Checked = ReportTemplate.To != null && (DateTime)ReportTemplate.To >= datePickerTo.MinDate && (DateTime)ReportTemplate.To <= datePickerTo.MaxDate;
+				dateTo.Checked = ReportTemplate.To is DateTime to && to >= datePickerTo.MinDate && to <= datePickerTo.MaxDate;
 				if (dateTo.Checked)
 				{
 					datePickerTo.Value = ((DateTime)ReportTemplate.To).Date;
@@ -153,23 +158,22 @@ namespace Torn.UI
 				chartType.Text = ReportTemplate.Setting("ChartType") ?? "bar";
 				orderBy.Text = ReportTemplate.Setting("OrderBy") ?? "TR×SR";
 			}
+
 			initialising = false;
+			GameFilterChanged(sender, e);
 		}
 
 		void FormReportFormClosed(object sender, FormClosedEventArgs e)
 		{
 			if (this.DialogResult == DialogResult.OK)
 			{
-				if (ReportTemplate == null)
-					ReportTemplate = new ReportTemplate();
-
 				if (listViewReportType.SelectedIndices.Count > 0)
 					ReportTemplate.ReportType = (ReportType)(listViewReportType.SelectedIndices[0] + 1);
 
 				ReportTemplate.Title = title.Text;
 
 				ReportTemplate.Settings.Clear();
-				foreach (Control c in this.Controls)
+				foreach (Control c in splitContainer1.Panel2.Controls)
 					if (c.Enabled && c is CheckBox checkBox && checkBox.Checked && !string.IsNullOrEmpty((string)c.Tag))
 						ReportTemplate.Settings.Add((string)c.Tag);
 
@@ -201,12 +205,6 @@ namespace Torn.UI
 
 				if (orderBy.Enabled)
 					ReportTemplate.Settings.Add("OrderBy=" + OrderByText());
-
-				ReportTemplate.From = dateFrom.Checked ? datePickerFrom.Value.Add(timePickerFrom.Value.TimeOfDay) : (DateTime?)null;
-				ReportTemplate.To = dateTo.Checked ? datePickerTo.Value.Add(timePickerTo.Value.TimeOfDay) : (DateTime?)null;
-
-				if (withDescription.Checked)
-					ReportTemplate.Settings.Add("Group=" + descriptionGroup.Text);
 			}
 		}
 
@@ -250,9 +248,9 @@ namespace Torn.UI
 			description.Enabled = true;
 			AbleClear(longitudinal, isTeamOrSolo || r == ReportType.Packs);
 			AbleClear(showHits, r == ReportType.DetailedGames || r == ReportType.GameByGame || r == ReportType.GameGrid);
-			AbleClear(isDecimal, r == ReportType.GameGrid || r == ReportType.TeamLadder || r == ReportType.SoloLadder || r == ReportType.GameGridCondensed);
+			AbleClear(isDecimal, isTeamOrSolo || r == ReportType.GameGrid || r == ReportType.GameGridCondensed);
 			longitudinal.Checked = false;
-			AbleClear(showZeroed, r == ReportType.TeamLadder || r == ReportType.SoloLadder || r == ReportType.DetailedGames);
+			AbleClear(showZeroed, isTeamOrSolo || r == ReportType.DetailedGames);
 
 			labelTopWhat.Text = r == ReportType.SoloLadder ? "players" : "teams";
 			atLeastN.Text = r == ReportType.SoloLadder ? "show only players with at least" : "show only teams with at least";
@@ -275,12 +273,16 @@ namespace Torn.UI
 		{
 			if (!initialising)
 				dateFrom.Checked = true;
+
+			GameFilterChanged(sender, e);
 		}
 
 		void DatePickerToValueChanged(object sender, EventArgs e)
 		{
 			if (!initialising)
 				dateTo.Checked = true;
+
+			GameFilterChanged(sender, e);
 		}
 
 		void DropGamesCheckedChanged(object sender, EventArgs e)
@@ -325,6 +327,7 @@ namespace Torn.UI
 		private void DescriptionGroupTextChanged(object sender, EventArgs e)
 		{
 			withDescription.Checked = descriptionGroup.Text.Length > 0;
+			GameFilterChanged(sender, e);
 		}
 
 		private void button1_Click(object sender, EventArgs e)
@@ -354,6 +357,130 @@ namespace Torn.UI
 				splitContainer1.SplitterDistance = splitContainer1.Height - buttonOK.Bottom - 24;
 			}
 			previousScale = scale;
+		}
+
+		private void GameFilterChanged(object sender, EventArgs e)
+		{
+			if (!initialising)
+			{
+				ReportTemplate.From = dateFrom.Checked ? datePickerFrom.Value.Add(timePickerFrom.Value.TimeOfDay) : (DateTime?)null;
+				ReportTemplate.To = dateTo.Checked ? datePickerTo.Value.Add(timePickerTo.Value.TimeOfDay) : (DateTime?)null;
+
+				if (withDescription.Checked)
+					ReportTemplate.Settings.Add("Group=" + descriptionGroup.Text);
+			}
+
+			Games = allGames.Where(g =>
+				g.Time > (ReportTemplate.From ?? DateTime.MinValue) && 
+				g.Time < (ReportTemplate.To ?? DateTime.MaxValue) &&
+				(!withDescription.Checked || (g.Title ?? "").Contains(descriptionGroup.Text)) &&
+				(!selectedGames.Checked || SelectedGameTimes.Any(dt => dt == g.Time))
+			).ToList();
+
+			panelGraphic.Invalidate();
+		}
+
+		private void PanelGraphicPaint(object sender, PaintEventArgs e)
+		{
+			if (DesignMode || Games == null || !allGames.Any())
+				return;
+
+			var gr = e.Graphics;
+			gr.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+			var font = panelGraphic.Font;
+			SizeF textSize = gr.MeasureString("24", font);
+
+			Rectangle r = new Rectangle(0, (int)textSize.Height, panelGraphic.Width - 2, panelGraphic.Height - (int)textSize.Height - 1);
+			if (r.Width <= 0)
+				return;
+
+			gr.FillRectangle(new SolidBrush(BackColor), r);  // Clear background of old paint.
+
+			var minimumBetween = TimeSpan.FromHours(1);
+			for (int i = 0; i < allGames.Count - 1; i++)
+				if (minimumBetween > allGames[i + 1].Time - allGames[i].Time)
+					minimumBetween = allGames[i + 1].Time - allGames[i].Time;
+
+			var earliestTime = TimeSpan.FromHours(Math.Truncate(allGames.Min(g => g.Time.TimeOfDay).TotalHours));  // Earliest TimeOfDay of any game, rounded down.
+			var latestTime = TimeSpan.FromHours(Math.Ceiling((allGames.Max(g => g.Time.TimeOfDay) + minimumBetween).TotalHours));  // Latest TimeOfDay of any game, rounded up.
+
+			// Is system default for a 24-hour-style clock, or an AM/PM-style clock?
+			bool is24 = CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern.Contains("H");
+
+			// Put a label every _interval_ hours. Depends on space: more space, smaller interval, more labels.
+			int interval = (int)((latestTime - earliestTime).TotalHours * 2.5 * textSize.Width / r.Width);
+
+			if (interval < 1) interval = 1;
+			if (interval > 24) interval = 24;
+
+			interval = 24 / (24 / interval);  // Make it a number that divides nicely into 24.
+
+			StringFormat sf = new StringFormat();
+			Pen pen = new Pen(Color.LightGray);
+			for (TimeSpan hour = TimeSpan.FromHours((int)Math.Ceiling(earliestTime.TotalHours / interval) * interval); hour <= latestTime; hour = hour.Add(TimeSpan.FromHours(interval)))
+			{
+				int x = r.Left + (int)Scale(hour, earliestTime, latestTime, r.Width);
+
+				sf.Alignment = x < r.Left + 10 ? StringAlignment.Near : x < r.Right - 10 ? StringAlignment.Center : StringAlignment.Far;
+				gr.DrawString(Hour(hour, is24), font, Brushes.Black, x, 0, sf);
+
+				if (hour < latestTime)
+					gr.DrawLine(pen, x, r.Top, x, r.Bottom);
+			}
+
+			var days = allGames.Select(g => g.Time.Date).Distinct().OrderBy(d => d).ToList();
+
+			int dayHeight = days.Count > 4 ? r.Height / days.Count : r.Height / 4;
+			int top = (days.Count > 4 ? 0 : (r.Height - dayHeight * days.Count) / 2) + r.Y;
+
+			foreach (var day in days)
+			{
+				foreach (var game in allGames.Where(g => g.Time.Date == day).ToList())
+				{
+					var start = game.Time;
+					var x = Scale(game.Time.TimeOfDay, earliestTime, latestTime, r.Width);
+					var gameWidth = Scale(minimumBetween, new TimeSpan(0), latestTime - earliestTime, r.Width);
+					if (gameWidth < 1.25F) gameWidth = 1.25F;
+
+					Brush brush = new SolidBrush(Games.Contains(game) ? Color.Blue : Utility.MixColors(panelGraphic.BackColor, Color.Gray, 0.5));
+					gr.FillRectangle(brush, x, top, gameWidth * 0.8F, dayHeight - 1);
+				}
+				top += dayHeight;
+			}
+		}
+		
+		/// <summary>value, scaleMin and scaleMax are all in the before-scaling ordinate system. outputWidth is the range of the after-scaling ordinate system.</summary>
+		float Scale(TimeSpan value, TimeSpan scaleMin, TimeSpan scaleMax, float outputWidth)
+		{
+			return outputWidth * (value - scaleMin).Ticks / (scaleMax - scaleMin).Ticks;
+		}
+
+		string Hour(TimeSpan hour, bool is24)
+		{
+			if (is24 && hour.TotalHours == 24)
+				return "24";
+
+			// Format the hour like it was part of a time of day; i.e. if the system has a 12-hour clock: 12, 1, etc.
+			string s = new DateTime(2000, 1, 1).Add(hour).ToString(is24 ? "H " : "h ");
+
+			// But we've been forced to ask for "h " or "H " instead of just "h" or "H", because if you ask for a single-character format string it thinks it's a _standard_ format string not a _custom_ format string, and it throws. So trim the trailing " " we were forced to add.
+			return s.Trim(' ');
+		}
+
+		private void SplitContainer1Panel2Resize(object sender, EventArgs e)
+		{
+			int margin = dateFrom.Left;
+
+			groupBoxReduce.Left = splitContainer1.Panel2.Width - groupBoxReduce.Width - margin;
+			groupBoxDateRange.Width = groupBoxReduce.Left - margin;
+
+			panelGraphic.Width = groupBoxDateRange.Width - timePickerFrom.Right - margin - 1;
+			panelGraphic.Invalidate();
+
+			buttonCancel.Left = splitContainer1.Panel2.Width - buttonCancel.Width - margin * 3 / 2;
+			buttonOK.Left = buttonCancel.Left - buttonCancel.Width - margin;
+
+			button1.Top = splitContainer1.Panel2.Height - button1.Height;
 		}
 	}
 }
