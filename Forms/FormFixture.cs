@@ -328,7 +328,7 @@ namespace Torn.UI
 			else if (checkGameList.Checked)
 				reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
 			else if (checkGameGrid.Checked)
-				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
+				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture);
 		}
 
 		bool run;
@@ -385,7 +385,7 @@ namespace Torn.UI
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
 			displayReportGames.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
-			displayReportGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
+			displayReportGrid.Report = Reports.FixtureGrid(Holder.Fixture);
 		}
 
 		void ButtonImportGridClick(object sender, EventArgs e)
@@ -395,7 +395,7 @@ namespace Torn.UI
 													TimeSpan.FromMinutes((double)numericMinutes.Value));
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			displayReportGames.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
-			displayReportGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
+			displayReportGrid.Report = Reports.FixtureGrid(Holder.Fixture);
 		}
 
 		private void ButtonExportClick(object sender, EventArgs e)
@@ -447,7 +447,7 @@ namespace Torn.UI
 				if (Holder.Fixture.Games.Any())
 				{
 					displayReportGames.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
-					displayReportGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
+					displayReportGrid.Report = Reports.FixtureGrid(Holder.Fixture);
 				}
 				else
 				{

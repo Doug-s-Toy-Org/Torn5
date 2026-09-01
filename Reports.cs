@@ -357,7 +357,7 @@ namespace Torn.Report
 		}
 
 		/// <summary>Fixtures. Each row is a team. Each column is a game.</summary>
-		public static ZoomReport FixtureGrid(Fixture fixture, League league)
+		public static ZoomReport FixtureGrid(Fixture fixture)
 		{
 			bool multiDay = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
 
@@ -777,11 +777,11 @@ namespace Torn.Report
 				var scoresList = new List<double>();
 				var pointsList = new List<double>();
 
-				ZRow row = new ZRow();
-
-				row.Add(new ZCell(0, ChartType.None, "N0")); // Temporary blank rank.
-
-				row.Add(TeamCell(leagueTeam));
+				ZRow row = new ZRow
+				{
+					new ZCell(0, ChartType.None, "N0"),  // Temporary blank rank.
+					TeamCell(leagueTeam)
+				};
 
 				int col = 2;
 				while (col < averageCol)
@@ -3886,7 +3886,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		}
 
 		/// <summary>Return the team's rank in this game (if any).</summary>
-		static int Rank(League league, Game game, LeagueTeam team)
+		static int Rank(Game game, LeagueTeam team)
 		{
 			return game == null ? -1 : game.Teams.FindIndex(t => t.TeamId == team.TeamId) + 1;
 		}
@@ -3951,8 +3951,8 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 								int lastx = (int)x.Last().Number;  // Index of x's last game, as a cell in this row.
 								int lasty = (int)y.Last().Number;  // Index of y's last game, as a cell in this row.
 
-								int xRank = Rank(league, (Game)report.Columns[lastx].Tag, (LeagueTeam)x[1].Tag);
-								int yRank = Rank(league, (Game)report.Columns[lasty].Tag, (LeagueTeam)y[1].Tag);
+								int xRank = Rank((Game)report.Columns[lastx].Tag, (LeagueTeam)x[1].Tag);
+								int yRank = Rank((Game)report.Columns[lasty].Tag, (LeagueTeam)y[1].Tag);
 
 								int result = Math.Sign(lasty - lastx);
 								if (result == 0)

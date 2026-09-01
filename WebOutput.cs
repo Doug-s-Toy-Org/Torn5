@@ -210,7 +210,7 @@ namespace Torn.Report
 			ZoomReports reports = new ZoomReports
 			{
 				Reports.FixtureList(fixture, league),
-				Reports.FixtureGrid(fixture, league),
+				Reports.FixtureGrid(fixture),
 				new ZoomHtmlInclusion(@"
 </div><br/><a href=""index.html"">Index</a>
 
