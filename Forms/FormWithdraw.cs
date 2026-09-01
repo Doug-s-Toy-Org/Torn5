@@ -73,7 +73,7 @@ namespace Torn.UI
 		private void FormWithdrawShown(object sender, EventArgs e)
 		{
 			if (League != null)
-			BuildControls();
+				BuildControls();
 		}
 	}
 }

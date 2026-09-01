@@ -16,13 +16,13 @@ namespace Torn.UI
 			// The InitializeComponent() call is required for Windows Forms designer support.
 			//
 			InitializeComponent();
-			
+
 			//
 			// TODO: Add constructor code after the InitializeComponent() call.
 			//
 		}
 
-		public InputDialog(string title, string message = "", string defaultResponse = ""): this()
+		public InputDialog(string title, string message = "", string defaultResponse = "") : this()
 		{
 			Text = title;
 			label1.Text = message;
@@ -39,7 +39,7 @@ namespace Torn.UI
 		{
 			var id = new InputDialog(title, message, "");
 			Boolean b = (id.ShowDialog() == DialogResult.OK);
-			
+
 			if (b)
 				response = id.Response;
 			return b;
@@ -49,7 +49,7 @@ namespace Torn.UI
 		{
 			var id = new InputDialog(title, message, response);
 			Boolean b = (id.ShowDialog() == DialogResult.OK);
-			
+
 			if (b)
 				response = id.Response;
 			return b;
@@ -67,7 +67,7 @@ namespace Torn.UI
 			var id = new InputDialog(title, message);
 			id.SetNumeric(response);
 			Boolean b = (id.ShowDialog() == DialogResult.OK);
-			
+
 			if (b)
 				response = (int)id.numericUpDown1.Value;
 			return b;
@@ -85,7 +85,7 @@ namespace Torn.UI
 			var id = new InputDialog(title, message);
 			id.SetNumeric((decimal)response);
 			Boolean b = (id.ShowDialog() == DialogResult.OK);
-			
+
 			if (b)
 				response = (int)id.numericUpDown1.Value;
 			return b;

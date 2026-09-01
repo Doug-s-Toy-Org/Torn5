@@ -6,10 +6,10 @@ namespace Torn
 	/// <summary>
 	/// DemoServer returns a list of 10 games, each containing pseudorandom players.
 	/// </summary>
-	public class DemoServer: LaserGameServer
+	public class DemoServer : LaserGameServer
 	{
-        readonly string[] adjectives;
-        readonly string[] nouns;
+		readonly string[] adjectives;
+		readonly string[] nouns;
 
 		public DemoServer()
 		{
@@ -34,14 +34,14 @@ namespace Torn
 
 			for (int i = 0; i < 10; i++)
 			{
-                ServerGame game = new ServerGame
-                {
-                    GameId = i,
-                    Description = "Demo Game",
-                    Time = now.AddMinutes(i * 15 - 150),
-                    OnServer = true
-                };
-                game.EndTime = game.Time.AddMinutes(12);
+				ServerGame game = new ServerGame
+				{
+					GameId = i,
+					Description = "Demo Game",
+					Time = now.AddMinutes(i * 15 - 150),
+					OnServer = true
+				};
+				game.EndTime = game.Time.AddMinutes(12);
 				games.Add(game);
 			}
 
@@ -53,14 +53,14 @@ namespace Torn
 			if (!game.GameId.HasValue)
 				return;
 
-		    game.Players = new List<ServerPlayer>();
-		    Random r = new Random((int)game.GameId);
+			game.Players = new List<ServerPlayer>();
+			Random r = new Random((int)game.GameId);
 
 			for (int i = 0; i < 10; i++)
 			{
 				var x = r.Next(0, adjectives.Length);
 				var y = r.Next(0, nouns.Length);
-				var isElim = r.Next(0, 2) > 0 ? true : false;
+				var isElim = r.Next(0, 2) > 0;
 				ServerPlayer player = new ServerPlayer
 				{
 					Colour = (Colour)r.Next(1, 9),
@@ -70,7 +70,7 @@ namespace Torn
 					Alias = adjectives[x] + nouns[y],
 					IsEliminated = isElim
 				};
-                game.Players.Add(player);
+				game.Players.Add(player);
 			}
 		}
 
@@ -79,15 +79,14 @@ namespace Torn
 			var players = new List<LaserGamePlayer>();
 			for (int x = 0; x < 10; x++)
 				for (int y = 0; y < 10; y++)
-				{
 					players.Add(new LaserGamePlayer
-				            {
-				            	Alias = adjectives[x] + nouns[y],
-				            	Name = adjectives[x] + nouns[y],
-				            	Id = "demo" + (x * 10).ToString() + y.ToString()
-				            }
-				           );
-				}
+					{
+						Alias = adjectives[x] + nouns[y],
+						Name = adjectives[x] + nouns[y],
+						Id = "demo" + (x * 10).ToString() + y.ToString()
+					}
+					);
+
 			return players;
 		}
 

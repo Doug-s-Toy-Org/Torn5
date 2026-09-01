@@ -20,7 +20,7 @@ namespace Torn5.Forms
 
 		private void AddTermToList(TermRecord term)
 		{
-			ListViewItem item = new ListViewItem(term.Time == null ? "PostGame" : term.Time.ToString()) ;
+			ListViewItem item = new ListViewItem(term.Time == null ? "PostGame" : term.Time.ToString());
 			item.SubItems.Add(term.Type.ToString());
 			item.SubItems.Add(term.Value.ToString());
 			item.SubItems.Add(term.Reason);
@@ -49,7 +49,8 @@ namespace Torn5.Forms
 					AddTermToList(term);
 					initialPenalties += term.Value;
 				}
-			} else if (Team?.TermRecords != null)
+			}
+			else if (Team?.TermRecords != null)
 			{
 				foreach (TermRecord term in Team.TermRecords)
 				{
@@ -65,7 +66,7 @@ namespace Torn5.Forms
 			using (var form = new FormEditTerm(League))
 			{
 				var result = form.ShowDialog();
-				if(result == DialogResult.OK)
+				if (result == DialogResult.OK)
 				{
 					AddTermToList(form.Term);
 				}
@@ -88,7 +89,7 @@ namespace Torn5.Forms
 
 		private void editTerm()
 		{
-			using (var form = new FormEditTerm(League,(TermRecord)termList.SelectedItems[0].Tag))
+			using (var form = new FormEditTerm(League, (TermRecord)termList.SelectedItems[0].Tag))
 			{
 				var result = form.ShowDialog();
 				if (result == DialogResult.OK)
@@ -121,7 +122,7 @@ namespace Torn5.Forms
 			int totalPenalties = 0;
 			int yellowTerms = 0;
 			int redTerms = 0;
-			foreach(ListViewItem item in termList.Items)
+			foreach (ListViewItem item in termList.Items)
 			{
 				TermRecord term = (TermRecord)item.Tag;
 				terms.Add(term);
@@ -138,7 +139,8 @@ namespace Torn5.Forms
 				Player.Score = Player.Score - initialPenalties + totalPenalties;
 				Player.RedCards = redTerms;
 				Player.YellowCards = yellowTerms;
-			} else if (Team != null)
+			}
+			else if (Team != null)
 			{
 				Team.TermRecords = terms;
 				Team.Score = Team.Score - initialPenalties + totalPenalties;

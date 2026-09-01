@@ -70,8 +70,8 @@ namespace Torn5.Controls
 
 					((PyramidGame)item.Tag).Game = leagueGame;
 
-						while (item.SubItems.Count < listViewGames.Columns.Count || item.SubItems.Count <= ColSecret)
-							item.SubItems.Add("");
+					while (item.SubItems.Count < listViewGames.Columns.Count || item.SubItems.Count <= ColSecret)
+						item.SubItems.Add("");
 
 					item.SubItems[ColTitle].Text = leagueGame.Title;  // Description
 					item.SubItems[ColNumTeams].Text = leagueGame.Teams.Count.ToString();  // # teams

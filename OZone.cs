@@ -34,9 +34,11 @@ namespace Torn
 
 		private bool Connect()
 		{
-			if (connected) {
+			if (connected)
+			{
 				client.Close();
-			};
+			}
+			;
 			client = new TcpClient(server, Int32.Parse(port));
 			nwStream = client.GetStream();
 			connected = true;
@@ -70,8 +72,8 @@ namespace Torn
 				foreach (JObject jgame in gameList.Children())
 				{
 					var game = new ServerGame();
-					if (jgame["gamenum"] != null)   game.GameId = Int32.Parse(jgame["gamenum"].ToString());
-					if (jgame["gamename"] != null)   game.Description = jgame["gamename"].ToString();
+					if (jgame["gamenum"] != null) game.GameId = Int32.Parse(jgame["gamenum"].ToString());
+					if (jgame["gamename"] != null) game.Description = jgame["gamename"].ToString();
 					if (jgame["starttime"] != null)
 					{
 						string dateTimeStr = jgame["starttime"].ToString();
@@ -85,7 +87,8 @@ namespace Torn
 							string dateTimeStr = jgame["endtime"].ToString();
 							game.EndTime = DateTime.Parse(dateTimeStr,
 								System.Globalization.CultureInfo.InvariantCulture);
-						} catch
+						}
+						catch
 						{
 							string dateTimeStr = jgame["starttime"].ToString();
 							game.EndTime = DateTime.Parse(dateTimeStr,
@@ -113,7 +116,7 @@ namespace Torn
 				Console.WriteLine("GetGames() threw with message:\n" + e.Message + "\n. Result:\n" + result + "\n. Stack trace:\n" + e.StackTrace + "\nReconnecting...");
 				Connect();
 			}
-			
+
 			return games;
 		}
 
@@ -133,14 +136,14 @@ namespace Torn
 					string current = Encoding.ASCII.GetString(bytesToRead, 0, bytesRead);
 
 					str += current;
-					if(current.EndsWith("}"))
+					if (current.EndsWith("}"))
 					{
 						Thread.Sleep(1);
 						var result = nwStream.DataAvailable;
 
 						if (!result) break;
 					}
-					
+
 				}
 			}
 			catch (Exception e)
@@ -381,13 +384,15 @@ namespace Torn
 			foreach (LeaguePlayer player in players)
 			{
 
-				LaserGamePlayer laserPlayer = new LaserGamePlayer();
-				laserPlayer.Alias = player.Name;
-				laserPlayer.Id = player.Id;
-				if(laserPlayers.Find((p) => p.Id == laserPlayer.Id) == null) laserPlayers.Add(laserPlayer);
+				LaserGamePlayer laserPlayer = new LaserGamePlayer
+				{
+					Alias = player.Name,
+					Id = player.Id
+				};
 
+				if (laserPlayers.Find((p) => p.Id == laserPlayer.Id) == null) laserPlayers.Add(laserPlayer);
 			}
-			
+
 			return laserPlayers;
 		}
 	}

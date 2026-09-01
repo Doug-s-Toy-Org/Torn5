@@ -193,7 +193,7 @@ namespace Torn5.Controls
 				return "24";
 
 			// Format the hour like it was part of a time of day; i.e. if the system has a 12-hour clock: 12, 1, etc.
-			string s = (new DateTime(2000, 1, 1).AddHours(hour)) .ToString(is24 ? "H " : "h ");
+			string s = new DateTime(2000, 1, 1).AddHours(hour).ToString(is24 ? "H " : "h ");
 
 			// But we've been forced to ask for "h " or "H " instead of just "h" or "H", because if you ask for a single-character format string it thinks it's a _standard_ format string not a _custom_ format string, and it throws. So trim the trailing " " we were forced to add.
 			return s.Trim(' ');

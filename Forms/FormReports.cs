@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Windows.Forms;
 using Torn.Report;
 using Zoom;
@@ -26,18 +25,19 @@ namespace Torn.UI
 			formReport = new FormReport();
 		}
 
-		public FormReports(Holder holder): this()
+		public FormReports(Holder holder) : this()
 		{
 			Holder = holder;
 			formReport.Leagues = new List<League>() { Holder.League };
 
 			RefreshListView();
 
-			switch (Holder.ReportTemplates.OutputFormat) {
-				case OutputFormat.Svg:       radioSvg.Checked = true;    break;
+			switch (Holder.ReportTemplates.OutputFormat)
+			{
+				case OutputFormat.Svg: radioSvg.Checked = true; break;
 				case OutputFormat.HtmlTable: radioTables.Checked = true; break;
-				case OutputFormat.Tsv:       radioTsv.Checked = true;    break;
-				case OutputFormat.Csv:       radioCsv.Checked = true;    break;
+				case OutputFormat.Tsv: radioTsv.Checked = true; break;
+				case OutputFormat.Csv: radioCsv.Checked = true; break;
 			}
 		}
 
@@ -52,7 +52,7 @@ namespace Torn.UI
 			listViewReports.Items.Clear();
 
 			// Rebuild from ReportTemplates.
-			foreach(ReportTemplate reportTemplate in Holder.ReportTemplates)
+			foreach (ReportTemplate reportTemplate in Holder.ReportTemplates)
 			{
 				ListViewItem item = new ListViewItem(reportTemplate.ReportType.ToString());
 				item.SubItems.Add(reportTemplate.Title);
@@ -92,7 +92,7 @@ namespace Torn.UI
 		{
 			Text = "Reports for " + Holder.League.Title;
 		}
-		
+
 		void ButtonEditClick(object sender, EventArgs e)
 		{
 			formReport.Icon = (Icon)Icon.Clone();
@@ -104,7 +104,7 @@ namespace Torn.UI
 					RefreshListView();
 			}
 		}
-		
+
 		void ButtonDeleteClick(object sender, EventArgs e)
 		{
 			if (listViewReports.SelectedItems.Count > 0)
@@ -115,7 +115,7 @@ namespace Torn.UI
 				RefreshListView();
 			}
 		}
-		
+
 		void ButtonUpClick(object sender, EventArgs e)
 		{
 			if (listViewReports.SelectedItems.Count > 0)
@@ -125,7 +125,7 @@ namespace Torn.UI
 					Swap(i, i - 1);
 			}
 		}
-		
+
 		void ButtonDownClick(object sender, EventArgs e)
 		{
 			if (listViewReports.SelectedItems.Count > 0)
@@ -135,16 +135,13 @@ namespace Torn.UI
 					Swap(i, i + 1);
 			}
 		}
-		
+
 		void Swap(int a, int b)
 		{
-			ReportTemplate temp = Holder.ReportTemplates[a];
-			Holder.ReportTemplates[a] = Holder.ReportTemplates[b];
-			Holder.ReportTemplates[b] = temp;
-
+			(Holder.ReportTemplates[b], Holder.ReportTemplates[a]) = (Holder.ReportTemplates[a], Holder.ReportTemplates[b]);
 			RefreshListView();
 		}
-		
+
 		void RadioCheckedChanged(object sender, EventArgs e)
 		{
 			Holder.ReportTemplates.OutputFormat = (OutputFormat)((Control)sender).Tag;

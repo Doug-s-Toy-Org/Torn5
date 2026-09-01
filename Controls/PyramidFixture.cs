@@ -10,7 +10,9 @@ namespace Torn5.Controls
 	public partial class PyramidFixture : UserControl
 	{
 		int round;
-		public int Round { get => round;
+		public int Round
+		{
+			get => round;
 			set
 			{
 				round = value;
@@ -20,7 +22,9 @@ namespace Torn5.Controls
 			}
 		}
 
-		public int Rounds { get => fixtureRound.Rounds;
+		public int Rounds
+		{
+			get => fixtureRound.Rounds;
 			set
 			{
 				fixtureRound.Rounds = value; FixtureRepechage.Rounds = value;
@@ -36,7 +40,9 @@ namespace Torn5.Controls
 		public int RepechageAdvance { get => HasRepechage ? fixtureRepechage.Advance : 0; set => fixtureRepechage.Advance = value; }
 		public int PlanB { get => HasRepechage ? fixtureRepechage.PlanB : 0; }
 		int prevousPlanB;
-		public int PreviousPlanB { get => prevousPlanB;
+		public int PreviousPlanB
+		{
+			get => prevousPlanB;
 			set
 			{
 				prevousPlanB = value; ValueChangedInternal();
@@ -49,7 +55,8 @@ namespace Torn5.Controls
 		public PyramidHalfFixture FixtureRound { get => fixtureRound; }
 		public PyramidHalfFixture FixtureRepechage { get => fixtureRepechage; }
 
-		[Browsable(true)] [Category("Action")]
+		[Browsable(true)]
+		[Category("Action")]
 		public event EventHandler ValueChanged;
 
 		public PyramidFixture()

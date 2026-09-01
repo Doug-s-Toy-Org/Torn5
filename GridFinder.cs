@@ -151,13 +151,14 @@ namespace Torn.Grids
 
 			for (int i = 0; i < tasks.Length; i++)
 			{
-				tasks[i] = Task<GamesResult>.Factory.StartNew((Object obj) => {
+				tasks[i] = Task<GamesResult>.Factory.StartNew((Object obj) =>
+				{
 					if (!(obj is Bundle bundle))
 						return null;
 
 					return Improver.Improve(bundle);
-                },
-                new Bundle() { PlayGames = best.PlayGames.Clone(), RefGames = best.RefGames.Clone(), ScoreScalers = ScoreScalers, ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = Rings } );
+				},
+				new Bundle() { PlayGames = best.PlayGames.Clone(), RefGames = best.RefGames.Clone(), ScoreScalers = ScoreScalers, ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = Rings });
 			}
 
 			Task.WaitAll(tasks);
@@ -714,7 +715,7 @@ namespace Torn.Grids
 		{
 			IndexGames newGames = games.Clone();
 			SwapRecord sr;
-			
+
 			if (shuffleType.HasFlag(ShuffleType.BetweenGames))
 				sr = SwapBetweenGames(newGames);
 			else if (shuffleType.HasFlag(ShuffleType.Games) && shuffleType.HasFlag(ShuffleType.WithinGames))
@@ -738,7 +739,7 @@ namespace Torn.Grids
 				(newGames, _) = Shuffle(newGames, shuffleType);
 				sr = new SwapRecord() { ShuffleType = ShuffleType.Multiple };
 			}
-			
+
 			return (newGames, sr);
 		}
 
@@ -1077,7 +1078,7 @@ namespace Torn.Grids
 					colourMin = Math.Min(colourMin, count);
 					colourMax = Math.Max(colourMax, count);
 				}
-				
+
 				if (colourMin == Math.Floor(averagePlaysOnEachColour) && colourMax == Math.Ceiling(averagePlaysOnEachColour))
 					colourError += ScoreScalers.PerfectColour;
 				else
@@ -1373,7 +1374,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>A list of games, with each game being a list of indexes into a List of LeagueTeam. These are future games, not yet played.</summary>
-	class IndexGames: List<IndexGame>
+	class IndexGames : List<IndexGame>
 	{
 		public IndexGames Clone()
 		{
@@ -1418,7 +1419,9 @@ namespace Torn.Grids
 
 		int maxIndex = -1;
 		/// <summary>Maximum TeamIndex of any team. Computed once, then cached.</summary>
-		public int MaxIndex { get
+		public int MaxIndex
+		{
+			get
 			{
 				if (maxIndex == -1 && this.Any())
 					maxIndex = this.Max(g => g.Any() ? g.Max() : 0);
@@ -1442,7 +1445,9 @@ namespace Torn.Grids
 
 		double teamsPerGame = -1;
 		/// <summary>Average number of teams in each game.</summary>
-		public double TeamsPerGame { get
+		public double TeamsPerGame
+		{
+			get
 			{
 				if (teamsPerGame == -1)
 					teamsPerGame = Count == 0 ? 3 : this.Average(g => g.Count);
@@ -1452,7 +1457,9 @@ namespace Torn.Grids
 		}
 
 		int maxTeamsPerGame = -1;
-		public int MaxTeamsPerGame { get
+		public int MaxTeamsPerGame
+		{
+			get
 			{
 				if (maxTeamsPerGame == -1)
 					maxTeamsPerGame = Count == 0 ? 3 : this.Max(g => g.Count);
@@ -1462,7 +1469,9 @@ namespace Torn.Grids
 
 		int plays = -1;
 		/// <summary>A "play" is a team in a game. So Plays = number of games multiplied by number of teams per game.</summary>
-		public int Plays { get
+		public int Plays
+		{
+			get
 			{
 				if (plays == -1)
 					plays = this.Sum(g => g.Count);
@@ -1866,7 +1875,7 @@ namespace Torn.Grids
 				case ShuffleType.BetweenGames: return string.Format("game {0} team {1} with game {2} team {3}", Game1 + 1, Team1 + 1, Game2 + 1, Team2 + 1);
 				case ShuffleType.Games: return string.Format("games {0} and {1}", Game1 + 1, Game2 + 1);
 				case ShuffleType.Rings: return string.Format("game {0} ring {1} with game {2} ring {3}", Game1 + 1, Team1 + 1, Game2 + 1, Team2 + 1);
-				case ShuffleType.WithinGames: return string.Format("game {0} team {1} with team {2}", Game1 + 1, Team1 + 1,	Team2 + 1);
+				case ShuffleType.WithinGames: return string.Format("game {0} team {1} with team {2}", Game1 + 1, Team1 + 1, Team2 + 1);
 				case ShuffleType.Referees: return string.Format("game {0} referee {1} with game {2} referee {3}", Game1 + 1, Team1 + 1, Game2 + 1, Team2 + 1);
 				case ShuffleType.Multiple: return "multiple swaps";
 				default: return "none";

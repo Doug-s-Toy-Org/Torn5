@@ -70,7 +70,7 @@ namespace Torn
 				return;
 			}
 
-			gameColumns.Add(report.AddColumn(new ZColumn(thisRound.Title, ZAlignment.Center) { Rotate = true } ));
+			gameColumns.Add(report.AddColumn(new ZColumn(thisRound.Title, ZAlignment.Center) { Rotate = true }));
 
 			var arrowColumn = report.AddColumn(new ZColumn("", ZAlignment.Center, ""));
 			var arrow = new Arrow() { Color = Color.FromArgb(0, 192, 0) };  // This arrow shows teams leaving this round, and skipping ahead, going to next round or repechage, or being eliminated.
@@ -227,7 +227,7 @@ namespace Torn
 
 				if (!nonPlanBGames.Any(pg => pg.Game.Teams.Any(t => t.TeamId == gameTeam.TeamId)))  // If this team hasn't appeared in Round or Repêchage,
 				{
-					if(!list.Any(tps => tps.TeamId == gameTeam.TeamId && tps.Any(tp => tp.Game == game)) && 
+					if (!list.Any(tps => tps.TeamId == gameTeam.TeamId && tps.Any(tp => tp.Game == game)) &&
 						!otherList.Any(tps => tps.TeamId == gameTeam.TeamId && tps.Any(tp => tp.Game == game)))  // and we don't already have it listed,
 					{
 						list.Add(League, game, gameTeam, Priority.PlanB);  // add it.

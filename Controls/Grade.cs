@@ -21,7 +21,7 @@ namespace Torn5.Controls
 
 		[Browsable(false)]
 		public Grade Grade
-		{ 
+		{
 			get => new Grade(textName.Text, numericPoints.Value, checkPenalty.Checked, checkBonus.Checked);
 
 			set

@@ -45,7 +45,7 @@ namespace Torn
 			_listener.Start();
 		}
 
-//		public WebServer(Action<HttpListenerContext> method, params string[] prefixes) : this(prefixes, method) { }
+		//		public WebServer(Action<HttpListenerContext> method, params string[] prefixes) : this(prefixes, method) { }
 
 		public void Run()
 		{
@@ -82,7 +82,8 @@ namespace Torn
 			{
 				_listener.Stop();
 				_listener.Close();
-			} catch {}
+			}
+			catch { }
 		}
 	}
 }

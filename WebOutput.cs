@@ -1,21 +1,21 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows.Forms;
 using Zoom;
-using Newtonsoft.Json.Linq;
 
 namespace Torn.Report
 {
 
-	public delegate void ShowProgress (double progress, string status = "");
+	public delegate void ShowProgress(double progress, string status = "");
 
 	public class Progress
 	{
@@ -64,7 +64,7 @@ namespace Torn.Report
 </head><body>
 ");
 
-			foreach(Holder item in leagues)
+			foreach (Holder item in leagues)
 			{
 				sb.Append("<a href=\"");
 				sb.Append(item.Key);
@@ -264,7 +264,7 @@ namespace Torn.Report
 	}
 
 	/// <summary>Serve web pages on demand.</summary>
-	public class WebOutput: IDisposable
+	public class WebOutput : IDisposable
 	{
 		WebServer ws;
 		List<ServerGame> serverGames;
@@ -276,7 +276,7 @@ namespace Torn.Report
 
 		public Holders Leagues { get; set; }
 		public Holder MostRecentHolder { get; set; }  // This is the league that owns the game with the most recent DateTime.
-		
+
 		Game mostRecentGame;
 		public Game MostRecentGame
 		{
@@ -304,8 +304,7 @@ namespace Torn.Report
 
 		public void Dispose()
 		{
-			if (ws != null)
-				ws.Stop();
+			ws?.Stop();
 		}
 
 		public void Start(int port)
@@ -349,11 +348,11 @@ namespace Torn.Report
 			{
 				if (MostRecentServerGame == null)
 					sb.Append("<a href=\"" + MostRecentHolder?.Key + "/game" +
-					          mostRecentGame.Time.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture) + ".html\">Just Played</a>: " +
-					          MostRecentHolder?.League.GameString(mostRecentGame));
+							  mostRecentGame.Time.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture) + ".html\">Just Played</a>: " +
+							  MostRecentHolder?.League.GameString(mostRecentGame));
 				else
-					sb.Append((MostRecentServerGame.InProgress ? "Now Playing: " : Utility.JustPlayed(MostRecentServerGame.EndTime) + ": " ) +
-					          MostRecentHolder?.League.GameString(MostRecentServerGame));
+					sb.Append((MostRecentServerGame.InProgress ? "Now Playing: " : Utility.JustPlayed(MostRecentServerGame.EndTime) + ": ") +
+							  MostRecentHolder?.League.GameString(MostRecentServerGame));
 			}
 
 			if (NextGame != null)
@@ -461,7 +460,7 @@ xhrKey.send();
 			try
 			{
 				string[] urlParts = request.RawUrl.Split('/');
-				string lastPart = urlParts.Length > 0? urlParts[urlParts.Length - 1] : null;
+				string lastPart = urlParts.Length > 0 ? urlParts[urlParts.Length - 1] : null;
 				Holder holder = null;
 
 				if (Leagues.Count == 1)
@@ -677,7 +676,7 @@ xhrKey.send();
 				sb.Append("<div style =\"display: flex; flex-flow: row wrap; justify-content: center; align-items: center; \">\n");
 
 			Reports.OneGame(league, game).ToSvg(sb, null);
-			
+
 			if (detailed)
 			{
 				string imageName = "score" + game.Time.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture) + ".png";
@@ -1063,7 +1062,7 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 			if (url.Last() != '/')
 				url += '/';
 
-			if(uploadDir == null)
+			if (uploadDir == null)
 			{
 				uploadDir = "";
 			}
@@ -1083,7 +1082,8 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 
 						DirectoryInfo di = new DirectoryInfo(Path.Combine(localPath, key));
 
-						if (uploadDir != "") {
+						if (uploadDir != "")
+						{
 
 							if (uploadDir.Last() != '/')
 								uploadDir += '/';

@@ -1,10 +1,10 @@
-﻿using System;
+﻿using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 using System.Xml;
-using NUnit.Framework;
 using Torn;
 using Torn.Report;
 using Torn.UI;
@@ -25,27 +25,25 @@ namespace TornWeb
 			var team = new LeagueTeam() { Name = "Team A" };
 			league.AddTeam(team);
 
-			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "One", Id = "001", Comment = "one" } ));
-			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "<&>' \"", Id = "002", Comment = "two" } ));
-			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "Three", Id = "003" } ));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "One", Id = "001", Comment = "one" }));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "<&>' \"", Id = "002", Comment = "two" }));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "Three", Id = "003" }));
 
 			team = new LeagueTeam() { Name = "Team B" };
 			league.AddTeam(team);
 
-			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "Four", Id = "004", Comment = "one" } ));
-			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "One", Id = "001" } ));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "Four", Id = "004", Comment = "one" }));
+			team.Players.Add(league.AddPlayer(new LeaguePlayer() { Name = "One", Id = "001" }));
 
 			team = new LeagueTeam() { Name = "Team C" };
 			league.AddTeam(team);
 
-			return league;			
+			return league;
 		}
 
 		Game AddGame(League league)
 		{
-			var serverGame = new ServerGame();
-			serverGame.League = league;
-			serverGame.Time = new DateTime(2018, 1, 1, 12, 0, 0);
+			var serverGame = new ServerGame { League = league, Time = new DateTime(2018, 1, 1, 12, 0, 0)};
 
 			var teamDatas = new List<GameTeamData>();
 
@@ -61,12 +59,14 @@ namespace TornWeb
 			};
 			teamDatas.Add(teamData);
 
-			teamData = new GameTeamData();
-			teamData.GameTeam = new GameTeam();
-			teamData.Players = new List<ServerPlayer>
+			teamData = new GameTeamData
 			{
-				new ServerPlayer() { PlayerId = "004", Score = 0 },
-				new ServerPlayer() { PlayerId = "nonexistent" }
+				GameTeam = new GameTeam(),
+				Players = new List<ServerPlayer>
+				{
+					new ServerPlayer() { PlayerId = "004", Score = 0 },
+					new ServerPlayer() { PlayerId = "nonexistent" }
+				}
 			};
 			teamDatas.Add(teamData);
 
@@ -80,7 +80,7 @@ namespace TornWeb
 		{
 			var gameTeam = new GameTeam();
 			gameTeam.Time = new DateTime(2018, 1, 1, 12, 0, 0);
-			gameTeam.Players.Add(new GamePlayer() { PlayerId = "005", Score = 1000, Colour = Colour.Blue } );
+			gameTeam.Players.Add(new GamePlayer() { PlayerId = "005", Score = 1000, Colour = Colour.Blue });
 			gameTeam.Score = 1000;
 			game.Teams.Add(gameTeam);
 		}
@@ -122,8 +122,8 @@ namespace TornWeb
 			Assert.That("Team A also changed" == league.Teams()[0].Name, "name of team 1");
 			Assert.That("Team A changed" == clonedTeam.Name, "name of team 1");
 
-			clonedTeam.Players.Add(new LeaguePlayer() { Name = "Four", Id = "004" } );
-			clonedTeam.Players.Add(new LeaguePlayer() { Name = "Five", Id = "005" } );
+			clonedTeam.Players.Add(new LeaguePlayer() { Name = "Four", Id = "004" });
+			clonedTeam.Players.Add(new LeaguePlayer() { Name = "Five", Id = "005" });
 
 			Assert.That(3 == league.Teams()[0].Players.Count, "Number of players on team A");
 			Assert.That(5 == clonedTeam.Players.Count, "Number of players on cloned team A");
@@ -151,7 +151,7 @@ namespace TornWeb
 			Assert.That(2 == reportTemplates.Count, "Number of report templates");
 			Assert.That(reportTemplates[0].ReportType == ReportType.TeamLadder, "team ladder");
 			Assert.That(reportTemplates[0].Settings.Contains("ShowColours"), "ShowColours");
-			Assert.That(reportTemplates[0].To == new DateTime(2018, 09, 11, 23,59, 00), "to 2018-09-11 23:59");
+			Assert.That(reportTemplates[0].To == new DateTime(2018, 09, 11, 23, 59, 00), "to 2018-09-11 23:59");
 			Assert.That("bar with rug" == reportTemplates[0].Setting("ChartType"), "ChartType");
 			Assert.That(ChartTypeExtensions.ToChartType(reportTemplates[0].Setting("ChartType")) == (ChartType.Bar | ChartType.Rug), "parse ChartType");
 
@@ -160,23 +160,22 @@ namespace TornWeb
 			Assert.That(reportTemplates[1].Drops.PercentWorst == 10.0, "worst 10%");
 			Assert.That(reportTemplates[1].Drops.PercentBest == 10.0, "best 10%");
 			Assert.That(reportTemplates[1].Drops.CountWorst == 0, "worst 0");
-			
+
 			var doc = new XmlDocument();
 			XmlNode docNode = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
 			doc.AppendChild(docNode);
 			XmlNode bodyNode = doc.CreateElement("body");
 			doc.AppendChild(bodyNode);
 
-			var root = doc.DocumentElement;
 			reportTemplates.ToXml(doc, bodyNode);
-			
+
 			var reportTemplates2 = new ReportTemplates();
 			reportTemplates2.FromXml(bodyNode.FirstChild);
-			
+
 			Assert.That(2 == reportTemplates2.Count, "XML Number of report templates");
 			Assert.That(reportTemplates2[0].ReportType == ReportType.TeamLadder, "XML team ladder");
 			Assert.That(reportTemplates2[0].Settings.Contains("ShowColours"), "XML ShowColours");
-			Assert.That(reportTemplates2[0].To == new DateTime(2018, 09, 11, 23,59, 00), "XML to 2018-09-11 23:59");
+			Assert.That(reportTemplates2[0].To == new DateTime(2018, 09, 11, 23, 59, 00), "XML to 2018-09-11 23:59");
 			Assert.That("bar with rug" == reportTemplates2[0].Setting("ChartType"), "XML ChartType");
 			Assert.That(ChartTypeExtensions.ToChartType(reportTemplates2[0].Setting("ChartType")) == (ChartType.Bar | ChartType.Rug), "XML parse ChartType");
 
@@ -223,11 +222,11 @@ namespace TornWeb
 			Assert.That(2 == fixture.Games[0].Teams.Count, "fixture game team count");
 			Assert.That(Colour.Red == fixture.Games[0].Teams[fixture.Teams[0]], "fixture game team colour");
 			Assert.That(Colour.Green == fixture.Games[0].Teams[fixture.Teams[1]], "fixture game team colour");
-			
+
 			fixture.Games.Clear();
 			var firstGame = league.Games()[0];
 			Assert.That(fixture.BestMatch(firstGame) is null, "match game null");
-			
+
 			var lines = new string[] { "row", "b..", "y.p" };
 			fixture.Games.Parse(lines, fixture.Teams, null, null);
 
@@ -238,13 +237,13 @@ namespace TornWeb
 			Assert.That(Colour.Orange == fixture.Games[1].Teams[fixture.Teams[0]], "fixture game team colour");
 			Assert.That(Colour.White == fixture.Games[2].Teams[fixture.Teams[0]], "fixture game team colour");
 			Assert.That(Colour.Purple == fixture.Games[2].Teams[fixture.Teams[2]], "fixture game team colour");
-			
+
 			var grid = fixture.Games.ToGrid(fixture.Teams);
 			Assert.That(3 == grid.Length);
 			Assert.That("ROW" == grid[0]);
 			Assert.That("B.." == grid[1]);
 			Assert.That("Y.P" == grid[2]);
-			
+
 			AddGame(league);
 			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(firstGame)), "match game 1");
 			fixture.Games.Parse("8:00\t2\t1\t3", fixture.Teams);
@@ -348,7 +347,7 @@ namespace TornWeb
 
 			var games = jsonServer.GetGames();
 			Assert.That(3 == games.Count);
-			
+
 			webOutput.Dispose();
 		}
 
@@ -358,7 +357,7 @@ namespace TornWeb
 				return -3;
 			else if (!stubServer.Connected)
 				return -2;
-			
+
 			var timeElapsed = stubServer.GameTimeElapsed();
 
 			if (timeElapsed == TimeSpan.Zero)
@@ -502,10 +501,10 @@ namespace TornWeb
 		}
 	}
 
-	public class StubServer: LaserGameServer
+	public class StubServer : LaserGameServer
 	{
-		public StubServer() {}
-		
+		public StubServer() { }
+
 		protected override bool GetConnected()
 		{
 			return true;
@@ -523,7 +522,7 @@ namespace TornWeb
 			games.Add(NewGame(11, new DateTime(2018, 1, 1, 12, 0, 0), new DateTime(2018, 1, 1, 12, 12, 0), "League"));
 			games.Add(NewGame(12, new DateTime(2018, 1, 1, 12, 15, 0), new DateTime(2018, 1, 1, 12, 27, 0), "League"));
 			games.Add(NewGame(13, new DateTime(2018, 1, 1, 12, 30, 0), new DateTime(2018, 1, 1, 12, 42, 0), "League"));
-			
+
 			return games;
 		}
 
@@ -548,10 +547,12 @@ namespace TornWeb
 
 		ServerPlayer NewServerPlayer(Colour colour, string alias, string id, string pack, int score)
 		{
-			var player = new ServerPlayer();
-			player.Colour = colour;
-			player.Score = score;
-			player.Pack = pack;
+			var player = new ServerPlayer
+			{
+				Colour = colour,
+				Score = score,
+				Pack = pack
+			};
 			if (!string.IsNullOrEmpty(id))
 				player.PlayerId = id;
 			if (!string.IsNullOrEmpty(alias))
@@ -562,11 +563,12 @@ namespace TornWeb
 
 		public override List<LaserGamePlayer> GetPlayers(string mask)
 		{
-			var players = new List<LaserGamePlayer>();
-			players.Add(NewGamePlayer("RONiN 441", "1-50-50"));
-			players.Add(NewGamePlayer("B", "1-50-2"));
-			players.Add(NewGamePlayer("C", "1-50-3"));
-			return players;
+			return new List<LaserGamePlayer>
+			{
+				NewGamePlayer("RONiN 441", "1-50-50"),
+				NewGamePlayer("B", "1-50-2"),
+				NewGamePlayer("C", "1-50-3")
+			};
 		}
 
 		public override List<LaserGamePlayer> GetPlayers(string mask, List<LeaguePlayer> players)
@@ -576,10 +578,11 @@ namespace TornWeb
 
 		LaserGamePlayer NewGamePlayer(string alias, string id)
 		{
-			var player = new LaserGamePlayer();
-			player.Alias = alias;
-			player.Id = id;
-			return player;
+			return new LaserGamePlayer
+			{
+				Alias = alias,
+				Id = id
+			};
 		}
 	}
 }

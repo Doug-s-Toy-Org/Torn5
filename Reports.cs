@@ -1,14 +1,14 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Drawing;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
-using Zoom;
-using System.IO;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 using Torn5;
+using Zoom;
 
 namespace Torn.Report
 {
@@ -23,8 +23,8 @@ namespace Torn.Report
 		public int CountWorst { get; set; }
 		/// <summary>Number of games to drop from bottom end of list -- e.g. if set to 2, the players'/teams' best 2 games will be dropped.</summary>
 		public int CountBest { get; set; }
-		
-		public Drops() 
+
+		public Drops()
 		{
 			PercentWorst = 0.0;
 			PercentBest = 0.0;
@@ -68,7 +68,7 @@ namespace Torn.Report
 		{
 			return Math.Min(Math.Max(CountBest, (int)Math.Truncate(PercentBest / 100 * count)), count - 1);
 		}
-		
+
 		public bool HasDrops()
 		{
 			return PercentWorst > 0 || PercentBest > 0 || CountWorst > 0 || CountBest > 0;
@@ -257,17 +257,17 @@ namespace Torn.Report
 			foreach (Colour c in coloursUsed)
 				colourTotals.Add(c, new List<int>());
 
-				foreach (Game game in games)
-					for (int i = 0; i < game.Teams.Count; i++)
-					{
-						// Add the team's rank in this game to the colourTotals.
-						var gameTeam = game.Teams[i];
+			foreach (Game game in games)
+				for (int i = 0; i < game.Teams.Count; i++)
+				{
+					// Add the team's rank in this game to the colourTotals.
+					var gameTeam = game.Teams[i];
 
-						while (colourTotals[gameTeam.Colour].Count <= i)
-							colourTotals[gameTeam.Colour].Add(0);
-						if (i > -1)
-							colourTotals[gameTeam.Colour][i]++;
-					}
+					while (colourTotals[gameTeam.Colour].Count <= i)
+						colourTotals[gameTeam.Colour].Add(0);
+					if (i > -1)
+						colourTotals[gameTeam.Colour][i]++;
+				}
 
 			coloursUsed = coloursUsed.OrderBy(c => -colourTotals[c].FirstOrDefault());
 
@@ -490,7 +490,7 @@ namespace Torn.Report
 				if (columnColours[i].Found == Found.One && columnColours[i].Colour != Colour.None)
 					report.Columns[i + 1].Text = columnColours[i].Colour.ToString();
 
-				return report;
+			return report;
 		}
 
 		public static ZoomReport FixtureCombined(Fixture fixture, League league)
@@ -617,7 +617,7 @@ namespace Torn.Report
 				};
 				report.AddColumn(column);
 
-				if(hasHits)
+				if (hasHits)
 				{
 					column = new ZColumn("Hits")
 					{
@@ -645,7 +645,7 @@ namespace Torn.Report
 			if (rt.ReportType == ReportType.GameGrid)
 			{
 				report.AddColumn(new ZColumn("Average"));
-				if(hasHits)
+				if (hasHits)
 				{
 					report.AddColumn(new ZColumn("Hits"));
 					hitsCol = report.Columns.Count() - 1;
@@ -777,7 +777,7 @@ namespace Torn.Report
 				var scoresList = new List<double>();
 				var pointsList = new List<double>();
 
-				ZRow row = new ZRow(); ;
+				ZRow row = new ZRow();
 
 				row.Add(new ZCell(0, ChartType.None, "N0")); // Temporary blank rank.
 
@@ -886,7 +886,7 @@ namespace Torn.Report
 					};  // team name
 					row.Add(teamCell);
 					ZCell scoreCell = new ZCell(gameTeam.Score, ChartType.Bar, "N0", gameTeam.Colour.ToColor());
-					
+
 					row.Add(scoreCell);
 					teamCell.ChartCell = scoreCell;
 					scoreCell.ChartCell = scoreCell;
@@ -941,7 +941,7 @@ namespace Torn.Report
 			{
 				report.AddColumn(new ZColumn("Team", ZAlignment.Left));
 				report.AddColumn(new ZColumn("Score", ZAlignment.Right) { Rotate = league.IsPoints() });
-				if(hasHits)
+				if (hasHits)
 					report.AddColumn(new ZColumn("Hits", ZAlignment.Right) { Rotate = league.IsPoints() });
 				if (league.IsPoints())  // there are victory points for this league
 					report.AddColumn(new ZColumn("Points", ZAlignment.Right) { Rotate = true });
@@ -988,7 +988,7 @@ namespace Torn.Report
 				if (thisgame == 0 || (games[thisgame - 1].Time.Date < game.Time.Date))  // We've crossed a date boundary, so
 					report.AddRow(new ZRow()).Add(new ZCell(game.Time.ToShortDateString()) { Color = report.Colors.OddColor });  // Create a row to show the new date.
 
-				ZRow teamsRow = report.AddRow(new ZRow() { Color = report.Colors.OddColor } );
+				ZRow teamsRow = report.AddRow(new ZRow() { Color = report.Colors.OddColor });
 
 				ZCell dateCell = new ZCell(game.ShortTitle())
 				{
@@ -1142,8 +1142,8 @@ namespace Torn.Report
 
 			report.CalculateFill = delegate (ZRow row, int col, double chartMin, double chartMax, ref double? fill)
 			{
-				if (row[col].Tag is double)
-					fill = row[col].Number / (double)row[col].Tag;
+				if (row[col].Tag is double maxScore)
+					fill = row[col].Number / maxScore;
 			};
 
 			report.Colors.OddColor = default;
@@ -1257,7 +1257,7 @@ namespace Torn.Report
 			{
 				string groupName = groups[group]?.ToLower() ?? "";
 
-				if ((groupName.Contains("final") && !groupName.Contains("semi")) || groupName.StartsWith("rep ") || groupName.Contains("repechage") || groupName.Contains("repêchage") || 
+				if ((groupName.Contains("final") && !groupName.Contains("semi")) || groupName.StartsWith("rep ") || groupName.Contains("repechage") || groupName.Contains("repêchage") ||
 						previousGroupName.StartsWith("rep ") || previousGroupName.Contains("repechage") || previousGroupName.Contains("repêchage"))
 					groupGames.Clear();  // Disregard previous results -- use only results from this round to rank.
 
@@ -1278,7 +1278,7 @@ namespace Torn.Report
 					report.AddColumn(new ZColumn("Points", ZAlignment.Right, groups[group]) { Rotate = true });
 
 				if (groupName.Contains("semifinal") || groupName.Contains("semi final") ||
-					groupName.Contains("ascension") || groupName.Contains("format ")  || groupName.Contains("system ") || groupName.Contains("track"))
+					groupName.Contains("ascension") || groupName.Contains("format ") || groupName.Contains("system ") || groupName.Contains("track"))
 				{
 					// Rank this round as an Ascension: teams that survive longer are ranked higher.
 
@@ -1700,16 +1700,16 @@ namespace Torn.Report
 
 			report.RemoveColumn(idCol);
 
-			report.CalculateFill = delegate (ZRow row, int col, double chartMin, double chartMax, ref double? fill) 
+			report.CalculateFill = delegate (ZRow row, int col, double chartMin, double chartMax, ref double? fill)
 			{
-				if (row[0].Empty()) 
+				if (row[0].Empty())
 					return;
 				if (report.Columns[col].Text == "Score")
 					fill = row[col].Number / maxScore;
 				if (report.Columns[col].GroupHeading == "Tags")
 					fill = row[col].Number / maxTags;
 				if (report.Columns[col].Color != Color.Empty)
-					fill = row[col].Number / maxHits; 
+					fill = row[col].Number / maxHits;
 			};
 
 			return report;
@@ -2279,7 +2279,7 @@ namespace Torn.Report
 
 			return report;
 		}
-		
+
 		public static ZoomReport SanityReport(List<League> leagues, ReportTemplate rt, string path)
 		{
 			var report = new ZoomReport(string.IsNullOrEmpty(rt.Title) ? "Sanity Check Report for " + leagues.Count.ToString() + " leagues" : rt.Title,
@@ -2487,7 +2487,7 @@ namespace Torn.Report
 
 			packs.Sort();
 
-			foreach(PackHits pack in packs)
+			foreach (PackHits pack in packs)
 			{
 				ZRow row = report.AddRow(new ZRow());
 
@@ -2579,7 +2579,7 @@ namespace Torn.Report
 					var played = player.Played(thisPlayersGames);
 
 					row.Add(DataCell(played.Select(x => (double)x.Score).ToList(), rt.Drops, chartType, isDecimal ? "N1" : "N0"));  // Av score
-					if(showZeroed)
+					if (showZeroed)
 						row.Add(DataCell(played.Select(x => (double)x.GetZeroedScore()).ToList(), rt.Drops, chartType, isDecimal ? "N1" : "N0"));  // Av score
 
 					List<double> scoreRatios = new List<double>();
@@ -2635,7 +2635,7 @@ namespace Torn.Report
 							row.Add(new ZCell());  // games dropped
 					}
 
-					if(showGrades)
+					if (showGrades)
 						row.AddCell(new ZCell(player.Grade));  // Player grade
 
 					if (showComments)
@@ -2764,7 +2764,7 @@ namespace Torn.Report
 				index = report.Columns.FindIndex((c) => c.ToString() == "Total");
 
 				double? result = y[index].Number - x[index].Number;
-				if(result == 0)
+				if (result == 0)
 				{
 					index = report.Columns.FindIndex((c) => c.ToString() == "Red");
 					result = y[index].Number - x[index].Number;
@@ -2846,7 +2846,7 @@ namespace Torn.Report
 			double victoryPointsRange = games.Any() ? games.Max(g => g.Teams.Max(t => t.Points)) - victoryPointsMin : 0;
 
 			report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average Score", ZAlignment.Float));
-			if(showZeroed)
+			if (showZeroed)
 				report.AddColumn(new ZColumn("Average Non-Zeroed Score", ZAlignment.Float));
 			report.AddColumn(new ZColumn("Games", ZAlignment.Integer));
 
@@ -2966,7 +2966,7 @@ namespace Torn.Report
 						row[i].ChartCell = barCell;
 				}
 				else
-					foreach (ZCell cell in  row)
+					foreach (ZCell cell in row)
 						cell.ChartCell = barCell;
 
 				if (rt.Settings.Contains("Longitudinal"))
@@ -3016,7 +3016,7 @@ namespace Torn.Report
 
 					if (league.IsPoints())
 					{
-						if (mode != count && count > 0) 
+						if (mode != count && count > 0)
 						{
 							row.Add(new ZCell((report.Cell(row, "Points").Number * mode / count), ChartType.None, "F1"));  // scaled points
 							if (mode < count)
@@ -3049,9 +3049,9 @@ namespace Torn.Report
 							row.Add(new ZCell(colourTotals[c][rank], ChartType.Bar, null, dark));
 							maxTotal = Math.Max(maxTotal, colourTotals[c][rank]);
 						}
-		 				else
-		 					row.Add(new ZCell("0", dark));
-		 			}
+						else
+							row.Add(new ZCell("0", dark));
+					}
 
 				if (league.IsPoints())
 					row.Add(new ZCell(ladder.Sum(e => e.Points) / ladder.Count(), ChartType.None, "f1", Color.Gray));  // average league points scored
@@ -3097,7 +3097,7 @@ namespace Torn.Report
 					report.Description += " Teams with more than " + mode.ToString(CultureInfo.CurrentCulture) + " games have been scaled down. This is shown in the Scaled column.";
 				else if (less)
 					report.Description += " Teams with less than " + mode.ToString(CultureInfo.CurrentCulture) + " games have been scaled up. This is shown in the Scaled column.";
-	
+
 				if (showColours)
 					report.Description += " For each team, the report shows the number of times they placed first, second and third on each colour. The Totals row shows the total number of firsts, seconds and thirds that were scored by each colour.";
 
@@ -3105,7 +3105,7 @@ namespace Torn.Report
 					report.Description += " The Longitudinal column shows each game for each team. Red is score ratio; blue is victory points or rank.";
 
 				if (report.Description == "This report ranks teams. ")  // No interesting boxes are checked,
-			  			report.Description = "";  // so this description is too boring to show.
+					report.Description = "";  // so this description is too boring to show.
 			}
 			else
 				FinishReport(report, games, rt);
@@ -3117,7 +3117,7 @@ namespace Torn.Report
 		public static ZoomReport TeamsVsTeams(League league, List<Game> games, ReportTemplate rt)
 		{
 			ZoomReport report = new ZoomReport(ReportTitle("Teams vs Teams", league, rt), "Team", "left");
-			
+
 			List<LeagueTeam> teams = league.GetTeamLadder();
 
 			foreach (var team1 in teams)
@@ -3136,7 +3136,7 @@ namespace Torn.Report
 				foreach (var team2 in teams)
 				{
 					var cellGames = games.FindAll(x => x.Teams.Any(y => league.LeagueTeam(y) == team1) &&
-					                                   x.Teams.Any(z => league.LeagueTeam(z) == team2));  // Get games that include these two teams.
+													   x.Teams.Any(z => league.LeagueTeam(z) == team2));  // Get games that include these two teams.
 					ZCell cell;
 					if (team1 == team2)
 					{
@@ -3565,7 +3565,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 			// Crop unused space off top and/or bottom of bitmap.
 			yMin = Math.Max(yMin - 1, 0);
-			bitmap =  bitmap.Clone(new RectangleF(0, yMin, bitmap.Width, Math.Max(Math.Min(yMax + 2, bitmap.Height) - yMin, 1)), bitmap.PixelFormat);
+			bitmap = bitmap.Clone(new RectangleF(0, yMin, bitmap.Width, Math.Max(Math.Min(yMax + 2, bitmap.Height) - yMin, 1)), bitmap.PixelFormat);
 
 			// Write team names and scores in upper left corner.
 			if (game.Teams.Count <= 4 && bitmap.Height > game.Teams.Count * textHeight)
@@ -3730,7 +3730,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			double v1 = (squaredSum1 - (sum1 * sum1 / n1)) / (n1 - 1);  // Variance.
 			double v2 = (squaredSum2 - (sum2 * sum2 / n2)) / (n2 - 1);
 			double sp = Math.Sqrt(((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2));  //  sp is the pooled standard deviation.
-			return (sum1 / n1 - sum2 / n2) / (sp * Math.Sqrt(1.0/n1 + 1.0/n2));  // Student's t test statistic.
+			return (sum1 / n1 - sum2 / n2) / (sp * Math.Sqrt(1.0 / n1 + 1.0 / n2));  // Student's t test statistic.
 		}
 
 		public static List<TeamLadderEntry> Ladder(League league, List<Game> games, ReportTemplate rt, bool ignorePoints = false)
@@ -3813,7 +3813,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		{
 			if (!games.Any())
 				return " from " + (from == null ? "(none)" : ((DateTime)from).ToShortDateString()) +
-				       " to " + (to == null ? "(none)" : ((DateTime)to).ToShortDateString());
+					   " to " + (to == null ? "(none)" : ((DateTime)to).ToShortDateString());
 
 			DateTime first = from ?? DateTime.MinValue;
 			first = games.First().Time > first ? games.First().Time : first;
@@ -3856,7 +3856,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		static void AddAverageAndDrops(League league, ZRow row, Drops drops, List<double> scoresList, List<double> pointsList, List<double> hitsList, bool isDecimal)
 		{
 			int count = scoresList.Count;
-			
+
 			DropScores(scoresList, drops);
 			DropScores(pointsList, drops);
 			row.Add(new ZCell(scoresList.Average(), ChartType.Bar, isDecimal ? "N1" : "N0"));  // average game score
@@ -3895,41 +3895,42 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		{
 			switch (rt.ReportType)
 			{
-				case ReportType.GameGrid: case ReportType.GameGridCondensed:
-				report.Rows.Sort(delegate(ZRow x, ZRow y)
-								{
-								double? result = 0;
-								
-								if (league.IsPoints(games) && !ignorePoints)
-								{
-									if (x.Count <= pointsCol || x[pointsCol].Number == null)
-										return 1;
-									if (y.Count <= pointsCol || y[pointsCol].Number == null)
-										return -1;
+				case ReportType.GameGrid:
+				case ReportType.GameGridCondensed:
+					report.Rows.Sort(delegate (ZRow x, ZRow y)
+									{
+										double? result = 0;
 
-									result = y[pointsCol].Number - x[pointsCol].Number;
-								}
-								if (result == 0)
-								{
-									if (x.Count <= averageCol || x[averageCol].Number == null)
-										return 1;
-									if (y.Count <= averageCol || y[averageCol].Number == null)
-										return -1;
+										if (league.IsPoints(games) && !ignorePoints)
+										{
+											if (x.Count <= pointsCol || x[pointsCol].Number == null)
+												return 1;
+											if (y.Count <= pointsCol || y[pointsCol].Number == null)
+												return -1;
 
-									result = y[averageCol].Number - x[averageCol].Number;
-								}
-								if (result == 0 && hitsCol > 0)
-								{
-									if (x.Count <= hitsCol || x[hitsCol].Number == null)
-										return 1;
-									if (y.Count <= hitsCol || y[hitsCol].Number == null)
-										return -1;
+											result = y[pointsCol].Number - x[pointsCol].Number;
+										}
+										if (result == 0)
+										{
+											if (x.Count <= averageCol || x[averageCol].Number == null)
+												return 1;
+											if (y.Count <= averageCol || y[averageCol].Number == null)
+												return -1;
 
-									result = y[hitsCol].Number - x[hitsCol].Number;
-								}
-								return Math.Sign(result ?? 0);
-								}
-							);
+											result = y[averageCol].Number - x[averageCol].Number;
+										}
+										if (result == 0 && hitsCol > 0)
+										{
+											if (x.Count <= hitsCol || x[hitsCol].Number == null)
+												return 1;
+											if (y.Count <= hitsCol || y[hitsCol].Number == null)
+												return -1;
+
+											result = y[hitsCol].Number - x[hitsCol].Number;
+										}
+										return Math.Sign(result ?? 0);
+									}
+								);
 					break;
 				case ReportType.AscensionGrid:
 					report.AddColumn(new ZColumn("Last game index"));
@@ -3945,7 +3946,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 					try
 					{  // Sort by comparing teams' score in the last game they played each other.
-						report.Rows.Sort(delegate(ZRow x, ZRow y)
+						report.Rows.Sort(delegate (ZRow x, ZRow y)
 							{
 								int lastx = (int)x.Last().Number;  // Index of x's last game, as a cell in this row.
 								int lasty = (int)y.Last().Number;  // Index of y's last game, as a cell in this row.
@@ -3970,7 +3971,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 					}
 					catch
 					{  // If the above produces an ambiguous result, sort teams by whichever one played last.
-						report.Rows.Sort(delegate(ZRow x, ZRow y)
+						report.Rows.Sort(delegate (ZRow x, ZRow y)
 							{
 								int result = Math.Sign((double)y.Last().Number - (double)x.Last().Number);
 								return result == 0 ? Math.Sign((double)y[(int)y.Last().Number].Number - (double)x[(int)x.Last().Number].Number) : result;
@@ -3980,8 +3981,9 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 
 					report.RemoveColumn(report.Columns.Count - 1);  // Last game index
 					break;
-				
-				case ReportType.Pyramid: case ReportType.PyramidCondensed:
+
+				case ReportType.Pyramid:
+				case ReportType.PyramidCondensed:
 					PyramidComparer pc = new PyramidComparer
 					{
 						Columns = report.Columns,
@@ -3989,7 +3991,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 						IsPoints = (league.IsPoints(games) && !ignorePoints) || rt.ReportType == ReportType.PyramidCondensed
 					};
 					pc.Setup(report);
-					try 
+					try
 					{
 						report.Rows.Sort(pc);
 					}
@@ -4118,13 +4120,13 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		}
 	}
 
-	class PyramidComparer: IComparer<ZRow>
+	class PyramidComparer : IComparer<ZRow>
 	{
 		public List<ZColumn> Columns { get; set; }
 		/// <summary>Set this to true if the last column is rank -- larger ranks should be sorted lower.</summary>
 		public bool Reversed { get; set; }
 		public bool IsPoints { get; set; }
-		
+
 		List<string> groups;
 		int lastGameIndex;
 		int lastGroupIndex;
@@ -4136,7 +4138,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		public void Setup(ZoomReport report)
 		{
 			groups = Columns.Select(c => c.GroupHeading).Distinct().ToList();
-			
+
 			int lastCol = Columns.Count() - 1;
 			lastGameIndex = lastCol + 1;
 			lastGroupIndex = lastCol + 2;
@@ -4144,7 +4146,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			averagePointsIndex = lastCol + 4;
 			previousScoreIndex = lastCol + 5;
 			previousPointsIndex = lastCol + 6;
-			
+
 			report.AddColumn(new ZColumn("Last game index"));
 			report.AddColumn(new ZColumn("Last group index"));
 			report.AddColumn(new ZColumn("Group av score"));
@@ -4155,7 +4157,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			foreach (ZRow row in report.Rows)
 			{
 				int lastGame = LastGame(row, lastCol);
-				while (row.Count < lastCol) 
+				while (row.Count < lastCol)
 					row.Add(new ZCell());  // Pad to end of row.
 
 				row.Add(new ZCell(lastGame));
@@ -4212,7 +4214,7 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			for (int i = Columns.Count - 1; i >= lastGameIndex; i--)
 				Columns.RemoveAt(i);
 		}
-		
+
 		int LastGame(ZRow row, int lastCol)
 		{
 			int col = lastCol;
@@ -4266,89 +4268,89 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 		public void DoColor(ZoomReport report)
 		{
 			foreach (ZRow row in report.Rows)
-				for (int i = 0; i < row.Count && i< Columns.Count && groups.IndexOf(Columns[i].GroupHeading) <= (int)row[lastGroupIndex].Number; i++)
+				for (int i = 0; i < row.Count && i < Columns.Count && groups.IndexOf(Columns[i].GroupHeading) <= (int)row[lastGroupIndex].Number; i++)
 					if (!string.IsNullOrEmpty(Columns[i].GroupHeading) && groups.IndexOf(Columns[i].GroupHeading) % 2 == 0 && row[i].Color == Color.Empty)
 						row[i].Color = Color.FromArgb(0x20, 0x80, 0x80, 0xFF);
 		}
-#region Old code
-/*
-	class PyramidComparerOld: IComparer<ZRow>
-	{
-		// This version of PyramidComparer attempts to figure out which games are in which round by itself, but I never got it working.
-		// The in-use version relies on the user labeling the rounds.
-		public HashSet<int> PyramidSet = new HashSet<int>();
-		
-		public int Compare(ZRow x, ZRow y)
-		{
-			int lastx = LastGame(x);
-			int lasty = LastGame(y);
-			HashSet<int> xySet = new HashSet<int>();
-			for (int i = Math.Min(lastx, lasty); i < Math.Max(lastx, lasty); i++)
-				xySet.Add(i);
-
-			if (PyramidSet.IsSupersetOf(xySet))  // These teams' last games are in the same round.
-				return Math.Sign((double)(y[lasty].Number - x[lastx].Number));  // Compare their last scores.
-			else
-				return lasty - lastx;  // Whoever survived longest ranks highest.
-		}
-
-		// Mark alternate rounds in slightly different background colours.
-		public void DoColor(League league, ZoomReport report)
-		{
-			int step = league.IsPoints() ? 2 : 1;
-
-			foreach (ZRow row in report.Rows)
+		#region Old code
+		/*
+			class PyramidComparerOld: IComparer<ZRow>
 			{
-				int last = LastGame(row);
+				// This version of PyramidComparer attempts to figure out which games are in which round by itself, but I never got it working.
+				// The in-use version relies on the user labeling the rounds.
+				public HashSet<int> PyramidSet = new HashSet<int>();
 
-				while (PyramidSet.Contains(last) && last < row.Count - 1)
-					last++;  // Move last out to the end of this round (or repechage).
-
-				bool even = false;
-				int col = 2;
-
-				while (col <= last)
+				public int Compare(ZRow x, ZRow y)
 				{
-					if (even && row[col].Color == Color.Empty)
-						row[col].Color = Color.FromArgb(0xF0, 0xF0, 0xFF);
+					int lastx = LastGame(x);
+					int lasty = LastGame(y);
+					HashSet<int> xySet = new HashSet<int>();
+					for (int i = Math.Min(lastx, lasty); i < Math.Max(lastx, lasty); i++)
+						xySet.Add(i);
 
-					if (!PyramidSet.Contains(col))
-					{
-						even = !even;
-						col += step;  // Move j out to the end of this round (or repechage).
-					}
+					if (PyramidSet.IsSupersetOf(xySet))  // These teams' last games are in the same round.
+						return Math.Sign((double)(y[lasty].Number - x[lastx].Number));  // Compare their last scores.
 					else
-						col++;
+						return lasty - lastx;  // Whoever survived longest ranks highest.
+				}
+
+				// Mark alternate rounds in slightly different background colours.
+				public void DoColor(League league, ZoomReport report)
+				{
+					int step = league.IsPoints() ? 2 : 1;
+
+					foreach (ZRow row in report.Rows)
+					{
+						int last = LastGame(row);
+
+						while (PyramidSet.Contains(last) && last < row.Count - 1)
+							last++;  // Move last out to the end of this round (or repechage).
+
+						bool even = false;
+						int col = 2;
+
+						while (col <= last)
+						{
+							if (even && row[col].Color == Color.Empty)
+								row[col].Color = Color.FromArgb(0xF0, 0xF0, 0xFF);
+
+							if (!PyramidSet.Contains(col))
+							{
+								even = !even;
+								col += step;  // Move j out to the end of this round (or repechage).
+							}
+							else
+								col++;
+						}
+					}
+				}
+
+				// An element in PyramidSet is set if teams in this game do _not_ play in the next game; i.e. this game and the next are likely part of the same round.
+				public void Populate(League league, ZoomReport report)
+				{
+					int step = league.IsPoints() ? 2 : 1;
+
+					int col = 2;
+					if (report.Rows.Count > 1)
+						while (col < report.Rows[1].Count - step)
+						{
+							bool found = false;
+							foreach (ZRow row in report.Rows)
+								if (row[col].Number != null && row[col + step].Number != null)
+								{
+									found = true;
+									break;
+								}
+
+							if (!found)
+								for (int i = 0; i <= step; i++)
+									PyramidSet.Add(col + i);
+
+							col += step + 1;
+						}
 				}
 			}
-		}
-
-		// An element in PyramidSet is set if teams in this game do _not_ play in the next game; i.e. this game and the next are likely part of the same round.
-		public void Populate(League league, ZoomReport report)
-		{
-			int step = league.IsPoints() ? 2 : 1;
-
-			int col = 2;
-			if (report.Rows.Count > 1)
-				while (col < report.Rows[1].Count - step)
-				{
-					bool found = false;
-					foreach (ZRow row in report.Rows)
-						if (row[col].Number != null && row[col + step].Number != null)
-						{
-							found = true;
-							break;
-						}
-
-					if (!found)
-						for (int i = 0; i <= step; i++)
-							PyramidSet.Add(col + i);
-
-					col += step + 1;
-				}
-		}
-	}
-*/
-#endregion
+		*/
+		#endregion
 	}
 }

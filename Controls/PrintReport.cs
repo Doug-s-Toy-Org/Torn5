@@ -151,7 +151,7 @@ namespace Torn5.Controls
 
 			List<string> strs = result.Split(510).ToList();
 
-			foreach(string str in strs)
+			foreach (string str in strs)
 			{
 				string index = strs.IndexOf(str).ToString().PadLeft(2, '0');
 				string chunk = index + str + "\x00";

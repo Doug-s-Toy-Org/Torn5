@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Drawing;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using Zoom;
 
@@ -94,8 +94,8 @@ namespace Torn
 				Report.Rows[row].Add(new ZCell(" ") { Border = Color.Black });
 				Report.Rows[row].Add(new ZCell());
 
-				arrow.From.Add(new ZArrowEnd(row, 5) { Expand = true } );
-				arrow.To.Add(new ZArrowEnd(row, 5) { Expand = true } );
+				arrow.From.Add(new ZArrowEnd(row, 5) { Expand = true });
+				arrow.To.Add(new ZArrowEnd(row, 5) { Expand = true });
 			}
 
 			// Add cells for the space below this game (and the arrows between games), so that lower-track games are placed correctly.

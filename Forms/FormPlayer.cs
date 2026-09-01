@@ -12,9 +12,9 @@ namespace Torn.UI
 	{
 		public LaserGameServer LaserGameServer { get; set; }
 		public League CurrentLeague { get; set; }
-		public string PlayerId { get { return textId.Text; }  set { textId.Text = value; } }
-		public string PlayerAlias { get { return textSearch.Text; }  set { textSearch.Text = value; } }
-		
+		public string PlayerId { get { return textId.Text; } set { textId.Text = value; } }
+		public string PlayerAlias { get { return textSearch.Text; } set { textSearch.Text = value; } }
+
 		string search;
 		int caretPos;
 

@@ -5,9 +5,9 @@ using System.Data;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
-using System.Text.Json.Serialization;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -52,10 +52,10 @@ namespace Torn
 
 		public static Colour ToColour(string s)
 		{
-			if (string.IsNullOrEmpty(s)) 
+			if (string.IsNullOrEmpty(s))
 				return Colour.None;
 
-			var dict = new Dictionary<string, Colour> { 
+			var dict = new Dictionary<string, Colour> {
 				{ "red", Colour.Red }, { "blue", Colour.Blue }, { "blu", Colour.Blue }, { "green", Colour.Green }, { "grn", Colour.Green }, { "yellow", Colour.Yellow }, { "yel", Colour.Yellow },
 				{ "purple", Colour.Purple }, { "pink", Colour.Pink }, { "cyan", Colour.Cyan }, { "orange", Colour.Orange }, { "white", Colour.White }, { "black", Colour.Black },
 				{ "fire", Colour.Fire }, { "ice", Colour.Ice }, { "earth", Colour.Earth }, { "crystal", Colour.Crystal }, { "rainbow", Colour.Rainbow }, { "cops", Colour.Cops }, { "referee", Colour.Referee }
@@ -120,17 +120,18 @@ namespace Torn
 	{
 		public static HandicapStyle ToHandicapStyle(string s)
 		{
-			var dict = new Dictionary<string, HandicapStyle> { 
+			var dict = new Dictionary<string, HandicapStyle> {
 				{ "%", HandicapStyle.Percent }, { "+", HandicapStyle.Plus }, { "-", HandicapStyle.Minus }, { ".", HandicapStyle.None }, { "None", HandicapStyle.None }
 			};
 
 			dict.TryGetValue(s.ToLower(CultureInfo.InvariantCulture), out HandicapStyle h);
 			return h;
 		}
-		
+
 		public static string ToString(this HandicapStyle handicapStyle)
 		{
-			switch (handicapStyle) {
+			switch (handicapStyle)
+			{
 				case HandicapStyle.Percent: return "%";
 				case HandicapStyle.Plus: return "+";
 				case HandicapStyle.Minus: return "-";
@@ -147,7 +148,7 @@ namespace Torn
 		public double? Value { get; set; }
 		public HandicapStyle Style { get; set; }
 
-		public Handicap() {}
+		public Handicap() { }
 
 		public Handicap(double? value, HandicapStyle style)
 		{
@@ -159,9 +160,9 @@ namespace Torn
 		{
 			return Value == null ? score :
 				Style == HandicapStyle.Percent ? score * (double)Value / 100 :
-				Style == HandicapStyle.Plus ?    score + (double)Value :
-				Style == HandicapStyle.Minus ?   score - (double)Value :
-				                                 score;
+				Style == HandicapStyle.Plus ? score + (double)Value :
+				Style == HandicapStyle.Minus ? score - (double)Value :
+												 score;
 		}
 
 		/// <summary>Parse strings like "110%", "+1000", "-1000", "110" into handicap value and style.</summary>
@@ -223,7 +224,7 @@ namespace Torn
 		public string Comment { get; set; }
 
 		public string Grade { get; set; }
-	
+
 		public LeaguePlayer Clone()
 		{
 			return new LeaguePlayer
@@ -257,16 +258,17 @@ namespace Torn
 	}
 
 	/// <summary>Stores data about each remembered league team</summary>
-	public class LeagueTeam: IComparable
+	public class LeagueTeam : IComparable
 	{
 		internal int TeamId { get; set; } = -1;
 
 		public List<LeaguePlayer> Players { get; set; }
 
 		string name;
-		public string Name 
+		public string Name
 		{
-			get { 
+			get
+			{
 				if (string.IsNullOrEmpty(name))
 				{
 					if (Players.Count == 0)
@@ -280,8 +282,8 @@ namespace Torn
 				}
 				return name;
 			}
-			
-			set { name = value; } 
+
+			set { name = value; }
 		}
 
 		public Handicap Handicap { get; set; }
@@ -331,7 +333,7 @@ namespace Torn
 		}
 	}
 
-	public class GameTeam: IComparable
+	public class GameTeam : IComparable
 	{
 		public int? TeamId { get; set; }
 		public DateTime Time { get; set; }
@@ -417,7 +419,7 @@ namespace Torn
 		public int GetHitsBy()
 		{
 			int hitsBy = 0;
-			foreach(GamePlayer player in players)
+			foreach (GamePlayer player in players)
 			{
 				hitsBy += player.HitsBy;
 				hitsBy -= player.BaseDestroys;
@@ -470,12 +472,12 @@ namespace Torn
 
 		public override string ToString()
 		{
-			return "Term Type: " + Type + " Time: " + (Time == null  ? "N/A" : Time.ToString()) + " Value: " + Value + " Reason: " + Reason;
+			return "Term Type: " + Type + " Time: " + (Time == null ? "N/A" : Time.ToString()) + " Value: " + Value + " Reason: " + Reason;
 		}
 	}
 
 	/// <summary>Stores data about a player in a single game. (This is different from LeaguePlayer.)</summary>
-	public class GamePlayer: IComparable
+	public class GamePlayer : IComparable
 	{
 		public int? TeamId { get; set; }
 		/// <summary>Under-the-hood laser game system identifier e.g. "P11-JP9", "1-50-50", etc. Same as LeaguePlayer.Id.</summary>
@@ -586,7 +588,7 @@ namespace Torn
 				foreach (var gameTeam in game.Teams)
 					if (gameTeam.Players.Contains(this))
 						return gameTeam;
-			
+
 			return null;
 		}
 
@@ -600,7 +602,7 @@ namespace Torn
 		}
 	}
 
-	public class Game: IComparable
+	public class Game : IComparable
 	{
 		public string Title { get; set; }
 		public DateTime Time { get; set; }
@@ -614,13 +616,15 @@ namespace Torn
 		public bool Reported { get; set; }
 
 		int? hits = null;
-		public int Hits { get 
+		public int Hits
+		{
+			get
 			{
 				if (hits == null)
 					RefreshHits();
 
 				return (int)hits;
-			} 
+			}
 		}
 
 		public Game()
@@ -658,8 +662,8 @@ namespace Torn
 
 		int IComparable.CompareTo(object obj)
 		{
-		   Game g = (Game)obj;
-		   return DateTime.Compare(this.Time, g.Time);
+			Game g = (Game)obj;
+			return DateTime.Compare(this.Time, g.Time);
 		}
 
 		public DateTime EndTime()
@@ -678,7 +682,7 @@ namespace Torn
 			foreach (GameTeam gameTeam in Teams)
 				if (gameTeam.Points != 0)
 					return true;
-			
+
 			return false;
 		}
 
@@ -751,7 +755,7 @@ namespace Torn
 
 		public override string ToString()
 		{
-			return Time.ToString("yyyy/MM/dd HH:mm") + ": " + 
+			return Time.ToString("yyyy/MM/dd HH:mm") + ": " +
 				(Secret ? string.Join(", ", this.Teams.OrderBy(x => x.ToString()).Select(x => x.ToString())) :
 				 string.Join(", ", this.Teams.Select(x => x.ToString())));
 		}
@@ -842,7 +846,7 @@ namespace Torn
 
 		/// <summary>If teams are tied on score, should we resolve the tie by whichever team has the most hits?</summary>
 		public bool HitsTieBreak { get; set; }
-		
+
 		/// <summary>For elimination games, if teams are tied on score, should we resolve the tie based on what teams' scores would have been if none of the players had their scores zeroed because they were eliminated?</summary>
 		public bool ZeroedTieBreak { get; set; }
 
@@ -1024,7 +1028,7 @@ namespace Torn
 		public decimal GetGradePenalty(string playerGrade)
 		{
 			Grade grade = Grades.Find(g => g.Name == playerGrade);
-			if (grade!= null && grade.HasPenalty)
+			if (grade != null && grade.HasPenalty)
 				return ExtraAPenalty;
 			else
 				return 0;
@@ -1062,7 +1066,7 @@ namespace Torn
 			RedTermValue = DEFAULT_RED_TERM;
 		}
 
-		public League(string fileName): this()
+		public League(string fileName) : this()
 		{
 			Clear();
 			FileName = fileName;
@@ -1173,15 +1177,12 @@ namespace Torn
 			gameTeam.Time = game.Time;
 			game.Teams.Add(gameTeam);
 
-			LeagueTeam leagueTeam = LeagueTeam(gameTeam);
+			LeagueTeam leagueTeam = LeagueTeam(gameTeam) ?? GuessTeam(teamData.Players.Select(x => x.PlayerId).ToList());
 
-			if (leagueTeam == null)
-				leagueTeam = GuessTeam(teamData.Players.Select(x => x.PlayerId).ToList());
-			
 			if (leagueTeam == null)
 			{
 				List<LeaguePlayer> leaguePlayers = new List<LeaguePlayer>();
-				foreach(ServerPlayer player in teamData.Players)
+				foreach (ServerPlayer player in teamData.Players)
 				{
 					LeaguePlayer leaguePlayer = new LeaguePlayer
 					{
@@ -1200,7 +1201,7 @@ namespace Torn
 				lock (teams)
 					teams.Add(leagueTeam);
 			}
-			
+
 			gameTeam.TeamId = leagueTeam.TeamId;
 
 			gameTeam.Players.Clear();
@@ -1266,13 +1267,14 @@ namespace Torn
 				foreach (var player in teamData.Players)
 				{
 					debug.Append(LinkPlayerToGame(game.AllPlayers().Find(gp => gp.PlayerId == player.PlayerId) ?? player, //.CopyTo(new GamePlayer()),
-					                              teamData.GameTeam, serverGame));
+												  teamData.GameTeam, serverGame));
 					debug.Append(", ");
 				}
 
 				debug.Length -= 2; debug.Append(".\n");
 
-				teamData.GameTeam.Players.ForEach((player) => {
+				teamData.GameTeam.Players.ForEach((player) =>
+				{
 					LeaguePlayer leaguePlayer = LeaguePlayer(player);
 					player.Grade = leaguePlayer.Grade;
 				});
@@ -1478,14 +1480,15 @@ namespace Torn
 				}
 
 				Grades = grades;
-			} else
+			}
+			else
 			{
 				Grades = DEFAULT_GRADES;
 			}
 
 			XmlNode capsNode = root.SelectSingleNode("caps");
 
-			if(capsNode != null)
+			if (capsNode != null)
 			{
 				XmlNodeList xcaps = capsNode.SelectNodes("cap");
 
@@ -1516,16 +1519,16 @@ namespace Torn
 					Comment = xteam.GetString("comment")
 				};
 
-					var teamPlayers = xteam.SelectSingleNode("players");
+				var teamPlayers = xteam.SelectSingleNode("players");
 				if (teamPlayers != null)
 				{
 					XmlNodeList xplayers = teamPlayers.SelectNodes("player");
-					
+
 					foreach (XmlNode xplayer in xplayers)
 					{
 						LeaguePlayer leaguePlayer;
-						string id = xplayer.GetString("buttonid");;
-						
+						string id = xplayer.GetString("buttonid");
+
 						leaguePlayer = LeaguePlayer(id);
 						if (leaguePlayer == null)
 						{
@@ -1549,7 +1552,7 @@ namespace Torn
 
 			XmlNodeList xgames = root.SelectSingleNode("games").SelectNodes("game");
 
-			foreach (XmlNode xgame in xgames) 
+			foreach (XmlNode xgame in xgames)
 			{
 				Game game = new Game
 				{
@@ -1586,8 +1589,7 @@ namespace Torn
 
 						foreach (XmlNode xterm in xterms)
 						{
-							TermType termType;
-							TermType.TryParse(xterm.GetString("type"), out termType);
+							TermType.TryParse(xterm.GetString("type"), out TermType termType);
 							string reason = xterm.SelectSingleNode("reason") != null ? xterm.GetString("reason") : "";
 							string time = xterm.SelectSingleNode("time") != null ? xterm.GetString("time") : "";
 							TermRecord termRecord = time == "" ?
@@ -1636,8 +1638,7 @@ namespace Torn
 
 						foreach (XmlNode xterm in xterms)
 						{
-							TermType termType;
-							TermType.TryParse(xterm.GetString("type"), out termType);
+							TermType.TryParse(xterm.GetString("type"), out TermType termType);
 							string reason = xterm.SelectSingleNode("reason") != null ? xterm.GetString("reason") : "";
 							string time = xterm.SelectSingleNode("time") != null ? xterm.GetString("time") : "";
 							TermRecord termRecord = time == "" ?
@@ -1670,10 +1671,10 @@ namespace Torn
 		void LinkThings()
 		{
 			lock (games)
-				for(int i = 0; i < games.Count; i++)
+				for (int i = 0; i < games.Count; i++)
 				{
 					var game = games[i];
-					foreach (GameTeam gameTeam in game.Teams) 
+					foreach (GameTeam gameTeam in game.Teams)
 					{
 						// Connect each game team back to their league team.
 						var leagueTeam = LeagueTeam(gameTeam.TeamId);
@@ -1743,7 +1744,7 @@ namespace Torn
 				if (grade.HasPenalty)
 					doc.AppendNode(gradeNode, "hasPenalty", 1);
 				if (grade.HasBonus)
-				doc.AppendNode(gradeNode, "hasBonus", 1);
+					doc.AppendNode(gradeNode, "hasBonus", 1);
 			}
 
 			XmlNode capsNode = doc.CreateElement("caps");
@@ -2127,14 +2128,14 @@ namespace Torn
 		}
 
 		public List<LeagueTeam> GetTeamLadderScaled()
-			           {
+		{
 			lock (teams)
 				return teams.OrderByDescending(x => AveragePoints(x, false)).ThenByDescending(x => AverageScore(x, false)).ToList();
 		}
 
 		public double CalculateScore(GameTeam gameTeam)
 		{
-			if(IsAutoHandicap)
+			if (IsAutoHandicap)
 			{
 				return CalculateAutoCappedScore(gameTeam);
 			}
@@ -2230,7 +2231,7 @@ namespace Torn
 					return gameTeam.PointsAdjustment;
 
 				List<GameTeam> teams = (groupPlayersBy == GroupPlayersBy.Lotr ?  // For Lord of the Ring we want just "teams" of this colour. For other modes, we want all teams. 
-				                     game.Teams.Where(t => t.Colour == gameTeam.Colour) : game.Teams).OrderBy(x => -x.Score).ToList();
+									 game.Teams.Where(t => t.Colour == gameTeam.Colour) : game.Teams).OrderBy(x => -x.Score).ToList();
 
 				List<GameTeam> nonEliminatedTeams = teams.Where(gt => gt.Players.Any(gp => !gp.IsEliminated)).ToList();
 
@@ -2329,7 +2330,7 @@ namespace Torn
 	}
 
 	/// <summary>Represents a game as stored on the laser game server.</summary>
-	public class ServerGame: IComparable<ServerGame>
+	public class ServerGame : IComparable<ServerGame>
 	{
 		[JsonIgnore]
 		public int? GameId { get; set; }
@@ -2370,7 +2371,7 @@ namespace Torn
 	}
 
 	/// <summary>Used to publish a ServerGame without its players or events.</summary>
-	public class JsonGame: ServerGame
+	public class JsonGame : ServerGame
 	{
 		// Dummy properties, never used; just here to change JSON visibility:
 		[JsonIgnore]
@@ -2410,7 +2411,7 @@ namespace Torn
 		}
 
 		public void Populate(List<Event> events)
-		{		
+		{
 			HitsBy = events.Count(x => x.ServerPlayerId == ServerPlayerId &&
 								  (x.Event_Type <= 13 || x.Event_Type == 30 || x.Event_Type == 31 || x.Event_Type >= 37 && x.Event_Type <= 46));
 			HitsOn = events.Count(x => x.ServerPlayerId == ServerPlayerId &&

@@ -12,7 +12,7 @@ namespace Torn.UI
 	{
 		protected ListView.ListViewItemCollection Items { get { return listView1.Items; } }
 		public ImageList Images { get { return listView1.SmallImageList; } set { listView1.SmallImageList = value; } }
-		protected ListView ListView { get {return listView1; } }
+		protected ListView ListView { get { return listView1; } }
 		private readonly ListViewColumnSorter sorter;
 		public Func<BaseBox> GetMoveTarget { get; set; }
 		public Action RankTeams { get; set; }
@@ -60,11 +60,11 @@ namespace Torn.UI
 			foreach (ColumnHeader col in ListView.Columns)
 				if (col.Text.EndsWith(ascendingArrow) || col.Text.EndsWith(descendingArrow))
 					col.Text = col.Text.Substring(0, col.Text.Length - 2);
-		
+
 			// Add arrow.
 			switch (order)
 			{
-		 		case SortOrder.Ascending:  ListView.Columns[column].Text += ascendingArrow; break;
+				case SortOrder.Ascending: ListView.Columns[column].Text += ascendingArrow; break;
 				case SortOrder.Descending: ListView.Columns[column].Text += descendingArrow; break;
 			}
 
@@ -125,7 +125,7 @@ namespace Torn.UI
 			Items.Clear();
 		}
 
-		protected virtual void Recalculate(bool guessTeam = true) {}
+		protected virtual void Recalculate(bool guessTeam = true) { }
 
 		///<summary>Move items from another BaseBox to us.</summary>
 		public void Accept(List<ListViewItem> items)
@@ -195,14 +195,15 @@ namespace Torn.UI
 			ListViewItem itemY = (ListViewItem)y;
 
 			int compareResult;
-			switch (SortColumn) {
+			switch (SortColumn)
+			{
 				case 0:  // Pack 
 					compareResult = comparer.Compare(((ServerPlayer)itemX.Tag).Colour, ((ServerPlayer)itemY.Tag).Colour);
 					if (compareResult == 0)
 						compareResult = comparer.Compare(itemX.SubItems[SortColumn].Text, itemY.SubItems[SortColumn].Text);
 					break;
-				case 2: compareResult = comparer.Compare(int.Parse(itemX.SubItems[SortColumn].Text), int.Parse(itemY.SubItems[SortColumn].Text));  break;  // Score
-				default: compareResult = comparer.Compare(itemX.SubItems[SortColumn].Text, itemY.SubItems[SortColumn].Text);  break;  // Player
+				case 2: compareResult = comparer.Compare(int.Parse(itemX.SubItems[SortColumn].Text), int.Parse(itemY.SubItems[SortColumn].Text)); break;  // Score
+				default: compareResult = comparer.Compare(itemX.SubItems[SortColumn].Text, itemY.SubItems[SortColumn].Text); break;  // Player
 			}
 
 			return SortOrder == SortOrder.Ascending ? compareResult :

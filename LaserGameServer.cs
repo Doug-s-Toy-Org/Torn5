@@ -8,7 +8,7 @@ namespace Torn
 	/// <summary>
 	/// Represents a proprietary laser game system, which exposes some sort of interface that we can get game data from.
 	/// </summary>
-	public abstract class LaserGameServer: IDisposable
+	public abstract class LaserGameServer : IDisposable
 	{
 		protected bool connected;
 		protected virtual bool GetConnected() { return connected; }
@@ -20,9 +20,9 @@ namespace Torn
 		protected virtual void SetStatus(string value) { status = value; }
 		public string Status { get { return GetStatus(); } protected set { SetStatus(value); } }
 
-		public LaserGameServer() {}
+		public LaserGameServer() { }
 
-		public virtual void Dispose() {}
+		public virtual void Dispose() { }
 
 		public virtual TimeSpan GameTimeElapsed() { return TimeSpan.MinValue; }
 
@@ -31,7 +31,7 @@ namespace Torn
 		public virtual List<ServerGame> GetGames(string filter) { return GetGames(); }
 		public virtual List<ServerGame> GetGames(string filter, int limit) { return GetGames(); }
 
-		public virtual void GetMoreGames(List<ServerGame> games) {}
+		public virtual void GetMoreGames(List<ServerGame> games) { }
 
 		public abstract void PopulateGame(ServerGame game);
 
@@ -46,12 +46,12 @@ namespace Torn
 			{
 				while (reader.Read())
 					players.Add(new LaserGamePlayer
-					            {
-					            	Alias = reader.GetString(0),
-					            	Name = !reader.IsDBNull(1) ? (name = reader.GetString(1)) == "" ? null : name : null,
-					            	Id = reader.GetString(2)
-					            }
-					           );
+					{
+						Alias = reader.GetString(0),
+						Name = !reader.IsDBNull(1) ? (name = reader.GetString(1)) == "" ? null : name : null,
+						Id = reader.GetString(2)
+					}
+							   );
 			}
 			finally
 			{
@@ -71,7 +71,7 @@ namespace Torn
 		public string Alias { get; set; }
 
 		[JsonPropertyName("name")]
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] 
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public string Name { get; set; }
 
 		[JsonPropertyName("id")]
@@ -79,7 +79,7 @@ namespace Torn
 	}
 
 	/// <summary>This is a fake stub lasergame server for test purposes.</summary>
-	public class StubServer: LaserGameServer
+	public class StubServer : LaserGameServer
 	{
 		public StubServer()
 		{
@@ -122,7 +122,7 @@ namespace Torn
 		}
 
 		public override List<ServerGame> GetGames(string filter, int limit)
-		{ 
+		{
 			return GetGames();
 		}
 		public override List<ServerGame> GetGames(int limit)

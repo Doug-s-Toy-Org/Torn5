@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
-using Zoom;
 using Torn;
 
 namespace Torn5.Controls
@@ -13,7 +12,9 @@ namespace Torn5.Controls
 		bool isRound;
 		[Browsable(true)]
 		/// <summary>True: we're a round. False: we're a repechage.</summary>
-		public bool IsRound { get => isRound;
+		public bool IsRound
+		{
+			get => isRound;
 			set
 			{
 				isRound = value;
@@ -121,7 +122,7 @@ namespace Torn5.Controls
 			if (teamsIn > 0)
 				labelAdvancePercent.Text = Truncate00(numericAdvance.Value / teamsIn * 100) + "%"; //String.Format("{0:0.00%}", numericAdvance.Value / teamsIn);
 
-			if (desiredTeamsPerGame != - 1)
+			if (desiredTeamsPerGame != -1)
 			{
 				double ratio = (double)tpg / desiredTeamsPerGame;
 
@@ -177,7 +178,7 @@ namespace Torn5.Controls
 		/// <summary>Return x as a string. If x is a whole number, return it padded with spaces the width of ".00"; otherwise return it with two decimal places.</summary>
 		string Truncate00(decimal x)
 		{
-			if (x == (int) x)  // If x is a whole number, print it as a whole number, plus invisible characters the width of ".00"
+			if (x == (int)x)  // If x is a whole number, print it as a whole number, plus invisible characters the width of ".00"
 				return x.ToString("F0", CultureInfo.CurrentCulture) + '\u2008' + '\u2002' + '\u2002';  // punctutation space (width of a .), en space (nut), en space (nut).
 			else  //  else print it with its two actual decimal places showing.
 				return x.ToString("F2", CultureInfo.CurrentCulture);

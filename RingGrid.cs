@@ -15,7 +15,7 @@ namespace Torn.Grids
 			if (numRings < 2 || numRings > 6)
 				return Error(string.Format("Could not generate fixture for {0} rings. Try 2 to 6 rings.", numRings));
 
-			if (!((gamesPerTeam == 6 && PopulateBlocks(numRings)) || 
+			if (!((gamesPerTeam == 6 && PopulateBlocks(numRings)) ||
 				  (gamesPerTeam == 4 && teams.Count == 36 && Round2Blocks(numRings)) ||
 				  (gamesPerTeam == 4 && teams.Count == 9 && Round3Blocks(numRings))))
 				return Error(string.Format("Could not generate fixture for {0} rings and {1} games per team. Try 6 games per team, or 4 games per team and 36 players, or 4 games per team and 9 players.", numRings, gamesPerTeam));

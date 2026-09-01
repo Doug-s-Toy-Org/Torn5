@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Drawing;
+using System.Globalization;
+using System.Windows.Forms;
 using System.Xml;
 using Torn5.Properties;
-using System.Windows.Forms;
 
 namespace Torn
 {
@@ -31,7 +31,7 @@ namespace Torn
 		{
 			int hoursAgo = (int)DateTime.Now.Date.Subtract(date.Date).TotalHours;
 
-			if (hoursAgo == 0) 
+			if (hoursAgo == 0)
 				return "Just played";
 			if (hoursAgo < 48)
 				return "Played " + hoursAgo.ToString() + " hours ago";
@@ -95,8 +95,8 @@ namespace Torn
 		public static Color MixColors(Color color1, Color color2, double mix)
 		{
 			return Color.FromArgb((int)(color1.R * mix + color2.R * (1 - mix)),
-			                      (int)(color1.G * mix + color2.G * (1 - mix)),
-			                      (int)(color1.B * mix + color2.B * (1 - mix)));
+								  (int)(color1.G * mix + color2.G * (1 - mix)),
+								  (int)(color1.B * mix + color2.B * (1 - mix)));
 		}
 
 		public static string GetString(this XmlNode node, string name, string defaultValue = null)

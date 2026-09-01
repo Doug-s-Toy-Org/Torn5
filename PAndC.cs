@@ -1,8 +1,8 @@
-﻿using System;
+﻿using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using MySql.Data.MySqlClient;
 
 namespace Torn
 {
@@ -10,13 +10,13 @@ namespace Torn
 	/// This represents a P&C Micro's lasergame database server. 
 	/// You can ask it how much time is remaining in the current game.
 	/// </summary>
-	public class PAndC: LaserGameServer
+	public class PAndC : LaserGameServer
 	{
 		MySqlConnection connection;
 		protected int heliosType;  // This is the database schema version.
 		protected string _server;
 
-		protected PAndC() {}
+		protected PAndC() { }
 
 		public PAndC(string server)
 		{
@@ -89,10 +89,10 @@ namespace Torn
 			string where = games.Count == 0 ? "" : "WHERE S.Start_Time > \"" + games.Last().EndTime.ToString("YYYY-MM-DD HH:mm:ss") + "\"";
 
 			string sql = "SELECT S.Game_ID, S.Start_Time, S.Finish_Time, P.Profile_Description AS Description " +
-			             "FROM ng_game_stats S " +
-			             "JOIN ng_profiles P ON S.Profile_ID = P.Profile_ID " +
-			             where +
-			             " ORDER BY Start_Time";
+						 "FROM ng_game_stats S " +
+						 "JOIN ng_profiles P ON S.Profile_ID = P.Profile_ID " +
+						 where +
+						 " ORDER BY Start_Time";
 			FillGames(sql, games);
 		}
 
@@ -123,12 +123,12 @@ namespace Torn
 		protected virtual string GameDetailSql(int? gameId)
 		{
 			return "SELECT Player_ID, Player_Team_ID, SUM(Score) AS Score, Pack_Name, QRCode AS Button_ID, M.Alias " +
-			    "FROM ng_player_event_log EL " +
-			    "LEFT JOIN ng_player_stats S ON EL.Game_ID = S.Game_ID AND EL.Player_ID = S.Pack_ID " +
-			    "LEFT JOIN members M ON S.Member_ID = M.Member_ID " +
-			    "WHERE EL.Game_ID = " + gameId.ToString() +
-			    " GROUP BY Player_ID " +
-			    "ORDER BY Score DESC";
+				"FROM ng_player_event_log EL " +
+				"LEFT JOIN ng_player_stats S ON EL.Game_ID = S.Game_ID AND EL.Player_ID = S.Pack_ID " +
+				"LEFT JOIN members M ON S.Member_ID = M.Member_ID " +
+				"WHERE EL.Game_ID = " + gameId.ToString() +
+				" GROUP BY Player_ID " +
+				"ORDER BY Score DESC";
 		}
 
 		public override void PopulateGame(ServerGame game)
@@ -138,8 +138,8 @@ namespace Torn
 
 			// Get game end time. Determine if game is in progress.
 			string sql = "SELECT S.Finish_Time " +
-                         "FROM ng_game_stats S " +
-                         "WHERE S.Start_Time = \"" + game.Time.ToString("yyyy-MM-dd HH:mm:ss") + "\"";
+						 "FROM ng_game_stats S " +
+						 "WHERE S.Start_Time = \"" + game.Time.ToString("yyyy-MM-dd HH:mm:ss") + "\"";
 			MySqlCommand cmd = new MySqlCommand(sql, connection);
 			using (var reader = cmd.ExecuteReader())
 			{
@@ -209,14 +209,14 @@ namespace Torn
 
 		protected virtual string PlayersSql()
 		{
-			return heliosType < 47 ? 
-			// Less than 47 is the old schema, with QRCode in demographics.customer table.
+			return heliosType < 47 ?
+				// Less than 47 is the old schema, with QRCode in demographics.customer table.
 				"SELECT M.Alias AS Alias, C.First_Name + ' ' + C.Last_Name AS Name, C.QRCode AS User_ID " +
 				"FROM members M " +
 				"LEFT JOIN demographics.customers C on C.Customer_ID = M.member_ID " +
 				"WHERE SUBSTRING(C.QRCode, 1, 5) <> '00005' AND (M.Alias LIKE @mask OR C.First_Name LIKE @mask OR C.Last_Name LIKE @mask) " +
 				"ORDER BY M.Alias" :
-			// 47 or greater is the new schema, with QRCode in members table.
+				// 47 or greater is the new schema, with QRCode in members table.
 				"SELECT Alias AS Alias, '' AS Name, QRCode AS User_ID " +
 				"FROM members M " +
 				"WHERE SUBSTRING(M.QRCode, 1, 5) <> '00005' AND Alias LIKE @mask ORDER BY Alias LIMIT 1000";
@@ -239,15 +239,14 @@ namespace Torn
 			return GetPlayers(mask);
 		}
 
-		public override bool HasNames() 
+		public override bool HasNames()
 		{
 			return heliosType < 47;
 		}
 
 		protected void Connect()
 		{
-			if (connection != null)
-				connection.Close();
+			connection?.Close();
 
 			connection = new MySqlConnection("server=" + _server + ";user=root;database=ng_system;port=3306;password=password;Convert Zero Datetime=True");
 			try
@@ -271,10 +270,13 @@ namespace Torn
 
 		DateTime GetDateTime(MySqlDataReader reader, string column)
 		{
-			try {
+			try
+			{
 				int i = reader.GetOrdinal(column);
 				return reader.IsDBNull(i) ? default : reader.GetDateTime(i);
-			} catch (Exception) {
+			}
+			catch (Exception)
+			{
 				return default;
 			}
 		}
@@ -292,7 +294,7 @@ namespace Torn
 		}
 	}
 
-	public class PAndCNexusWithIButton: PAndC
+	public class PAndCNexusWithIButton : PAndC
 	{
 		public PAndCNexusWithIButton(string server)
 		{

@@ -26,6 +26,6 @@ namespace Torn.UI
 			Application.SetCompatibleTextRenderingDefault(false);
 			Application.Run(new MainForm());
 		}
-		
+
 	}
 }

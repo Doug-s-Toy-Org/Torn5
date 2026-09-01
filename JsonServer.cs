@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text.Json;
 using System.Net;
+using System.Text.Json;
 
 namespace Torn
 {
 	/// <summary>
 	/// This queries a JSON server for lasergame data.
 	/// </summary>
-	public class JsonServer: LaserGameServer
+	public class JsonServer : LaserGameServer
 	{
 		readonly WebClient webClient;  // TODO: remove WebClient and replace with HttpClient. (A single HttpClient handles multiple requests in parallel.)
 		readonly DemoServer demoServer;

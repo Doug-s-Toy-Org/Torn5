@@ -53,7 +53,7 @@ namespace Torn5.Controls
 			}
 		}
 
-		Pyramid Pyramid = new Pyramid();
+		readonly Pyramid Pyramid = new Pyramid();
 
 		public event EventHandler<Torn.Report.ReportEventArgs> SendToScoreboard { add => printReportPyramid.SendToScoreboard += value; remove => printReportPyramid.SendToScoreboard -= value; }
 

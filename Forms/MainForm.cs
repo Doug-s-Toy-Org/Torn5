@@ -88,7 +88,7 @@ namespace Torn.UI
 		bool gameInProgress = false;
 
 		PlayersBox playersBox;
-		
+
 		FormPlayer formPlayer;
 
 		public MainForm()
@@ -175,12 +175,12 @@ namespace Torn.UI
 
 		void ConnectLaserGameServer()
 		{
-			if (laserGameServer != null)
-				laserGameServer.Dispose();
+			laserGameServer?.Dispose();
 
 			try
 			{
-				switch (systemType) {
+				switch (systemType)
+				{
 					case SystemType.Laserforce:
 						laserGameServer = new Laserforce(laserforceGameLimit, hasLaserforceGameFilter, laserforceGameFilter);
 						if (windowsAuth)
@@ -188,16 +188,16 @@ namespace Torn.UI
 						else
 							((Laserforce)laserGameServer).Connect(serverAddress, sqlUserId, sqlPassword);
 						((Laserforce)laserGameServer).LogFolder = logFolder;
-					break;
-					case SystemType.Nexus: laserGameServer = new PAndCNexusWithIButton(serverAddress);  break;
-					case SystemType.Zeon: laserGameServer = new PAndC(serverAddress);  break;
-					case SystemType.OZone: laserGameServer = new OZone(serverAddress, serverPort);  break;
+						break;
+					case SystemType.Nexus: laserGameServer = new PAndCNexusWithIButton(serverAddress); break;
+					case SystemType.Zeon: laserGameServer = new PAndC(serverAddress); break;
+					case SystemType.OZone: laserGameServer = new OZone(serverAddress, serverPort); break;
 					case SystemType.Torn:
 						laserGameServer = new TornTcpServer(laserforceGameLimit, laserforceGameFilter, hasLaserforceGameFilter, serverAddress, serverPort);
 						timeElapsed = laserGameServer.GameTimeElapsed();
-					break;
-					case SystemType.Json: laserGameServer = new JsonServer();  break;
-					case SystemType.Demo: laserGameServer = new DemoServer();  break;
+						break;
+					case SystemType.Json: laserGameServer = new JsonServer(); break;
+					case SystemType.Demo: laserGameServer = new DemoServer(); break;
 				}
 
 				formPlayer.LaserGameServer = laserGameServer;
@@ -229,9 +229,8 @@ namespace Torn.UI
 			{
 				webOutput.Dispose();
 				tornTcpListener?.Close();
-				if (laserGameServer != null)
-					laserGameServer.Dispose();
-	
+				laserGameServer?.Dispose();
+
 				SaveSettings();
 			}
 			catch (Exception ex)
@@ -288,7 +287,7 @@ namespace Torn.UI
 			}
 			catch
 			{
-			}		
+			}
 		}
 
 		void EnableRemoveRowColumnButtons()
@@ -299,7 +298,7 @@ namespace Torn.UI
 
 		void AddTeamBoxes()
 		{
-			while(tableLayoutPanel1.Controls.Count - 3 < tableLayoutPanel1.RowCount * (tableLayoutPanel1.ColumnCount - 3))
+			while (tableLayoutPanel1.Controls.Count - 3 < tableLayoutPanel1.RowCount * (tableLayoutPanel1.ColumnCount - 3))
 			{
 				TeamBox teamBox = new TeamBox
 				{
@@ -324,9 +323,9 @@ namespace Torn.UI
 		void ButtonAddRowClick(object sender, EventArgs e)
 		{
 			tableLayoutPanel1.RowCount++;
-			
+
 			SetRowSpans(0);
- 
+
 			if (tableLayoutPanel1.RowStyles.Count < tableLayoutPanel1.RowCount)
 				tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent));
 			foreach (RowStyle rowStyle in tableLayoutPanel1.RowStyles)
@@ -494,8 +493,9 @@ namespace Torn.UI
 			if (GetExportFolder())
 			{
 				Cursor.Current = Cursors.WaitCursor;
-				progressBar1.Value  = 0;
-				try {
+				progressBar1.Value = 0;
+				try
+				{
 					ExportPages.ExportReports(exportFolder, IncludeSecret(), SelectedLeagues(), ProgressBar);
 				}
 				finally
@@ -598,7 +598,8 @@ namespace Torn.UI
 			if (item.Tag is ServerGame serverGame && serverGame.Game != null)
 			{
 				UpdateScoreboard(serverGame);
-			} else
+			}
+			else
 			{
 				MessageBox.Show("Please Commit Game First", "Cannot Display Scoreboard", MessageBoxButtons.OK);
 			}
@@ -742,7 +743,7 @@ namespace Torn.UI
 		void ButtonLatestGameClick(object sender, EventArgs e)
 		{
 			RefreshGamesList();
-			listViewGames.SelectedItems.Clear(); 
+			listViewGames.SelectedItems.Clear();
 			if (listViewGames.Items.Count > 0)
 			{
 				var index = 0;
@@ -822,11 +823,10 @@ namespace Torn.UI
 				ConnectLaserGameServer();
 				ListViewLeaguesItemSelectionChanged(null, null);
 				timeToNextCheck = TimeSpan.FromSeconds(1);
-				ButtonLatestGameClick(null,null);
+				ButtonLatestGameClick(null, null);
 
 				webPort = form.WebPort;
-				if (webOutput != null)
-					webOutput.Restart(webPort);
+				webOutput?.Restart(webPort);
 			}
 		}
 
@@ -838,7 +838,7 @@ namespace Torn.UI
 					AddLeague(fileName, true);
 
 				RefreshGamesList();
-			}			
+			}
 		}
 
 		void ButtonRememberAllTeamsClick(object sender, EventArgs e)
@@ -860,7 +860,7 @@ namespace Torn.UI
 				return;
 
 			var firstItem = listViewGames.SelectedItems[0];
-			while(firstItem.SubItems.Count <= 2) firstItem.SubItems.Add("");
+			while (firstItem.SubItems.Count <= 2) firstItem.SubItems.Add("");
 
 			var id = new InputDialog("Description: ", "Set a description", firstItem.SubItems[2].Text);
 			if (id.ShowDialog() == DialogResult.OK)
@@ -874,7 +874,8 @@ namespace Torn.UI
 					}
 		}
 
-		void UpdateGameDescription(string gameTime, string description, string fileName) {
+		void UpdateGameDescription(string gameTime, string description, string fileName)
+		{
 			Console.WriteLine(gameTime + " " + description + " " + fileName);
 			var doc = new XmlDocument();
 			doc.Load(fileName);
@@ -890,7 +891,8 @@ namespace Torn.UI
 					if (gameNode.SelectSingleNode("title") == null)
 					{
 						doc.AppendNode(gameNode, "title", description);
-					} else
+					}
+					else
 					{
 						gameNode.SelectSingleNode("title").InnerText = description;
 
@@ -915,7 +917,8 @@ namespace Torn.UI
 				{
 					ExportPages.UploadFiles(uploadMethod, uploadSite, username, password, exportFolder, SelectedLeagues(), ProgressBar, uploadDir);
 				}
-				finally {
+				finally
+				{
 					FinishProgress();
 				}
 			}
@@ -940,7 +943,7 @@ namespace Torn.UI
 
 		void SetRowColumnCount(int rows, int columns)
 		{
-			for (int i = rows * columns + 3; i < tableLayoutPanel1.Controls.Count; )
+			for (int i = rows * columns + 3; i < tableLayoutPanel1.Controls.Count;)
 				try
 				{
 					tableLayoutPanel1.Controls.RemoveAt(tableLayoutPanel1.Controls.Count - 1);
@@ -952,12 +955,13 @@ namespace Torn.UI
 			if (rows < tableLayoutPanel1.RowCount)
 				SetRowSpans(rows - tableLayoutPanel1.RowCount);
 
-			try {
+			try
+			{
 				tableLayoutPanel1.RowCount = Math.Max(rows, 2);
 				tableLayoutPanel1.ColumnCount = Math.Max(columns + 3, 4);
-				
+
 				SetRowSpans(0);
-	 
+
 				while (tableLayoutPanel1.RowStyles.Count < rows)
 					tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent));
 				foreach (RowStyle rowStyle in tableLayoutPanel1.RowStyles)
@@ -970,7 +974,8 @@ namespace Torn.UI
 
 				AddTeamBoxes();
 				EnableRemoveRowColumnButtons();
-			} catch {}
+			}
+			catch { }
 		}
 
 		bool IncludeSecret()
@@ -1045,7 +1050,7 @@ namespace Torn.UI
 							teamBoxes[box++].Accept(serverPlayers);
 					}
 				else // group by Alias or LotR
-				{ 
+				{
 					List<ServerPlayer> addedPlayers = new List<ServerPlayer>();
 					foreach (var player in playersBox.Players())
 						if (!addedPlayers.Exists(p => p.PlayerId == player.PlayerId) && box < teamBoxes.Count)
@@ -1065,8 +1070,8 @@ namespace Torn.UI
 					{
 						var players = playersBox.Players();
 						var serverPlayer = players.Find(sp => (!string.IsNullOrEmpty(sp.PlayerId) && sp.PlayerId == gp.PlayerId) ||
-						                                      (!string.IsNullOrEmpty(sp.ServerPlayerId) && gp is ServerPlayer player && sp.ServerPlayerId == player.ServerPlayerId) ||
-						                                      (!string.IsNullOrEmpty(sp.Pack) && sp.Pack == gp.Pack));
+															  (!string.IsNullOrEmpty(sp.ServerPlayerId) && gp is ServerPlayer player && sp.ServerPlayerId == player.ServerPlayerId) ||
+															  (!string.IsNullOrEmpty(sp.Pack) && sp.Pack == gp.Pack));
 						if (serverPlayer != null)
 						{
 							serverPlayers.Add(serverPlayer);
@@ -1161,14 +1166,14 @@ namespace Torn.UI
 			if (listViewLeagues.Items.Count == 0)
 			{
 				labelLeagueDetails.Text = systemType == SystemType.Demo ? "\nClick Leagues » Preferences to choose lasergame server type.\n" : "";
-				labelLeagueDetails.Text += "\nClick New to create a new league file,\nor Open to open an existing one."; 
+				labelLeagueDetails.Text += "\nClick New to create a new league file,\nor Open to open an existing one.";
 			}
 			else if (listViewLeagues.SelectedItems.Count == 1 && e != null)
 			{
 				activeHolder = (Holder)e.Item.Tag;
-				labelLeagueDetails.Text = "Title: " + activeHolder.League.Title + "\nKey: " + activeHolder.League.Key + 
+				labelLeagueDetails.Text = "Title: " + activeHolder.League.Title + "\nKey: " + activeHolder.League.Key +
 					"\nFile name: " + activeHolder.FileName +
-					"\nGames: " + activeHolder.League.GameCount().ToString(CultureInfo.CurrentCulture) + 
+					"\nGames: " + activeHolder.League.GameCount().ToString(CultureInfo.CurrentCulture) +
 					"\nTeams: " + activeHolder.League.TeamCount().ToString(CultureInfo.CurrentCulture);
 				SetRowColumnCount(activeHolder.League.GridHigh, activeHolder.League.GridWide);
 			}
@@ -1278,8 +1283,7 @@ namespace Torn.UI
 
 		void NumericPortValueChanged(object sender, EventArgs e)
 		{
-			if (webOutput != null)
-				webOutput.Restart(webPort);
+			webOutput?.Restart(webPort);
 		}
 
 		void RankTeamBoxes()
@@ -1302,12 +1306,12 @@ namespace Torn.UI
 		void ArrangeTeamsByRank()
 		{
 			var teams = RankTeams();
-			try 
+			try
 			{
-				foreach(var team in teams)
+				foreach (var team in teams)
 					tableLayoutPanel1.Controls.Remove(team);
 
-				foreach(var team in teams)
+				foreach (var team in teams)
 					tableLayoutPanel1.Controls.Add(team);
 			}
 			catch (Exception)
@@ -1335,10 +1339,10 @@ namespace Torn.UI
 
 		void RefreshGamesList(string filter = "")
 		{
-			RerenderGamesList(serverGames, laserGameServer == null ? new List<ServerGame>() : laserGameServer.GetGames(), filter);					
+			RerenderGamesList(serverGames, laserGameServer == null ? new List<ServerGame>() : laserGameServer.GetGames(), filter);
 		}
 
-		void RerenderGamesList (List<ServerGame> oldGames, List<ServerGame> serverGames, string filter = "")
+		void RerenderGamesList(List<ServerGame> oldGames, List<ServerGame> serverGames, string filter = "")
 		{
 			var topItem = listViewGames.TopItem;
 			var focused = listViewGames.FocusedItem ?? (listViewGames.SelectedItems.Count > 0 ? listViewGames.SelectedItems[0] : null);
@@ -1391,7 +1395,8 @@ namespace Torn.UI
 			if (filter != "")
 			{
 				filteredGames.AddRange(serverGames.Where(game => game.Description == null || game.Description.Contains(filter)));
-			} else
+			}
+			else
 			{
 				filteredGames.AddRange(serverGames);
 			}
@@ -1467,7 +1472,8 @@ namespace Torn.UI
 			serverGame.League = league;
 			serverGame.Game = leagueGame;
 			leagueGame.ServerGame = serverGame;
-			if (oldGame != null && !oldGame.InProgress && oldGame.Events.Any()) {
+			if (oldGame != null && !oldGame.InProgress && oldGame.Events.Any())
+			{
 				serverGame.Events = oldGame.Events;
 				serverGame.Players.AddRange(oldGame.Players.Where(p => !serverGame.Players.Exists(p2 => p2.ServerPlayerId == p.ServerPlayerId)));
 			}
@@ -1484,7 +1490,7 @@ namespace Torn.UI
 			}
 			return true;
 		}
-		
+
 		void RefreshInProgressGame()
 		{
 			foreach (ListViewItem item in listViewGames.Items)
@@ -1517,7 +1523,7 @@ namespace Torn.UI
 				brush.Color = SystemColors.ActiveCaption;
 			else if (!((ServerGame)e.Item.Tag).OnServer)
 				brush.Color = SystemColors.ControlLight;
-	
+
 			e.Graphics.FillRectangle(brush, e.Bounds);
 			e.DrawFocusRectangle();
 			e.DrawText();
@@ -1537,9 +1543,9 @@ namespace Torn.UI
 					flags = TextFormatFlags.Right;
 					break;
 			}
-			
-//			if ((e.ItemState & ListViewItemStates.Selected) == 0)
-//				e.DrawBackground();
+
+			//			if ((e.ItemState & ListViewItemStates.Selected) == 0)
+			//				e.DrawBackground();
 			// Draw normal text.
 			e.DrawText(flags);
 		}
@@ -1577,7 +1583,7 @@ namespace Torn.UI
 			exportFolder = root.GetString("ExportFolder", "");
 			logFolder = root.GetString("LogFolder", "");
 			selectedNode = root.GetString("Selected", "");
-			hostRemoteTorn = int.Parse(root.GetString("HostRemoteTorn", "0")) > 0 ;
+			hostRemoteTorn = int.Parse(root.GetString("HostRemoteTorn", "0")) > 0;
 			remoteTornPort = root.GetString("RemoteTornPort", "12081");
 
 			XmlNodeList xleagues = root.SelectSingleNode("leagues").SelectNodes("holder");
@@ -1663,7 +1669,7 @@ namespace Torn.UI
 
 			List<ServerGame> serverGames = new List<ServerGame>();
 
-			foreach(ListViewItem item in listViewGames.SelectedItems)
+			foreach (ListViewItem item in listViewGames.SelectedItems)
 			{
 				if (item.Tag is ServerGame serverGame)
 				{
@@ -1693,7 +1699,9 @@ namespace Torn.UI
 			if (serverGames == null)
 			{
 				RefreshGamesList(gameFilter.Text);
-			} else {
+			}
+			else
+			{
 				RerenderGamesList(serverGames, serverGames, gameFilter.Text);
 			}
 		}

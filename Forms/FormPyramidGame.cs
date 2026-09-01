@@ -9,7 +9,8 @@ namespace Torn.UI
 	public partial class FormPyramidGame : Form
 	{
 		List<PyramidGame> games;
-		public List<PyramidGame> Games {
+		public List<PyramidGame> Games
+		{
 			get { return games; }
 			set
 			{

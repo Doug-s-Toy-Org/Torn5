@@ -262,7 +262,7 @@ namespace Torn.UI
 				// If there was only one colour ticked, add more of that colour. Otherwise, just add Colour.None.
 				Colour colourToAdd = gridFinder.Colours.Count == 1 ? gridFinder.Colours.First() : Colour.None;
 				while (gridFinder.Colours.Count < numericTeamsPerGame.Value)
-						gridFinder.Colours.Add(colourToAdd);
+					gridFinder.Colours.Add(colourToAdd);
 			}
 
 			// Add entries for referees, if any.
@@ -390,9 +390,9 @@ namespace Torn.UI
 
 		void ButtonImportGridClick(object sender, EventArgs e)
 		{
-			textBoxGrid.Lines = Holder.Fixture.Games.Parse(textBoxGrid.Lines, Holder.Fixture.Teams, 
-			                                        datePicker.Value.Date + timePicker.Value.TimeOfDay, 
-			                                        TimeSpan.FromMinutes((double)numericMinutes.Value));
+			textBoxGrid.Lines = Holder.Fixture.Games.Parse(textBoxGrid.Lines, Holder.Fixture.Teams,
+													datePicker.Value.Date + timePicker.Value.TimeOfDay,
+													TimeSpan.FromMinutes((double)numericMinutes.Value));
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			displayReportGames.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
 			displayReportGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
@@ -407,9 +407,9 @@ namespace Torn.UI
 		List<LeagueTeam> Ladder()
 		{
 			// Find the most appropriate report template showing the date range, drop games, etc.
-			var rt = Holder.ReportTemplates.Find(r => r.ReportType == ReportType.TeamLadder) ?? 
+			var rt = Holder.ReportTemplates.Find(r => r.ReportType == ReportType.TeamLadder) ??
 				Holder.ReportTemplates.Find(r => r.ReportType == ReportType.MultiLadder) ??
-				Holder.ReportTemplates.Find(r => r.ReportType == ReportType.GameByGame) ?? 
+				Holder.ReportTemplates.Find(r => r.ReportType == ReportType.GameByGame) ??
 				Holder.ReportTemplates.Find(r => r.ReportType == ReportType.GameGrid || r.ReportType == ReportType.GameGridCondensed) ??
 				Holder.ReportTemplates.Find(r => r.ReportType == ReportType.Pyramid || r.ReportType == ReportType.PyramidCondensed) ??
 				Holder.ReportTemplates.FirstOrDefault() ??
@@ -782,13 +782,13 @@ namespace Torn.UI
 						difficulties[ft.Key.TeamId - 1] += (fg.Teams.Sum(x => x.Key.TeamId) - ft.Key.TeamId) / (fg.Teams.Count - 1F);
 						counts[ft.Key.TeamId - 1]++;
 					}
-			
+
 			for (int row = 0; row < rows; row++)
 				if (counts[row] > 0)
 					averages[row] = difficulties[row] / counts[row];
 				else
 					averages[row] = float.NaN;
-			
+
 			float max = averages.Count() == 0 ? 1 : averages.Max();
 
 			var g = panelGraphic.CreateGraphics();
@@ -826,9 +826,9 @@ namespace Torn.UI
 			for (int x = 0; x < Holder.Fixture.Teams.Count; x++)
 				g.FillRectangle(new SolidBrush(Color.FromArgb(0xF8, 0xF8, 0xF8)), left + x * size, x * size, size, size);
 
-				// Colour squares for selected team and game.
-				if (Holder.Fixture.Games.Valid(point.X))
-				{
+			// Colour squares for selected team and game.
+			if (Holder.Fixture.Games.Valid(point.X))
+			{
 				var game = Holder.Fixture.Games[point.X];
 				var team = Holder.Fixture.Teams[point.Y];
 
@@ -882,11 +882,11 @@ namespace Torn.UI
 			for (int col = 0; col <= Holder.Fixture.Games.Count; col++)
 				g.DrawLine(pen, col * size, 0, col * size, Math.Min(rows * size, panelGraphic.DisplayRectangle.Bottom));
 
-//			// Paint a light gray bar on the row and column of the clicked team. Not in use because we'd have to rebuild grid every PanelGraphicMouseClick.
-//			for (int x = 0; x < Holder.Fixture.Games.Count; x++)
-//				for (int y = 0; y < Holder.Fixture.Teams.Count; y++)
-//					if (point != null && (point.Y == x || point.Y == y))
-//						FillCell(x, y, size, Color.LightGray);
+			//			// Paint a light gray bar on the row and column of the clicked team. Not in use because we'd have to rebuild grid every PanelGraphicMouseClick.
+			//			for (int x = 0; x < Holder.Fixture.Games.Count; x++)
+			//				for (int y = 0; y < Holder.Fixture.Teams.Count; y++)
+			//					if (point != null && (point.Y == x || point.Y == y))
+			//						FillCell(x, y, size, Color.LightGray);
 		}
 
 		/// <summary>Paint coloured cells onto grid to show teams in games.</summary>
@@ -953,12 +953,13 @@ namespace Torn.UI
 				else
 				{
 					Colour c = Colour.None;
-					switch (e.Button) {
-						case MouseButtons.Left: c = leftButton;	    break;
-						case MouseButtons.Right: c = rightButton;	break;
-						case MouseButtons.Middle: c = middleButton;	break;
-						case MouseButtons.XButton1: c = xButton1;	break;
-						case MouseButtons.XButton2: c = xButton2;	break;
+					switch (e.Button)
+					{
+						case MouseButtons.Left: c = leftButton; break;
+						case MouseButtons.Right: c = rightButton; break;
+						case MouseButtons.Middle: c = middleButton; break;
+						case MouseButtons.XButton1: c = xButton1; break;
+						case MouseButtons.XButton2: c = xButton2; break;
 					}
 					Holder.Fixture.Games[point.X].Teams.Add(Holder.Fixture.Teams[point.Y], c);
 					FillCell(point.Y, point.X, size, c.ToSaturatedColor());
@@ -973,12 +974,13 @@ namespace Torn.UI
 				if (point.Y == rows + 2 && point.X > 0 && point.X < 9)
 				{
 					var c = (Colour)(point.X);
-					switch (e.Button) {
-						case MouseButtons.Left: leftButton = c;	    break;
-						case MouseButtons.Right: rightButton = c;	break;
-						case MouseButtons.Middle: middleButton = c;	break;
-						case MouseButtons.XButton1: xButton1 = c;	break;
-						case MouseButtons.XButton2: xButton2 = c;	break;
+					switch (e.Button)
+					{
+						case MouseButtons.Left: leftButton = c; break;
+						case MouseButtons.Right: rightButton = c; break;
+						case MouseButtons.Middle: middleButton = c; break;
+						case MouseButtons.XButton1: xButton1 = c; break;
+						case MouseButtons.XButton2: xButton2 = c; break;
 					}
 				}
 

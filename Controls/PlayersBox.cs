@@ -41,7 +41,7 @@ namespace Torn.UI
 					league?.Load();
 					LeaguePlayer leaguePlayer = league?.LeaguePlayer(player.PlayerId);
 					GamePlayer gamePlayer = league?.Games(false)?.Find(g => g.Time == serverGame.Time)?.Players()?.Find(p => p.PlayerId == player.PlayerId);
-					if(gamePlayer != null && gamePlayer.Grade != null)
+					if (gamePlayer != null && gamePlayer.Grade != null)
 					{
 						player.Grade = gamePlayer.Grade;
 					}
@@ -64,7 +64,7 @@ namespace Torn.UI
 					string tooltip = "";
 
 					ListViewItem item = new ListViewItem(player.Pack, (int)player.Colour);
-					if ((player.Grade == null && league != null && league.IsAutoHandicap) )
+					if ((player.Grade == null && league != null && league.IsAutoHandicap))
 					{
 						item.BackColor = Color.FromName("yellow");
 						tooltip += "No grade found on player.";
@@ -74,7 +74,7 @@ namespace Torn.UI
 						item.BackColor = Color.FromName("lightgreen");
 						tooltip += "Player does not exist in league yet.\n";
 					}
-					if(isChangedAlias && gamePlayer == null)
+					if (isChangedAlias && gamePlayer == null)
 					{
 						item.BackColor = Color.FromName("orange");
 						tooltip += "Player Alias does not match saved alias for player.\n" + "Server: " + player.Alias + " League: " + leaguePlayer.Name;
@@ -82,9 +82,9 @@ namespace Torn.UI
 
 					item.ToolTipText = tooltip;
 
-					Console.WriteLine("player.Score " + player.Score + 
-						(player.IsEliminated ? "; player.IsEliminated " : "") + 
-						( league == null ? "; no league" : league.ZeroElimed ? "; league.ZeroElimed " : ""));
+					Console.WriteLine("player.Score " + player.Score +
+						(player.IsEliminated ? "; player.IsEliminated " : "") +
+						(league == null ? "; no league" : league.ZeroElimed ? "; league.ZeroElimed " : ""));
 
 					var score = player.Score > 0 && player.IsEliminated && (league?.ZeroElimed ?? false) ? "0" : player.Score.ToString();
 

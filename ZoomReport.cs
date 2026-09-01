@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Svg;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
@@ -6,7 +7,6 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text;
-using Svg;
 
 namespace Zoom
 {
@@ -30,10 +30,10 @@ namespace Zoom
 		{
 			switch (alignment)
 			{
-				case ZAlignment.None:   return "";
-				case ZAlignment.Left:   return " align=\"left\"";
+				case ZAlignment.None: return "";
+				case ZAlignment.Left: return " align=\"left\"";
 				case ZAlignment.Center: return " align=\"center\"";
-				default:                return " align=\"right\"";
+				default: return " align=\"right\"";
 			}
 		}
 	}
@@ -44,7 +44,8 @@ namespace Zoom
 	{
 		public static string ToExtension(this OutputFormat outputFormat)
 		{
-			switch (outputFormat) {
+			switch (outputFormat)
+			{
 				case OutputFormat.Svg:
 				case OutputFormat.HtmlTable: return "html";
 				case OutputFormat.Tsv: return "tsv";
@@ -74,7 +75,7 @@ namespace Zoom
 	}
 
 	/// <summary>This is just the header row(s) and metadata for a column -- does not include the actual cells.</summary>
-	public class ZColumn: ZBlock
+	public class ZColumn : ZBlock
 	{
 		/// <summary>Text to appear in the column header.</summary>
 		public string Text { get; set; }
@@ -108,13 +109,13 @@ namespace Zoom
 		{
 			var arrow = new Arrow { Color = color };
 			Arrows.Add(arrow);
-			arrow.From.Add(new ZArrowEnd(row, width) { Expand = expand } );
-			arrow.To.Add(new ZArrowEnd(row, width) { Expand = expand } );
+			arrow.From.Add(new ZArrowEnd(row, width) { Expand = expand });
+			arrow.To.Add(new ZArrowEnd(row, width) { Expand = expand });
 		}
 	}
 
 	/// <summary>Start or end of an Arrow. An Arrow can have multiple starts and multiple ends.</summary>
-	public class ZArrowEnd: IComparable
+	public class ZArrowEnd : IComparable
 	{
 		public int Row { get; set; }
 		public double Width { get; set; }
@@ -147,7 +148,7 @@ namespace Zoom
 		public List<ZArrowEnd> From { get; set; } // Cells in the column to the left of the arrow to draw starting points from.
 		public List<ZArrowEnd> To { get; set; }  // Cells in the column to the right of the arrow to draw to.
 		public Color Color { get; set; }
-		
+
 		public Arrow()
 		{
 			From = new List<ZArrowEnd>();
@@ -161,7 +162,7 @@ namespace Zoom
 	}
 
 	[Flags]
-	public enum ChartType { None = 0, Bar = 1, Rug = 2, BoxPlot = 4, Histogram = 8, KernelDensityEstimate = 16, Area = 32, XYScatter = 64};
+	public enum ChartType { None = 0, Bar = 1, Rug = 2, BoxPlot = 4, Histogram = 8, KernelDensityEstimate = 16, Area = 32, XYScatter = 64 };
 	public static class ChartTypeExtensions
 	{
 		public static ChartType ToChartType(string value)
@@ -184,7 +185,7 @@ namespace Zoom
 		public Color Color { get; set; }
 		public DateTime X { get; set; }
 		public double Y { get; set; }
-		
+
 		public ChartPoint(DateTime x, double y, Color color)
 		{
 			Color = color;
@@ -199,14 +200,14 @@ namespace Zoom
 	}
 
 	/// <summary>Represents a single cell in a table. The cell can optionally have a horizontal chart bar.</summary>
-	public class ZCell: ZBlock
+	public class ZCell : ZBlock
 	{
 		string text;
 
 		/// <summary>Text to display in the cell.</summary>
 		public string Text
 		{
-			get 
+			get
 			{
 				if (text == null)
 				{
@@ -229,7 +230,7 @@ namespace Zoom
 				else
 					return text;
 			}
-			
+
 			set { text = value; }
 		}
 
@@ -360,7 +361,7 @@ namespace Zoom
 				// Print an optional '-', then a "0.", then some '0's then [precision] non-zero digits.
 				if (n < 0)
 					s2.Append(CultureInfo.CurrentCulture.NumberFormat.NegativeSign);
-				
+
 				s2.Append("0.");
 				s2.Append('0', -magnitude - 1);
 				s2.AppendFormat("{0:N0}", Math.Abs(n) * Math.Pow(10, -magnitude + precision - 1));
@@ -404,7 +405,7 @@ namespace Zoom
 		}
 	}
 
-	public class ZRow: List<ZCell>
+	public class ZRow : List<ZCell>
 	{
 		public string CssClass { get; set; }
 		/// <summary>Optional background color.</summary>
@@ -467,8 +468,8 @@ namespace Zoom
 
 		public Color GetBackColor(ZRow row, bool odd, Color color = default)
 		{
-			return color != Color.Empty ? color : 
-				row.Color != Color.Empty ? row.Color : 
+			return color != Color.Empty ? color :
+				row.Color != Color.Empty ? row.Color :
 				odd ? OddColor : BackgroundColor;
 		}
 
@@ -492,7 +493,7 @@ namespace Zoom
 		/// <summary>Export to an HTML table.</summary>
 		public abstract string ToHtml();
 		/// <summary>Export to an HTML SVG element.</summary>
-		/// <param name="pure">True if this is standalone SVG that will not be embedded in an HTML file, and therefore cannot contain xlinks or javascript text resizing.</param>
+		/// <param name="pure">True if this is standalone SVG that will not be embedded in an HTML file, and therefore cannot contain hrefs or javascript text resizing.</param>
 		public abstract string ToSvg(bool pure = false);
 		public abstract void ToSvg(StringBuilder sb, double? aspectRatio = null, bool pure = false);
 	}
@@ -504,7 +505,7 @@ namespace Zoom
 			return 0 <= i && i < list.Count;
 		}
 
-		public static T Force<T>(this IList<T> list, int i) where T: new()
+		public static T Force<T>(this IList<T> list, int i) where T : new()
 		{
 			if (i < 0)
 				return default;
@@ -523,7 +524,7 @@ namespace Zoom
 
 	public delegate void CalculateFill(ZRow row, int col, double chartMin, double chartMax, ref double? fill);  // Callback to custom-set bar cell filledness.
 
-	public class ZoomReport: ZoomReportBase
+	public class ZoomReport : ZoomReportBase
 	{
 		/// <summary>Title for the whole report.</summary>
 		public string Title { get; set; }
@@ -586,7 +587,7 @@ namespace Zoom
 			if (!string.IsNullOrEmpty(headings))
 				foreach (string heading in headings.Split(','))
 					Columns.Add(new ZColumn(heading));
-			
+
 			if (!string.IsNullOrEmpty(alignments))
 			{
 				string[] alignmentList = alignments.Split(',');
@@ -638,7 +639,7 @@ namespace Zoom
 
 		public bool ColumnEmpty(int i)
 		{
-			foreach(ZRow row in Rows)
+			foreach (ZRow row in Rows)
 				if (i < row.Count && !row[i].Empty())
 					return false;
 
@@ -650,7 +651,7 @@ namespace Zoom
 			if (Columns[i].Arrows.Any())
 				return false;
 
-			foreach(ZRow row in Rows)
+			foreach (ZRow row in Rows)
 				if (i < row.Count && !row[i].EmptyOrNaN() && row[i].Number != 0)
 					return false;
 
@@ -667,7 +668,7 @@ namespace Zoom
 				Columns.RemoveAt(i);
 			}
 
-			foreach(ZRow row in Rows)
+			foreach (ZRow row in Rows)
 				if (row.Valid(i))
 					row.RemoveAt(i);
 		}
@@ -954,7 +955,7 @@ namespace Zoom
 			s.Append(separator);
 			s.Append(ColorToTColor(Colors.OddColor));
 			s.Append(separator);
-			s.Append("\"" + (Title ?? "") + "\"" );
+			s.Append("\"" + (Title ?? "") + "\"");
 
 			s.Append(separator);
 			s.Append("\"");
@@ -968,7 +969,7 @@ namespace Zoom
 				s.Append(header.Text);
 				s.Append("\"\"");
 				if (Columns.IndexOf(header) != Columns.Count() - 1)
-				{ 
+				{
 					s.Append(separator);
 				}
 			}
@@ -981,8 +982,8 @@ namespace Zoom
 			foreach (ZColumn header in Columns)
 			{
 				string heading = header.GroupHeading ?? "";
-				if(heading != "" && !groupHeadings.Contains(heading))
-						groupHeadings.Add(heading);
+				if (heading != "" && !groupHeadings.Contains(heading))
+					groupHeadings.Add(heading);
 			}
 
 
@@ -990,7 +991,7 @@ namespace Zoom
 			{
 				string align = header.Alignment.ToString().ToLower();
 
-				if(align != "left" && align != "right" && align != "center")
+				if (align != "left" && align != "right" && align != "center")
 					align = "right";
 
 				s.Append(align);
@@ -1043,7 +1044,7 @@ namespace Zoom
 
 		void AppendHexColor(StringBuilder s, Color c)
 		{
-				s.AppendFormat("{0:X2}{1:X2}{2:X2}{3:X2}", c.A, c.R, c.G, c.B);
+			s.AppendFormat("{0:X2}{1:X2}{2:X2}{3:X2}", c.A, c.R, c.G, c.B);
 		}
 
 		void OpenTrTag(StringBuilder s)
@@ -1090,7 +1091,7 @@ namespace Zoom
 						end++;
 
 					if (start == end)
-						AppendStrings(s, "\t  <th align=\"center\">", 
+						AppendStrings(s, "\t  <th align=\"center\">",
 							WebUtility.HtmlEncode(columns[start].GroupHeading), "</th>\n");
 					else
 						AppendStrings(s, "\t  <th align=\"center\" colspan=\"" + (end - start + 1).ToString(CultureInfo.InvariantCulture) + "\">",
@@ -1331,13 +1332,13 @@ namespace Zoom
 			{
 				case ZAlignment.Left:
 					s.AppendFormat("x=\"{0}\"", x + 1);
-				break;
+					break;
 				case ZAlignment.Center:
 					s.AppendFormat("text-anchor=\"middle\" x=\"{0}\"", x + width / 2);
-				break;
-			default: // i.e. Right, Float, Integer
+					break;
+				default: // i.e. Right, Float, Integer
 					s.AppendFormat("text-anchor=\"end\" x=\"{0}\"", x + width - 1);
-				break;
+					break;
 			}
 			s.AppendFormat(" y=\"{0}\" width=\"{1}\"", y, width);
 
@@ -1711,7 +1712,7 @@ namespace Zoom
 
 							s.AppendFormat("h {4:0.#} q {0:0.#},0 {1:0.#},{2:0.#} t {1:0.#},{2:0.#} h {3:0.#}\" ",
 								// 0: Control point x; 1: width of each curve; 2: height of each curve;                      3: horizontal bit at end, 4: horizontal bit at start.
-								wiggleHalfWidth / 2,   wiggleHalfWidth,        (rightEnd.Row - leftEnd.Row) * rowHeight / 2, hEnd,                     hStart);
+								wiggleHalfWidth / 2, wiggleHalfWidth, (rightEnd.Row - leftEnd.Row) * rowHeight / 2, hEnd, hStart);
 						}
 						else
 						{
@@ -2059,9 +2060,9 @@ namespace Zoom
 					}
 
 					// x positions:        0: top left; 1: top right;   2: bottom right; 3: bottom left;
-					s.AppendFormat(format, x - height,  right - height, right,           x,
-					// y positions: 4: header top; 5: bottom; 6 & 7: heights along the left edge which represent how much is truncated off the left edge.
-									top,           bottom,    bottom - x + 1, bottom - right + 1);
+					s.AppendFormat(format, x - height, right - height, right, x,
+									// y positions: 4: header top; 5: bottom; 6 & 7: heights along the left edge which represent how much is truncated off the left edge.
+									top, bottom, bottom - x + 1, bottom - right + 1);
 
 					Style(s, backColor);
 
@@ -2176,8 +2177,8 @@ namespace Zoom
 			}
 
 			int count = 0;
-			if (cell.ChartType.HasFlag(ChartType.Rug) || cell.ChartType.HasFlag(ChartType.BoxPlot) || 
-			    cell.ChartType.HasFlag(ChartType.Histogram) || cell.ChartType.HasFlag(ChartType.KernelDensityEstimate) || cell.ChartType.HasFlag(ChartType.Area))
+			if (cell.ChartType.HasFlag(ChartType.Rug) || cell.ChartType.HasFlag(ChartType.BoxPlot) ||
+				cell.ChartType.HasFlag(ChartType.Histogram) || cell.ChartType.HasFlag(ChartType.KernelDensityEstimate) || cell.ChartType.HasFlag(ChartType.Area))
 			{
 				cell.Data.Sort();
 				count = cell.Data.Count;
@@ -2195,13 +2196,13 @@ namespace Zoom
 				int percentile98 = (int)(count * 0.98) - 1;
 
 				SvgRect(s, 1, left + Scale(cell.Data[percentile2], width, chartMin, chartMax), top + height * 0.4,
-				        ScaleWidth(cell.Data[percentile98] - cell.Data[percentile2], width, chartMin, chartMax), height * 0.1, chartColor, default, chartColor == default ? "bar" : default);  // Whisker from 2nd percentile to 98th percentile -- contains all data within 2 std deviations.
+						ScaleWidth(cell.Data[percentile98] - cell.Data[percentile2], width, chartMin, chartMax), height * 0.1, chartColor, default, chartColor == default ? "bar" : default);  // Whisker from 2nd percentile to 98th percentile -- contains all data within 2 std deviations.
 
 				SvgRect(s, 1, left + Scale(firstQuartile, width, chartMin, chartMax), top + height * 0.1,
-				        ScaleWidth(thirdQuartile - firstQuartile, width, chartMin, chartMax), height * 0.7, chartColor, default, chartColor == default ? "bar" : default);  // Second quartile / third quartile box.
+						ScaleWidth(thirdQuartile - firstQuartile, width, chartMin, chartMax), height * 0.7, chartColor, default, chartColor == default ? "bar" : default);  // Second quartile / third quartile box.
 
 				SvgRect(s, 1, left + Scale(median, width, chartMin, chartMax) - 0.5, top + height * 0.1, 1, height * 0.7, backColor);  // Median white stripe.
-				
+
 				for (int i = 0; i < percentile2; i++)
 					SvgRect2(s, 1, left + Scale(cell.Data[i], width, chartMin, chartMax) - 0.5, top + height * 0.42, 1, height * 0.06, chartColor);  // Paint outlying data point.
 				for (int i = percentile98; i < count; i++)
@@ -2210,7 +2211,7 @@ namespace Zoom
 
 			if (cell.ChartType.HasFlag(ChartType.Histogram) && count > 1)  // Histogram
 			{
-				int bins = (int)Math.Ceiling(2 * Math.Pow(maxPoints, 1.0/3));  // number of bars our histogram will have, from Rice's Rule.
+				int bins = (int)Math.Ceiling(2 * Math.Pow(maxPoints, 1.0 / 3));  // number of bars our histogram will have, from Rice's Rule.
 				double binWidth = Math.Round(width / bins + 0.05, 1);  // in "pixels"
 				bins = (int)Math.Round(width / binWidth);
 				var heights = new List<int>();  // Heights of each bar, in counts of values that fall into that bin.
@@ -2241,8 +2242,8 @@ namespace Zoom
 				}
 				for (int i = 0; i < heights.Count; i++)
 					if (heights[i] > 0)
-						SvgRect(s, 1, left + width * i / bins, top + height - height * heights[i] / heights.Max(), 
-						        width / bins - 0.1, height * heights[i] / heights.Max(), chartColor, default, chartColor == default ? "bar" : default);
+						SvgRect(s, 1, left + width * i / bins, top + height - height * heights[i] / heights.Max(),
+								width / bins - 0.1, height * heights[i] / heights.Max(), chartColor, default, chartColor == default ? "bar" : default);
 
 				SvgRect2(s, 1, left + Scale(cell.Number ?? 0, width, chartMin, chartMax) - 0.05, top, 0.1, height, Color.Gray);  // Paint mean stripe.
 
@@ -2260,7 +2261,7 @@ namespace Zoom
 				double squaredSum = cell.Data.Sum(x => x * x);
 				double mean = sum / count;
 				double stddev = count <= 1 ? 0 : Math.Sqrt((squaredSum - (sum * sum / count)) / (count - 1));
-				double bandwidth =  1.06 * stddev * Math.Pow(count, -0.2);
+				double bandwidth = 1.06 * stddev * Math.Pow(count, -0.2);
 
 				int n = width < 100 ? (int)width * 10 : (int)width * 10 / (int)(width / 50);  // Number of points in curve for our kernel density estimate polygon.
 
@@ -2290,13 +2291,13 @@ namespace Zoom
 			}
 
 			if (cell.ChartType.HasFlag(ChartType.Rug))  // Rug
-		{
+			{
 				int markNumber = 0;  // This is going to be 0 for most marks, but where marks coincide or overlap we will increment this to prevent them overpainting.
 				double lastCentre = double.MinValue;
 				double markWidth = Math.Max(Math.Min(width / Math.Max(count * 2, 100.0), height * 0.1), 0.2); // Width of a mark is 1/100th of the row width, or smaller if there's lots of data points, or the mark height; whichever smallest. If less than 0.2, round up to 0.2.
 				int marksPerRow = Math.Min(Math.Max((int)Math.Sqrt(count), 9), 75);
 				double markHeight = height * 0.9 / marksPerRow;
-				
+
 				foreach (double d in cell.Data.Where(x => !double.IsNaN(x) && !double.IsInfinity(x)))
 				{
 					double markCentre = Scale(d, width, chartMin, chartMax);
@@ -2352,7 +2353,7 @@ namespace Zoom
 			foreach (var cell in row)
 				if (cell.ChartCell == null && row.Any(c => c.ChartCell == cell))
 					cell.ChartCell = cell;
-			
+
 			// Paint any chart cells for this row.
 			int start = 0;
 			while (start < Math.Min(Columns.Count, row.Count))
@@ -2368,8 +2369,8 @@ namespace Zoom
 
 				if (sourceCell.Color != Color.Empty || sourceCell.Border != Color.Empty || sourceCell.ChartCell != null)
 					SvgChart(s, top, height, widths.Take(start).Sum() + start + left, widths.Skip(start).Take(end - start + 1).Sum() + end - start,
-					         MaxChartByColumn ? mins[barSource] : mins.Min(), MaxChartByColumn ? maxs[barSource] : maxs.Max(), maxPoints,
-					         Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(), sourceCell, row, barSource, row == Rows.Last());
+							 MaxChartByColumn ? mins[barSource] : mins.Min(), MaxChartByColumn ? maxs[barSource] : maxs.Max(), maxPoints,
+							 Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(), sourceCell, row, barSource, row == Rows.Last());
 
 				start = end + 1;
 			}
@@ -2528,13 +2529,13 @@ namespace Zoom
 			}
 			catch (Exception e)
 			{
-				Description = "An exception occurred while generating the report. :-(\n" + e.Message + "\n" + e.StackTrace;
+				Description = "Torn " + Torn5.Properties.Resources.version + ": An exception occurred while generating the report. :-(\n" + e.Message + "\n" + e.StackTrace;
 
 				string[] trace = e.StackTrace.Split('\n');
 
 				sb.Clear();
 				sb.Append("<svg viewBox=\"0 0 1000 " + (trace.Length * 10 + 25).ToString() + "\" width=\"1000\">\n");
-				sb.Append("<text x=\"1\" y=\"10\" width=\"999\" font-size=\"9\">An exception occurred while generating the report. :-(</text>\n");
+				sb.Append("<text x=\"1\" y=\"10\" width=\"999\" font-size=\"9\">Torn \" + Torn5.Properties.Resources.version + \": An exception occurred while generating the report. :-(</text>\n");
 				sb.Append("<text x=\"1\" y=\"20\" width=\"999\" font-size=\"9\">");
 				sb.Append(e.Message);
 
@@ -2576,7 +2577,7 @@ namespace Zoom
 		}
 	}
 
-	public class ZoomHtmlInclusion: ZoomReportBase
+	public class ZoomHtmlInclusion : ZoomReportBase
 	{
 		public string Literal { get; set; }
 
@@ -2603,7 +2604,7 @@ namespace Zoom
 		public override void ToSvg(StringBuilder sb, double? aspectRatio, bool pure = false) { sb.Append(ToSvg(pure)); }
 	}
 
-	public class ZoomReports: List<ZoomReportBase>
+	public class ZoomReports : List<ZoomReportBase>
 	{
 		string Title { get; set; }
 		/// <summary>If true, show bars in HTML reports.</summary>
@@ -2611,7 +2612,7 @@ namespace Zoom
 
 		readonly ZReportColors colors;
 		public ZReportColors Colors { get { return colors; } }
-		
+
 		public ZoomReports(string title = null)
 		{
 			Title = title;
@@ -2646,7 +2647,8 @@ namespace Zoom
 		/// <summary>Export to the specified format.</summary>
 		public string ToOutput(OutputFormat outputFormat)
 		{
-			switch (outputFormat) {
+			switch (outputFormat)
+			{
 				case OutputFormat.Svg: return ToSvg();
 				case OutputFormat.HtmlTable: return ToHtml();
 				case OutputFormat.Tsv: return ToCsv('\t');
@@ -2658,9 +2660,10 @@ namespace Zoom
 		public string ToCsv(char separator)
 		{
 			StringBuilder sb = new StringBuilder();
-			foreach (ZoomReportBase report in this) {
+			foreach (ZoomReportBase report in this)
+			{
 				sb.Append(report.ToCsv(separator));
-		 		sb.Append("\n--------\n\n");
+				sb.Append("\n--------\n\n");
 			}
 			return sb.ToString();
 		}
@@ -2712,7 +2715,8 @@ namespace Zoom
 
 			sb.Append("</head><body>\n");
 
-			foreach (ZoomReportBase report in this) {
+			foreach (ZoomReportBase report in this)
+			{
 				sb.Append(report.ToHtml());
 			}
 
@@ -2750,10 +2754,12 @@ namespace Zoom
 				{
 					if (report is ZoomReport r)
 					{
+#pragma warning disable IDE0017 // Simplify object initialization
 						var image = new ReportWithSize()
 						{
 							Bitmap = r.ToBitmap((bounds.Width * ev.PageSettings.PrinterResolution.X / 100), (bounds.Height * ev.PageSettings.PrinterResolution.Y / 100))
 						};
+#pragma warning restore IDE0017 // Simplify object initialization
 						// ZoomReport Height and Width are only available _after_ it is rendered.
 						image.Height = r.Height;
 						image.Width = r.Width;

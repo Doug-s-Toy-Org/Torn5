@@ -44,7 +44,7 @@ namespace Torn
 			score = bestScore;
 			return bestMatch ?? (games.Any() ? games.First() : null);
 		}
-		
+
 		public FixtureGame BestMatch(Game game)
 		{
 			return BestMatch(game, out _);
@@ -82,7 +82,7 @@ namespace Torn
 		}
 	}
 
-	public class FixtureTeams: List<LeagueTeam>
+	public class FixtureTeams : List<LeagueTeam>
 	{
 		/// <summary>Ensure all the league's teams are present in the list of fixture teams.</summary>
 		public void Populate(List<LeagueTeam> teams)
@@ -106,18 +106,18 @@ namespace Torn
 		}
 	}
 
-	public class FixtureGames: List<FixtureGame>
+	public class FixtureGames : List<FixtureGame>
 	{
 		// A game will be a time or date/time, followed by a separator, followed
 		// by a separated list of numbers, which are the teams in that game. e.g.:
 		// 8:00	1	2	3
 		public void Parse(string s, FixtureTeams teams, char separator = '\t', string colours = "1,2,3,4,5")
 		{
-			string[] lines = s.Split(new string[] {"\r\n"}, StringSplitOptions.RemoveEmptyEntries);
+			string[] lines = s.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
 			foreach (string line in lines)
 			{
 				FixtureGame fg = new FixtureGame();
-				
+
 				string[] fields = line.Split(separator);
 				fg.Time = DateTime.Parse(fields[0]);
 				for (int i = 1; i < fields.Length; i++)
@@ -141,7 +141,7 @@ namespace Torn
 						{
 							string[] colors = colours.Split(',');
 							if (fields.Length <= 5)  // If there are five or less teams per game,
-								fg.Teams.Add(ft, (Colour)Int32.Parse(colors[i-1]));  // assign colours to teams.
+								fg.Teams.Add(ft, (Colour)Int32.Parse(colors[i - 1]));  // assign colours to teams.
 							else
 								fg.Teams.Add(ft, Colour.None);
 						}
@@ -190,7 +190,7 @@ namespace Torn
 			}
 
 			if (minLength < int.MaxValue)
-				for (int col = 0; col < minLength; col ++)
+				for (int col = 0; col < minLength; col++)
 				{
 					var game = new FixtureGame();
 					for (int row = 0; row < lines.Length && row < teams.Count; row++)
@@ -248,7 +248,7 @@ namespace Torn
 				sb.Length--;
 				sb.Append("\r\n");
 			}
-			
+
 			return sb.ToString();
 		}
 
@@ -262,7 +262,7 @@ namespace Torn
 				var fg = this[col];
 				for (int row = 0; row < teamsCount; row++)
 				{
-					if (lines[row] == null) 
+					if (lines[row] == null)
 						lines[row] = "";
 
 					if (row < teams.Count && fg.Teams.ContainsKey(teams[row]))
@@ -275,11 +275,11 @@ namespace Torn
 		}
 	}
 
-	public class FixtureGame: IComparable
+	public class FixtureGame : IComparable
 	{
 		public DateTime Time { get; set; }
 		public Dictionary<LeagueTeam, Colour> Teams { get; set; }
-		
+
 		public FixtureGame()
 		{
 			Teams = new Dictionary<LeagueTeam, Colour>();

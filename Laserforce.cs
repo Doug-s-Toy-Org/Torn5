@@ -112,11 +112,11 @@ namespace Torn
 						 " M.ref AS [Game_ID], M.start AS [Start_Time], M.[end] AS [Finish_Time], COALESCE(MT.desc1, MT.desc0, MG.[desc]) AS [Description] " +
 						 "FROM Mission M " +
 						 "LEFT JOIN MissionGroup MG ON MG.ref = M.[group] " +
-						 "LEFT JOIN MissionType MT ON MT.ref = M.[type] " + 
+						 "LEFT JOIN MissionType MT ON MT.ref = M.[type] " +
 						 (hasGameFiter ?
 						 ("WHERE MT.desc0 LIKE '%" + gameFiter + "%' " +
 						 "OR MT.desc1 LIKE '%" + gameFiter + "%' " +
-						 "OR MG.[desc] LIKE '%" + gameFiter + "%' ") : 
+						 "OR MG.[desc] LIKE '%" + gameFiter + "%' ") :
 						 "") +
 						 "ORDER BY M.start DESC";
 			return FetchGames(sql);
@@ -151,7 +151,7 @@ namespace Torn
 						 "LEFT JOIN MissionType MT ON MT.ref = M.[type] " +
 						 ("WHERE MT.desc0 LIKE '%" + filter + "%' " +
 						 "OR MT.desc1 LIKE '%" + filter + "%' " +
-						 "OR MG.[desc] LIKE '%" + filter + "%' ") + 
+						 "OR MG.[desc] LIKE '%" + filter + "%' ") +
 						 "ORDER BY M.start DESC";
 			return FetchGames(sql);
 		}
@@ -244,10 +244,11 @@ namespace Torn
 					List<string> splitLine = l.Split('\t').ToList();
 					// 3 time id type alias team level category pack
 					if (splitLine[0] == "3")
-                    {
+					{
 						entities.Add(splitLine);
 
-						if (splitLine[3] == "player") {
+						if (splitLine[3] == "player")
+						{
 							int indexOfPlayer = game.Players.FindIndex(p => p.Pack == splitLine[8]);
 							if (indexOfPlayer >= 0)
 							{
@@ -287,22 +288,22 @@ namespace Torn
 						oneEvent.Event_Type = ParseEventType(detailEvent[2]);
 
 						// tag player
-						if ( detailEvent[2] == "0206" || (detailEvent[2] == "0208" && !detailEvent[3].StartsWith("@")))
-                        {
+						if (detailEvent[2] == "0206" || (detailEvent[2] == "0208" && !detailEvent[3].StartsWith("@")))
+						{
 							Event otherEvent = new Event
 							{
 								Time = oneEvent.Time
-                            };
+							};
 
 							if (detailEvent[2] == "0206")
-                            {
+							{
 								oneEvent.Event_Name = "Tag Foe";
 								otherEvent.Event_Type = 14;
 								otherEvent.Event_Name = "Tagged by Foe";
 
 							}
 							else
-                            {
+							{
 								oneEvent.Event_Name = "Tag Ally";
 								otherEvent.Event_Type = 21;
 								otherEvent.Event_Name = "Tagged by Ally";
@@ -322,8 +323,7 @@ namespace Torn
 
 							int playerScore = Int32.Parse(playerScoreEvent[4]);
 
-							int otherPlayerScore = 0;
-							Int32.TryParse(otherPlayerScoreEvent[4], out otherPlayerScore);
+							Int32.TryParse(otherPlayerScoreEvent[4], out int otherPlayerScore);
 
 							ServerPlayer player = game.Players.Find(p => p.ServerPlayerId == oneEvent.ServerPlayerId) ?? new ServerPlayer();
 							ServerPlayer otherPlayer = game.Players.Find(p => p.ServerPlayerId == oneEvent.OtherPlayer) ?? new ServerPlayer();
@@ -345,8 +345,8 @@ namespace Torn
 						}
 
 						// tags base
-						if(detailEvent[2] == "0203" || detailEvent[2] == "0204")
-                        {
+						if (detailEvent[2] == "0203" || detailEvent[2] == "0204")
+						{
 							List<string> scoreEvent = lines[indexOfEvent - 1].Split('\t').ToList();
 
 							oneEvent.ServerPlayerId = detailEvent[3];
@@ -374,15 +374,15 @@ namespace Torn
 						}
 
 						//denies player
-						if(detailEvent[2] == "0B01" || detailEvent[2] == "0B02")
-                        {
+						if (detailEvent[2] == "0B01" || detailEvent[2] == "0B02")
+						{
 							Event otherEvent = new Event
 							{
 								Time = oneEvent.Time
 							};
 
 							List<string> scoreEvent = lines[indexOfEvent - 1].Split('\t').ToList();
-							
+
 							oneEvent.ServerPlayerId = detailEvent[3];
 							oneEvent.OtherPlayer = detailEvent[5];
 							oneEvent.Event_Name = "Denied Foe";
@@ -393,7 +393,7 @@ namespace Torn
 
 							ServerPlayer player = game.Players.Find(p => p.ServerPlayerId == oneEvent.ServerPlayerId) ?? new ServerPlayer();
 							ServerPlayer otherPlayer = game.Players.Find(p => p.ServerPlayerId == oneEvent.OtherPlayer) ?? new ServerPlayer();
-							
+
 							oneEvent.Score = Int32.Parse(scoreEvent[4]);
 							oneEvent.ServerTeamId = player.ServerTeamId;
 							oneEvent.OtherTeam = otherPlayer.ServerTeamId;
@@ -418,8 +418,8 @@ namespace Torn
 						}
 
 						//termed
-						if(detailEvent[2] == "0600")
-                        {
+						if (detailEvent[2] == "0600")
+						{
 							List<string> scoreEvent = lines[indexOfEvent - 1].Split('\t').ToList();
 
 							oneEvent.Event_Name = "Level 1 Termination";
@@ -441,7 +441,7 @@ namespace Torn
 
 						//reloaded
 						if (detailEvent[2] == "0500")
-                        {
+						{
 							oneEvent.ServerPlayerId = detailEvent[5];
 							oneEvent.Event_Name = "Reloaded";
 

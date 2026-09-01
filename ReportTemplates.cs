@@ -8,9 +8,12 @@ using Zoom;
 
 namespace Torn.Report
 {
-	public enum ReportType { None = 0, TeamLadder, MultiLadder, TeamsVsTeams, SoloLadder,
+	public enum ReportType
+	{
+		None = 0, TeamLadder, MultiLadder, TeamsVsTeams, SoloLadder,
 		GameByGame, GameGrid, GameGridCondensed, Pyramid, PyramidCondensed, Ascension, AscensionGrid,
-		ColourPerformance, TermReport, SanityCheck, DetailedGames, Everything, Packs, PackHits, PageBreak };
+		ColourPerformance, TermReport, SanityCheck, DetailedGames, Everything, Packs, PackHits, PageBreak
+	};
 
 	/// <summary>Holds details for a single report template -- a team ladder, a solo ladder, etc.</summary>
 	public class ReportTemplate
@@ -29,7 +32,7 @@ namespace Torn.Report
 			Settings = new List<string>();
 		}
 
-		public ReportTemplate(ReportType reportType, string[] settings): this()
+		public ReportTemplate(ReportType reportType, string[] settings) : this()
 		{
 			ReportType = reportType;
 			if (settings != null)
@@ -277,7 +280,7 @@ namespace Torn.Report
 		}
 	}
 
-	public class ReportTemplates: List<ReportTemplate>
+	public class ReportTemplates : List<ReportTemplate>
 	{
 		public OutputFormat OutputFormat { get; set; }
 
@@ -371,7 +374,7 @@ namespace Torn.Report
 		}
 	}
 
-	public class Holders: List<Holder>
+	public class Holders : List<Holder>
 	{
 		public Holder MostRecent()
 		{
@@ -384,14 +387,14 @@ namespace Torn.Report
 			DateTime? mostRecent = DateTime.MinValue;
 			Holder Result = this[0];
 			foreach (Holder holder in this)
+			{
+				DateTime? thisRecent = holder.League.MostRecentGame();
+				if (mostRecent < thisRecent)
 				{
-					DateTime? thisRecent = holder.League.MostRecentGame();
-					if (mostRecent < thisRecent)
-					{
-						mostRecent = thisRecent;
-						Result = holder;
-					}
+					mostRecent = thisRecent;
+					Result = holder;
 				}
+			}
 
 			return Result;
 		}
@@ -400,7 +403,7 @@ namespace Torn.Report
 	/// <summary>
 	/// Holds a league and its settings.
 	/// </summary>
-	[Serializable()]  
+	[Serializable()]
 	public class Holder
 	{
 		public string Key { get; set; }  // This is the same as the first column in the list view -- it's the folder we'll bulk-export the league to.
@@ -416,8 +419,8 @@ namespace Torn.Report
 			ReportTemplates = new ReportTemplates();
 			Fixture = new Fixture();
 		}
-		
-		public Holder(string key, string fileName, League league): this()
+
+		public Holder(string key, string fileName, League league) : this()
 		{
 			Key = key;
 			FileName = fileName;

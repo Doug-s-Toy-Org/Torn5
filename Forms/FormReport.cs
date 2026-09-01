@@ -303,7 +303,7 @@ namespace Torn.UI
 		void ScaleGamesCheckedChanged(object sender, EventArgs e)
 		{
 			if (scaleGames.Checked && orderBy.Items.Count == 2)
-				orderBy.Items.AddRange(new string[] { "scaled victory points then score", "scaled victory points then score ratio" } );
+				orderBy.Items.AddRange(new string[] { "scaled victory points then score", "scaled victory points then score ratio" });
 
 			else if (!scaleGames.Checked && orderBy.Items.Count == 4)
 			{
@@ -371,7 +371,7 @@ namespace Torn.UI
 			}
 
 			Games = allGames.Where(g =>
-				g.Time > (ReportTemplate.From ?? DateTime.MinValue) && 
+				g.Time > (ReportTemplate.From ?? DateTime.MinValue) &&
 				g.Time < (ReportTemplate.To ?? DateTime.MaxValue) &&
 				(!withDescription.Checked || (g.Title ?? "").Contains(descriptionGroup.Text)) &&
 				(!selectedGames.Checked || SelectedGameTimes.Any(dt => dt == g.Time))
@@ -448,7 +448,7 @@ namespace Torn.UI
 				top += dayHeight;
 			}
 		}
-		
+
 		/// <summary>value, scaleMin and scaleMax are all in the before-scaling ordinate system. outputWidth is the range of the after-scaling ordinate system.</summary>
 		float Scale(TimeSpan value, TimeSpan scaleMin, TimeSpan scaleMax, float outputWidth)
 		{

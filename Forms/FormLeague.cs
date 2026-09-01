@@ -64,7 +64,7 @@ namespace Torn.UI
 
 			RankCheckedChanged(null, null);
 
-			
+
 			loading = true;
 			// Load Grades.
 			SetGradeBox(League.Grades.Count);
@@ -250,9 +250,9 @@ namespace Torn.UI
 
 		void ButtonDeleteTeamClick(object sender, EventArgs e)
 		{
-			if (treeView1.SelectedNode.Tag is LeagueTeam team && 
-			    MessageBox.Show("Are you sure you want to delete team " + team.Name + "?",
-			                    "Delete Team?", MessageBoxButtons.YesNo) == DialogResult.Yes)
+			if (treeView1.SelectedNode.Tag is LeagueTeam team &&
+				MessageBox.Show("Are you sure you want to delete team " + team.Name + "?",
+								"Delete Team?", MessageBoxButtons.YesNo) == DialogResult.Yes)
 			{
 				League.ForgetTeam(team);
 				treeView1.Nodes.Remove(treeView1.SelectedNode);
@@ -289,16 +289,16 @@ namespace Torn.UI
 
 				var playerNode = teamNode.Nodes.Add(player.Name);
 				playerNode.Tag = player;
-				
+
 				treeView1.SelectedNode = playerNode;
 			}
 		}
 
 		void ButtonDeletePlayerClick(object sender, EventArgs e)
 		{
-			if (treeView1.SelectedNode.Tag is LeaguePlayer player && 
-			    MessageBox.Show("Are you sure you want to delete player " + player.Name + " from this team?",
-			                    "Delete Player?", MessageBoxButtons.YesNo) == DialogResult.Yes)
+			if (treeView1.SelectedNode.Tag is LeaguePlayer player &&
+				MessageBox.Show("Are you sure you want to delete player " + player.Name + " from this team?",
+								"Delete Player?", MessageBoxButtons.YesNo) == DialogResult.Yes)
 			{
 				((LeagueTeam)treeView1.SelectedNode.Parent.Tag).Players.Remove(player);
 				treeView1.SelectedNode.Remove();
@@ -342,9 +342,9 @@ namespace Torn.UI
 			{
 				for (int i = 0; i < victory.Count; i++)
 					Force(i, (double)victory[i].Value);
-			
-			if (victory.Count == 0)
-				SetVictoryBox(0);
+
+				if (victory.Count == 0)
+					SetVictoryBox(0);
 			}
 			hitsTieBreak.Enabled = victoryPoints.Checked;
 			zeroVps.Enabled = victoryPoints.Checked;
@@ -402,7 +402,7 @@ namespace Torn.UI
 				Force(@int, (double)c.Value);
 			else
 				Force(int.Parse((string)c.Tag), (double)c.Value);
-			
+
 			if (victory.Any() && victory.Last().Value > 0)
 				SetVictoryBox(victory.Count);
 		}
@@ -444,7 +444,7 @@ namespace Torn.UI
 			foreach (var gradeEditor in Grades)
 				gradeEditor.Enabled = automaticHandicapEnabled.Checked;
 
-			if(automaticHandicapEnabled.Checked)
+			if (automaticHandicapEnabled.Checked)
 			{
 				League.HandicapStyle = HandicapExtensions.ToHandicapStyle("Percent");
 				radioButtonPercent.Checked = true;
@@ -549,7 +549,7 @@ namespace Torn.UI
 		private void hitsTieBreak_CheckedChanged(object sender, EventArgs e)
 		{
 			League.HitsTieBreak = hitsTieBreak.Checked;
-			if(hitsTieBreak.Checked)
+			if (hitsTieBreak.Checked)
 			{
 				zeroedTieBreak.Checked = false;
 			}
@@ -585,7 +585,7 @@ namespace Torn.UI
 
 		private void PointPercentChanged(object sender, EventArgs e)
 		{
-			if(loading)
+			if (loading)
 				return;
 
 			League.PointPercents.Clear();
@@ -646,7 +646,7 @@ namespace Torn.UI
 		private void zeroVps_CheckedChanged(object sender, EventArgs e)
 		{
 			League.ZeroVps = zeroVps.Checked;
-			if(zeroVps.Checked)
+			if (zeroVps.Checked)
 				halfVps.Checked = false;
 		}
 
@@ -667,10 +667,10 @@ namespace Torn.UI
 		private void halfElimed_CheckedChanged(object sender, EventArgs e)
 		{
 			League.HalfVps = halfVps.Checked;
-			if(halfVps.Checked)
+			if (halfVps.Checked)
 				zeroVps.Checked = false;
 		}
-		
+
 		float previousScale = 1;
 		protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
 		{
