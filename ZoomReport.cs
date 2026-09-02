@@ -2477,7 +2477,7 @@ namespace Zoom
 				var mins = new List<double>();   // Minimum numeric value in each column, or if all numbers are positive, 0.
 				var maxs = new List<double>();   // Maximum numeric value in each column.
 				(int titleHeight, int headerHeight) = Metrics(widths, mins, maxs, out int maxPoints);
-				Width = (int)widths.Sum() + widths.Count + 1;  // Total width of the whole SVG (assuming multiColumns == 1) -- the sum of each column, plus pixels for spacing left, right and between.
+				Width = Math.Max((int)widths.Sum() + widths.Count + 1, 5);  // Total width of the whole SVG (assuming multiColumns == 1) -- the sum of each column, plus pixels for spacing left, right and between.
 				double max = maxs.DefaultIfEmpty(1).Max();
 
 				Height = titleHeight + headerHeight + Rows.Count * (RowHeight + 1);  // Total height of the whole SVG (assuming multiColumns == 1).
@@ -2535,14 +2535,14 @@ namespace Zoom
 
 				sb.Clear();
 				sb.Append("<svg viewBox=\"0 0 1000 " + (trace.Length * 10 + 25).ToString() + "\" width=\"1000\">\n");
-				sb.Append("<text x=\"1\" y=\"10\" width=\"999\" font-size=\"9\">Torn \" + Torn5.Properties.Resources.version + \": An exception occurred while generating the report. :-(</text>\n");
+				sb.Append("<text x=\"1\" y=\"10\" width=\"999\" font-size=\"9\">Torn " + Torn5.Properties.Resources.version + ": An exception occurred while generating the report. :-(</text>\n");
 				sb.Append("<text x=\"1\" y=\"20\" width=\"999\" font-size=\"9\">");
-				sb.Append(e.Message);
+				sb.Append(WebUtility.HtmlEncode(e.Message));
 
 				for (int i = 0; i < trace.Length; i++)
 				{
 					sb.Append("</text>\n<text x=\"1\" y=\"" + (i * 10 + 30).ToString() + "\" width=\"999\" font-size=\"9\">");
-					sb.Append(trace[i]);
+					sb.Append(WebUtility.HtmlEncode(trace[i]));
 				}
 				sb.Append("</text>\n</svg>\n");
 			}
