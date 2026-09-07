@@ -153,7 +153,7 @@ namespace Torn.Report
 			}
 		}
 
-		public static string GamePage(League league, Game game, OutputFormat outputFormat = OutputFormat.Svg)
+		public static string GamePage(League league, Game game)
 		{
 			ZoomReports reports = new ZoomReports();
 			reports.Colors.BackgroundColor = Color.Empty;
@@ -182,7 +182,7 @@ namespace Torn.Report
 
 			reports.Add(new ZoomHtmlInclusion("</div>"));
 
-			return reports.ToOutput(outputFormat);
+			return reports.ToOutput(OutputFormat.Svg);
 		}
 
 		/// <summary>Generate a page with results for a team.</summary>
@@ -951,6 +951,9 @@ xhrKey.send();
 				string gameTitle = "";
 
 				foreach (Game game in dayGames)
+					Reports.EnsureEvents(path, holder.League, game);
+
+				foreach (Game game in dayGames)
 				{
 					if (gameTitle != game.Title)
 					{
@@ -992,12 +995,13 @@ xhrKey.send();
 
 					if (bases) sb.Append("\u25cb and \u2b24 are hit and destroyed bases.<br/>\n");
 
-					if (eventsUsed.Any(t => t == 61 || t == 63)) sb.Append("\U0001f61e is got denied. \u2300 is denied another player. ");
-					if (eventsUsed.Any(t => t == 60 || t == 62)) sb.Append("\U0001f620 is got denied by ally. \U0001fae2 is denied an ally.");
-					if (eventsUsed.Any(t => t >= 60 && t <= 63)) sb.Append("<br/>\n");
+					if (eventsUsed.Any(t => t == 1403 || t == 1404))
+						sb.Append("\U0001f61e and \U0001f620 are one- and two-shot denied.<br/>\n");
+					else if (eventsUsed.Any(t => t == 63))
+						sb.Append("\U0001f61e is denied. ");
 
-					if (eventsUsed.Any(t => t == 1403 || t == 1404)) sb.Append("\U0001f61e and \U0001f620 are one- and two-shot denied.<br/>\n");
-					if (eventsUsed.Any(t => t == 1401 || t == 1402)) sb.Append("\u2300 and \u29bb are denied another player.<br/>\n");
+					if (eventsUsed.Any(t => t == 61 || t == 1401 || t == 1402)) sb.Append("\u2300 and \u29bb are denied another player.<br/>\n");
+					if (eventsUsed.Any(t => t == 60 || t == 62)) sb.Append("\U0001f620 is got denied by ally. \U0001fae2 is denied an ally.<br/>\n");
 
 					if (eventsUsed.Contains(28)) sb.Append("\U0001f7e8 is warning (yellow card). ");
 					if (eventsUsed.Contains(29)) sb.Append("\U0001f7e5 is termination (red card).");

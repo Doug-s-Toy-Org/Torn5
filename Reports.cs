@@ -1597,6 +1597,10 @@ namespace Torn.Report
 					}
 				}
 
+				// O-Zone does not tell us how many shots the player had on a base when we denied them. So make a list of the different numbers of points players
+				// have scored for denying, and hopefully the smaller one represents one shot of deny, and larger ones represent multiple shots of deny.
+				List<int> denyFoeScores = league.Games().SelectMany(g => g.ServerGame?.Events.Where(e => e.Event_Type == 61).Select(e => e.Score) ?? new List<int>()).Distinct().OrderBy(x => x).ToList();
+
 				foreach (var row in report.Rows.Where(r => r.Valid(idCol)))
 				{
 					var player1 = game.Players().Find(p => p.PlayerId == row[idCol].Text);
@@ -1626,54 +1630,50 @@ namespace Torn.Report
 						}
 
 					// Add last column this-game-as-emojis text for this player.
-					if (game.ServerGame?.Events != null && game.ServerGame.Events.Any())
+					var text = new StringBuilder();
+					var svg = new StringBuilder();
+					var startTime = game.ServerGame.Events.FirstOrDefault().Time;
+					int minutes = 0;  // How many whole minutes into the game are we?
+					Colour currentColour = Colour.None;
+					if (player1 is ServerPlayer player1sp)
 					{
-						var text = new StringBuilder();
-						var svg = new StringBuilder();
-						var startTime = game.ServerGame.Events.FirstOrDefault().Time;
-						int minutes = 0;  // How many whole minutes into the game are we?
-						Colour currentColour = Colour.None;
-						if (player1 is ServerPlayer player1sp)
+						foreach (var eevent in game.ServerGame.Events.Where(x => x.ServerPlayerId == player1sp.ServerPlayerId && ((x.Event_Type >= 28 && x.Event_Type <= 34) || (x.Event_Type >= 37 && x.Event_Type <= 1404))))
 						{
-							foreach (var eevent in game.ServerGame.Events.Where(x => x.ServerPlayerId == player1sp.ServerPlayerId && ((x.Event_Type >= 28 && x.Event_Type <= 34) || (x.Event_Type >= 37 && x.Event_Type <= 1404))))
+							int now = (int)Math.Truncate(eevent.Time.Subtract(startTime).TotalMinutes);
+							if (now - minutes > 1)
 							{
-								int now = (int)Math.Truncate(eevent.Time.Subtract(startTime).TotalMinutes);
-								if (now - minutes > 1)
-								{
-									ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', now - minutes));  // Add one dot for each whole minute of the game.
-									minutes = now;
-								}
+								ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', now - minutes));  // Add one dot for each whole minute of the game.
+								minutes = now;
+							}
 
-								Colour otherTeam = (Colour)(eevent.OtherTeam + 1);
-								switch (eevent.Event_Type)
-								{
-									case 28: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e8"); break;  // warning: yellow square.
-									case 29: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e5"); break;  // terminated: red square.
-									case 30: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u25cb"); break;  // hit base: open circle
-									case 31: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2b24"); break;  // destroyed base: filled circle.
-									case 32: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001f480"); break;  // eliminated: skull
-									case 33: ColourSymbol(text, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
-									case 34: ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
-									case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46: ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;  // player tagged target
-									case 60: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001fae2"); break;  // score denial points on ally: shocked face.
-									case 61: case 1401: case 1402:  // score denial points: circle with slash, circle with cross
-										if (eevent.ShotsDenied > 1)
-											ColourSymbol(text, svg, ref currentColour, otherTeam, new string('\u29bb', eevent.ShotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
-										if (eevent.ShotsDenied == 0 || eevent.ShotsDenied % 2 == 1) ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
-										break;
-									case 62: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f620"); break;  // lose points for being denied by ally: angry face
-									case 63: case 1403: case 1404: ColourSymbol(text, svg, ref currentColour, Colour.None, eevent.ShotsDenied < 2 ? "\U0001f61e" : "\U0001f620"); break;  // lose points for being denied: sad face, angry face
-								}
+							Colour otherTeam = (Colour)(eevent.OtherTeam + 1);
+							switch (eevent.Event_Type)
+							{
+								case 28: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e8"); break;  // warning: yellow square.
+								case 29: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e5"); break;  // terminated: red square.
+								case 30: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u25cb"); break;  // hit base: open circle
+								case 31: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2b24"); break;  // destroyed base: filled circle.
+								case 32: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001f480"); break;  // eliminated: skull
+								case 33: ColourSymbol(text, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
+								case 34: ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
+								case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46:  // player tagged target
+									ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;
+								case 60: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001fae2"); break;  // O-Zone score denial points on ally: shocked face.
+								case 61: case 1401: case 1402:  // score denial points: circle with slash, circle with cross
+									int shotsDenied = eevent.Event_Type == 61 ? denyFoeScores.IndexOf(eevent.Score) + 1 : eevent.ShotsDenied;
+									if (shotsDenied > 1)
+										ColourSymbol(text, svg, ref currentColour, otherTeam, new string('\u29bb', shotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
+									if (shotsDenied == 0 || shotsDenied % 2 == 1) ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
+									break;
+								case 62: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f620"); break;  // O-Zone lose points for being denied by ally: angry face
+								case 63: case 1403: case 1404:  // lose points for being denied: sad face, angry face
+									ColourSymbol(text, svg, ref currentColour, Colour.None, eevent.ShotsDenied < 2 ? "\U0001f61e" : "\U0001f620"); break;
 							}
 						}
-						ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', (int)Math.Truncate(game.ServerGame.Events.LastOrDefault().Time.Subtract(startTime).TotalMinutes) - minutes) + ".");  // Add one dot for each whole minute of the game.
-
-						row.Add(new ZCell(text.ToString())
-						{
-							Svg = svg.ToString()
-						}
-						);
 					}
+					ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', (int)Math.Truncate(game.ServerGame.Events.LastOrDefault().Time.Subtract(startTime).TotalMinutes) - minutes) + ".");  // Add one dot for each whole minute of the game.
+
+					row.Add(new ZCell(text.ToString()) { Svg = svg.ToString() });
 				}
 
 				// Set title for this-game-as-emojis column.
