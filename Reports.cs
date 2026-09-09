@@ -712,6 +712,40 @@ namespace Torn.Report
 
 			SortGridReport(league, report, rt, games, averageCol, pointsCol, false, hitsCol, ignorePoints);
 
+			if (rt.ReportType == ReportType.AscensionGrid)
+			{
+				report.Colors.OddColor = default;
+
+				var lastAscensionGameTime = games.Last().Time;
+				var laterGames = league.Games().Where(g => g.Time > lastAscensionGameTime).ToList();
+				var laterTeamIds = laterGames.SelectMany(g => g.Teams.Select(gt => gt.TeamId));
+
+				for (int r = 0; r < report.Rows.Count; r++)
+				{
+					var row = report.Rows[r];
+					if (row.Count < 4)
+						continue;
+
+					string teamName = row[1].Text;
+					var color = Color.FromArgb(64, Color.Gray);
+					int col = 3;
+					while (col < row.Count)
+					{
+						int newCol = col;
+						while (newCol < row.Count && row[newCol].Empty())
+							newCol++;
+
+						if (newCol < row.Count)
+							report.Columns[col].AddArrow(r, 5, color, true);
+
+						col = newCol + 1;
+					}
+
+					if (laterTeamIds.Contains(((LeagueTeam)row[1].Tag).TeamId))
+						report.Columns.Last().AddArrow(r, 5, color, true);
+				}
+			}
+
 			if (rt.Settings.Contains("Description"))
 				report.Description = "This is a grid of games. Each row in the table is one team. Each column is one game.";
 			FinishReport(report, games, rt);
