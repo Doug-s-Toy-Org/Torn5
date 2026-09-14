@@ -185,8 +185,9 @@ namespace Zoom
 		public Color Color { get; set; }
 		public DateTime X { get; set; }
 		public double Y { get; set; }
+		public string Marker { get; set; }
 
-		public ChartPoint(DateTime x, double y, Color color)
+		public ChartPoint(DateTime x, double y = double.NaN, Color color = default)
 		{
 			Color = color;
 			X = x;
@@ -195,7 +196,7 @@ namespace Zoom
 
 		public override string ToString()
 		{
-			return "ChartPoint " + X.ToString() + ", " + Y.ToString();
+			return "ChartPoint " + X.ToString() + ", " + Y.ToString() + " " + Marker;
 		}
 	}
 
@@ -1343,7 +1344,7 @@ namespace Zoom
 			s.AppendFormat(" y=\"{0}\" width=\"{1}\"", y, width);
 
 			if (fontSize != 17)
-				s.AppendFormat(" font-size=\"{0:G2}\"", fontSize);
+				s.AppendFormat(" font-size=\"{0:0.#}\"", fontSize);
 
 			if (fontColor != default)
 			{
@@ -2074,7 +2075,7 @@ namespace Zoom
 				{
 					s.Append("\t<text alignment-baseline=\"middle\" ");
 
-					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3}\"",
+					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3:0.#}\"",
 									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height, Math.Min((RowHeight * (_pure ? 0.681 : 0.75)), widths[col]));
 
 					if (column.Color == default)
@@ -2101,7 +2102,7 @@ namespace Zoom
 					float previousOffset = text45Offset;
 					text45Offset = widths[col] / 2 - (nextRotated ? RowHeight / 2F : 0);
 
-					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3}\"",
+					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3:0.#}\"",
 								   x + Math.Min(previousOffset, text45Offset), bottom - 3, height * 1.41 - RowHeight * 3 / 4, RowHeight * 3 / 4);
 
 					if (column.Color == default)
@@ -2328,19 +2329,50 @@ namespace Zoom
 				SvgRect2(s, 1, left, top + height - Scale(0.5, height, chartMin, chartMax), width, 0.1, backColor); // Paint mean stripe.
 			}
 
-			if (cell.ChartType.HasFlag(ChartType.XYScatter) && cell.Tag is List<ChartPoint> points2)  // XYScatter
+			if (cell.ChartType.HasFlag(ChartType.XYScatter) && cell.Tag is List<ChartPoint> points2 && points2.Any())  // XYScatter
 			{
 				var minY = Math.Min(0, points2.Min(p => double.IsNaN(p.Y) ? 0 : p.Y));
 				var maxY = Math.Max(1, points2.Max(p => p.Y));
 				var radius = Math.Min(Math.Max(width / maxPoints / 4, 0.5), 2.0);
+				bool hasMarkers = points2.Any(p => !string.IsNullOrEmpty(p.Marker));
 
-				SvgRect2(s, 1, left, top + height - Scale(1, height, minY, maxY) - 0.05, width, 0.1, chartColor); // Paint "full height" stripe. (Points will actually appear above this line because scaling.)
-				SvgRect2(s, 1, left, top + height - Scale(0.5, height, minY, maxY) - 0.1, width, 0.2, chartColor); // Paint mean stripe.
-				SvgRect2(s, 1, left, top + height - Scale(0, height, minY, maxY) - 0.05, width, 0.1, chartColor); // Paint baseline.
+				if (hasMarkers)
+				{
+					double midline = top + height * 0.5;
+					double previousY = midline;
+					s.Append($"\t<text class=\"ld chart\" text-anchor=\"middle\" dominant-baseline=\"central\" x=\"{left}\" width=\"{width}\" y=\"{previousY}\" font-size=\"{height * 0.75}\">");
+					foreach (var point in points2)
+					{
+						s.Append("<tspan");
+						if (point.Color != default)
+						{
+							s.Append(" fill=\"");
+							s.Append(ColorTranslator.ToHtml(point.Color));
+							s.Append('\"');
+						}
+						s.AppendFormat(" x=\"{0:0}\"", left + Scale(point.X.Ticks, width, chartMin, chartMax));
+						double newY = double.IsNaN(point.Y) ? midline : midline + height * 0.5 - Scale(point.Y, height, minY, maxY);
+						if (previousY != newY)
+						{
+							s.AppendFormat(" y=\"{0:0}\"", newY);
+							previousY = newY;
+						}
+						s.Append('>');
+						s.Append(string.IsNullOrEmpty(point.Marker) ? "\u00B7" : point.Marker);
+						s.Append("</tspan>");
+					}
+					s.Append("</text>");
+				}
+				else
+				{
+					SvgRect2(s, 1, left, top + height - Scale(1, height, minY, maxY) - 0.05, width, 0.1, chartColor); // Paint "full height" stripe. (Points will actually appear above this line because scaling.)
+					SvgRect2(s, 1, left, top + height - Scale(0.5, height, minY, maxY) - 0.1, width, 0.2, chartColor); // Paint mean stripe.
+					SvgRect2(s, 1, left, top + height - Scale(0, height, minY, maxY) - 0.05, width, 0.1, chartColor); // Paint baseline.
 
-				foreach (var point in points2)
-					if (!double.IsNaN(point.Y))
-						SvgCircle(s, 1, left + Scale(point.X.Ticks, width, chartMin, chartMax), top + height - Scale(point.Y, height, minY, maxY), radius, point.Color);
+					foreach (var point in points2)
+						if (!double.IsNaN(point.Y))
+							SvgCircle(s, 1, left + Scale(point.X.Ticks, width, chartMin, chartMax), top + height - Scale(point.Y, height, minY, maxY), radius, point.Color);
+				}
 			}
 		}
 
@@ -2811,7 +2843,6 @@ namespace Zoom
 			sb.Append("  </style>\n");
 
 			sb.Append("</head><body>\n");
-			//sb.Append("");  // TODO: cellstyles.ToHtml here?
 
 			if (Count == 1)
 				sb.Append("<div>\n");
@@ -2821,27 +2852,62 @@ namespace Zoom
 			for (int i = 0; i < Count; i++)
 				this[i].ToSvg(sb);
 
+			// Comments for the below script:
+			// setwidths() shrinks SVG tables to fit in the browser window width.
+			// The document.querySelectorAll('text') loop shrinks table cell text to fit in its cell.
+			// The document.querySelectorAll('.chart') loop works on cells with ChartType.XYScatter with markers.
+			// It nudges markers leftward so they don't overlap the marker to their right by more than half of their width,
+			// then nudges them right again so they don't overhang the left edge of their cell, then squeezes them so they fit.
 			sb.Append(@"</div>
 
 <script>
-function setwidths() {
-  for (const svg of  document.querySelectorAll('svg'))
-    if (svg.getAttribute('width') > document.documentElement.clientWidth)
-      svg.setAttribute('width', document.documentElement.clientWidth - 2);
+function setwidths()
+{
+	for (const svg of document.querySelectorAll('svg'))
+		if (svg.getAttribute('width') > document.documentElement.clientWidth)
+			svg.setAttribute('width', document.documentElement.clientWidth - 2);
 }
 
-window.onload = function() {
-  for (const text of document.querySelectorAll('text')) {
-    var fit = text.getComputedTextLength() / (text.getAttribute('width') - 2);
-    if (fit > 1)
-    {
-      var size = text.getAttribute('font-size');
-      if (!size)
-        size = text.ownerSVGElement.getAttribute('font-size');
-      text.setAttribute('font-size', size / fit);
-    }
-  }
-  setwidths();
+window.onload = function()
+{
+	for (const text of document.querySelectorAll('text:not(.chart)'))
+	{
+		const fit = text.getComputedTextLength() / (text.getAttribute('width') - 2);
+		if (fit > 1)
+		{
+			let size = text.getAttribute('font-size');
+			if (!size)
+				size = text.ownerSVGElement.getAttribute('font-size');
+			text.setAttribute('font-size', size / fit);
+		}
+	}
+
+	for (const chart of document.querySelectorAll('.chart'))
+	{
+		const points = chart.querySelectorAll('tspan');
+
+		for (let i = points.length - 3; i >= 1; i--)
+		{
+			const a = points[i + 1].getAttribute('x') - Math.max(points[i].getBoundingClientRect().width, points[i + 1].getBoundingClientRect().width) * 0.6;
+			if (points[i].getAttribute('x') > a)
+				points[i].setAttribute('x', a);
+		}
+
+		for (let i = 1; i < points.length - 1; i++)
+		{
+			const b = Number(points[i - 1].getAttribute('x')) + Math.max(points[i].getBoundingClientRect().width, points[i - 1].getBoundingClientRect().width) * 0.6;
+			if (points[i].getAttribute('x') < b)
+				points[i].setAttribute('x', b);
+		}
+
+		const lastmarker = points[points.length - 2];
+		const overflow = Number(lastmarker.getAttribute('x')) + lastmarker.getBoundingClientRect().width * 0.3 - Number(points[points.length - 1].getAttribute('x'));
+		if (overflow > 0)
+			for (let i = 1; i < points.length - 1; i++)
+				points[i].setAttribute('x', Number(points[i].getAttribute('x')) - overflow * i / points.length);
+	}
+
+	setwidths();
 }
 window.onresize = setwidths;
 </script>

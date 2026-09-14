@@ -164,6 +164,7 @@ namespace Torn.Report
 			{
 				string imageName = "score" + game.Time.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture) + ".png";
 				reports.Add(new ZoomHtmlInclusion("\n<p> &nbsp; &nbsp; </p>\n<div><img src=\"" + imageName + "\"></div>\n"));
+				reports.Add(Reports.GameLegend(new List<Game> { game }));
 			}
 
 			reports.Add(new ZoomHtmlInclusion("</div><br/><div align=\"center\">"));
@@ -988,41 +989,7 @@ xhrKey.send();
 				}
 
 				if (anyDetailed)
-				{
-					var eventsUsed = dayGames.Where(g => g.ServerGame != null).SelectMany(g => g.ServerGame.Events.Select(e => e.Event_Type)).Distinct();
-					var sb = new StringBuilder("</div>\n<p>");
-					bool bases = eventsUsed.Any(t => t == 30 || t == 31);
-
-					if (bases) sb.Append("\u25cb and \u2b24 are hit and destroyed bases.<br/>\n");
-
-					if (eventsUsed.Any(t => t == 1403 || t == 1404))
-						sb.Append("\U0001f61e and \U0001f620 are one- and two-shot denied.<br/>\n");
-					else if (eventsUsed.Any(t => t == 63))
-						sb.Append("\U0001f61e is denied. ");
-
-					if (eventsUsed.Any(t => t == 61 || t == 1401 || t == 1402)) sb.Append("\u2300 and \u29bb are denied another player.<br/>\n");
-					if (eventsUsed.Any(t => t == 60 || t == 62)) sb.Append("\U0001f620 is got denied by ally. \U0001fae2 is denied an ally.<br/>\n");
-
-					if (eventsUsed.Contains(28)) sb.Append("\U0001f7e8 is warning (yellow card). ");
-					if (eventsUsed.Contains(29)) sb.Append("\U0001f7e5 is termination (red card).");
-					if (eventsUsed.Contains(28) || eventsUsed.Contains(29)) sb.Append("<br/>\n");
-
-					if (eventsUsed.Contains(32)) sb.Append("\U0001f480 is player eliminated.<br/>\n");
-
-					if (eventsUsed.Contains(33) && !eventsUsed.Any(t => t == 34 || (t >= 37 && t <= 46))) sb.Append("! is hit by base, or player self-denied.<br/>\n");
-					if (eventsUsed.Any(t => t == 33 || t == 34 || t >= 37 && t <= 46)) sb.Append("! is hit by base or mine, or player self-denied, or player tagged target.<br/>\n");
-
-					sb.Append("\u00B7 shows each minute elapsed.<br/>Tags+ includes shots on " + (bases ? "bases and " : "") + "teammates.<br/>\n");
-
-					sb.Append("Your row shows how many times you hit each other player. Your column shows how many times you got hit by each player.</p>\n");
-					sb.Append(@"<p>""Worm"" charts show coloured lines for each team. Vertical dashed lines show time in minutes. <br/>
-Sloped dashed lines show lines of constant score: 0 points, 10K points, etc. The slope of these lines shows the average rate of scoring of ""field points"" 
-during the game. Field points are points not derived from shooting bases, getting penalised by a referee, etc. A team whose score line is horizontal is 
-scoring points  at the average field pointing rate for the game. <br/>
-Base hits and destroys are shown with a mark in the colour of the base hit. Base destroys have the alias of the player destroying the base next to them.</p>
-<div>");
-					reports.Add(new ZoomHtmlInclusion(sb.ToString()));
-				}
+					reports.Add(Reports.GameLegend(dayGames));
 
 				reports.Add(new ZoomHtmlInclusion("</div><a href=\"index.html\">Index</a><div>"));
 				if (reports.Count > 1)  // There were games this day.

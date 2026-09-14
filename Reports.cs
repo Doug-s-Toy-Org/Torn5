@@ -1664,50 +1664,46 @@ namespace Torn.Report
 						}
 
 					// Add last column this-game-as-emojis text for this player.
-					var text = new StringBuilder();
-					var svg = new StringBuilder();
-					var startTime = game.ServerGame.Events.FirstOrDefault().Time;
-					int minutes = 0;  // How many whole minutes into the game are we?
-					Colour currentColour = Colour.None;
+					var points = new List<ChartPoint>();
+
 					if (player1 is ServerPlayer player1sp)
 					{
-						foreach (var eevent in game.ServerGame.Events.Where(x => x.ServerPlayerId == player1sp.ServerPlayerId && ((x.Event_Type >= 28 && x.Event_Type <= 34) || (x.Event_Type >= 37 && x.Event_Type <= 1404))))
+						int baseShots = 0;
+						var eventsThisPlayer = game.ServerGame.Events.Where(x => x.ServerPlayerId == player1sp.ServerPlayerId && ((x.Event_Type >= 28 && x.Event_Type <= 34) || (x.Event_Type >= 37 && x.Event_Type <= 1404)));
+						if (eventsThisPlayer.Any())
+							points.Add(new ChartPoint(game.Time) { Marker = "\u200b" });  // Blank data point to calibrate to game start.
+						foreach (var eevent in eventsThisPlayer)
 						{
-							int now = (int)Math.Truncate(eevent.Time.Subtract(startTime).TotalMinutes);
-							if (now - minutes > 1)
-							{
-								ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', now - minutes));  // Add one dot for each whole minute of the game.
-								minutes = now;
-							}
-
-							Colour otherTeam = (Colour)(eevent.OtherTeam + 1);
+							var color = ((Colour)eevent.OtherTeam + 1).ToDarkColor();
 							switch (eevent.Event_Type)
 							{
-								case 28: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e8"); break;  // warning: yellow square.
-								case 29: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f7e5"); break;  // terminated: red square.
-								case 30: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u25cb"); break;  // hit base: open circle
-								case 31: ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2b24"); break;  // destroyed base: filled circle.
-								case 32: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001f480"); break;  // eliminated: skull
-								case 33: ColourSymbol(text, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
-								case 34: ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
+								case 28: points.Add(new ChartPoint(eevent.Time) { Marker = "\U0001f7e8" }); break;  // warning: yellow square.
+								case 29: points.Add(new ChartPoint(eevent.Time) { Marker = "\U0001f7e5" }); break;  // terminated: red square.
+								case 30: points.Add(new ChartPoint(eevent.Time, baseShots % 2 == 0 ? 0.6 : 0.3, color) { Marker = "\u2022" }); baseShots++; break;  // hit base: small circle
+								case 31: points.Add(new ChartPoint(eevent.Time, color: color) { Marker = "\u2b24" }); break;  // destroyed base: filled circle.
+								case 32: points.Add(new ChartPoint(eevent.Time, color: color) { Marker = "\U0001f480" }); break;  // eliminated: skull
+								case 33: points.Add(new ChartPoint(eevent.Time, color: color) { Marker = "!" }); break;  // hit by base
+								case 34: points.Add(new ChartPoint(eevent.Time) { Marker = "!" }); break;  // hit by mine
 								case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46:  // player tagged target
-									ColourSymbol(text, svg, ref currentColour, Colour.None, "!"); break;
-								case 60: ColourSymbol(text, svg, ref currentColour, otherTeam, "\U0001fae2"); break;  // O-Zone score denial points on ally: shocked face.
+									points.Add(new ChartPoint(eevent.Time) { Marker = "!" }); break;
+								case 60: points.Add(new ChartPoint(eevent.Time, color: color) { Marker = "\U0001fae2" }); break;  // O-Zone score denial points on ally: shocked face.
 								case 61: case 1401: case 1402:  // score denial points: circle with slash, circle with cross
 									int shotsDenied = eevent.Event_Type == 61 ? denyFoeScores.IndexOf(eevent.Score) + 1 : eevent.ShotsDenied;
 									if (shotsDenied > 1)
-										ColourSymbol(text, svg, ref currentColour, otherTeam, new string('\u29bb', shotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
-									if (shotsDenied == 0 || shotsDenied % 2 == 1) ColourSymbol(text, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
+										points.Add(new ChartPoint(eevent.Time, color: color) { Marker = new string('\u29bb', shotsDenied / 2) });  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
+									if (shotsDenied == 0 || shotsDenied % 2 == 1)
+										points.Add(new ChartPoint(eevent.Time, color: color) { Marker = "\u2300" });  // Show remaining one deny hit if necessary.
 									break;
-								case 62: ColourSymbol(text, svg, ref currentColour, Colour.None, "\U0001f620"); break;  // O-Zone lose points for being denied by ally: angry face
+								case 62: points.Add(new ChartPoint(eevent.Time) { Marker = "\U0001f620" }); break;  // O-Zone lose points for being denied by ally: angry face
 								case 63: case 1403: case 1404:  // lose points for being denied: sad face, angry face
-									ColourSymbol(text, svg, ref currentColour, Colour.None, eevent.ShotsDenied < 2 ? "\U0001f61e" : "\U0001f620"); break;
+									points.Add(new ChartPoint(eevent.Time) { Marker = eevent.ShotsDenied < 2 ? "\U0001f61e" : "\U0001f620" }); break;
 							}
 						}
+						if (eventsThisPlayer.Any())
+							points.Add(new ChartPoint(game.ServerGame.EndTime) { Marker = "\u200b" });  // Blank data point to calibrate to game end.
 					}
-					ColourSymbol(text, svg, ref currentColour, Colour.None, new string('\u00B7', (int)Math.Truncate(game.ServerGame.Events.LastOrDefault().Time.Subtract(startTime).TotalMinutes) - minutes) + ".");  // Add one dot for each whole minute of the game.
 
-					row.Add(new ZCell(text.ToString()) { Svg = svg.ToString() });
+					row.Add(new ZCell() { ChartType = ChartType.XYScatter, Tag = points });
 				}
 
 				// Set title for this-game-as-emojis column.
@@ -1747,6 +1743,43 @@ namespace Torn.Report
 			};
 
 			return report;
+		}
+
+		public static ZoomHtmlInclusion GameLegend(IEnumerable<Game> games)
+		{
+			var eventsUsed = games.Where(g => g.ServerGame != null).SelectMany(g => g.ServerGame.Events.Select(e => e.Event_Type)).Distinct();
+
+			var sb = new StringBuilder("</div>\n<p>");
+			bool bases = eventsUsed.Any(t => t == 30 || t == 31);
+
+			if (bases) sb.Append("\u2022 and \u2b24 are hit and destroyed bases.<br/>\n");
+
+			if (eventsUsed.Any(t => t == 1403 || t == 1404))
+				sb.Append("\U0001f61e and \U0001f620 are one- and two-shot denied.<br/>\n");
+			else if (eventsUsed.Any(t => t == 63))
+				sb.Append("\U0001f61e is got denied. ");
+
+			if (eventsUsed.Any(t => t == 61 || t == 1401 || t == 1402)) sb.Append("\u2300 and \u29bb are denied another player.<br/>\n");
+			if (eventsUsed.Any(t => t == 60 || t == 62)) sb.Append("\U0001f620 is got denied by ally. \U0001fae2 is denied an ally.<br/>\n");
+
+			if (eventsUsed.Contains(28)) sb.Append("\U0001f7e8 is warning (yellow card). ");
+			if (eventsUsed.Contains(29)) sb.Append("\U0001f7e5 is termination (red card).");
+			if (eventsUsed.Contains(28) || eventsUsed.Contains(29)) sb.Append("<br/>\n");
+
+			if (eventsUsed.Contains(32)) sb.Append("\U0001f480 is player eliminated.<br/>\n");
+
+			if (eventsUsed.Contains(33) && !eventsUsed.Any(t => t == 34 || (t >= 37 && t <= 46))) sb.Append("! is hit by base, or player self-denied.<br/>\n");
+			if (eventsUsed.Any(t => t == 33 || t == 34 || t >= 37 && t <= 46)) sb.Append("! is hit by base or mine, or player self-denied, or player tagged target.<br/>\n");
+
+			sb.Append("Tags+ includes shots on " + (bases ? "bases and " : "") + "teammates.<br/>\n");
+
+			sb.Append(@"Your row shows how many times you hit each player. Your column shows how many times you got hit by each player.</p>
+<p>""Worm"" charts show coloured lines for each team. Vertical dashed lines show time in minutes.<br/>
+Sloped dashed lines show lines of constant score: 0 points, 10K points, etc. The slope of these lines shows the average rate of scoring of ""field points"" during the game.<br/>
+Field points are points not derived from shooting bases, getting penalised by a referee, etc. A team whose score line is horizontal is scoring points  at the average field pointing rate for the game.<br/>
+Base hits and destroys are shown with a mark in the colour of the base hit. Base destroys have the alias of the player destroying the base next to them.</p>
+<div>");
+			return new ZoomHtmlInclusion(sb.ToString());
 		}
 
 		/// <summary>Detailed report of a single player. One row for each game they played.</summary>
