@@ -17,7 +17,7 @@ namespace Torn.UI
 		/// <summary>Leagues to report on.</summary>
 		public List<League> Leagues { get; set; }
 		/// <summary>Output: games from Leagues, filtered by the user's selections.</summary>
-		public List<Game> Games { get; internal set; }
+		public List<Game> Games { get; internal set; } = new List<Game>();
 		/// <summary>Input: when the user launches this dialog, what games were selected in the main form?</summary>
 		public List<DateTime> SelectedGameTimes { get; set; }
 		/// <summary>If a game's Secret property is true, should we include it in our output Games list?</summary>
@@ -118,7 +118,8 @@ namespace Torn.UI
 			if (ReportTemplate != null)
 			{
 				listViewReportType.SelectedIndices.Clear();
-				listViewReportType.SelectedIndices.Add(listViewReportType.Items.Count <= (int)ReportTemplate.ReportType - 1 ? listViewReportType.Items.Count - 1 : (int)ReportTemplate.ReportType - 1);
+				if (ReportTemplate.ReportType != ReportType.None)
+					listViewReportType.SelectedIndices.Add(listViewReportType.Items.Count <= (int)ReportTemplate.ReportType - 1 ? listViewReportType.Items.Count - 1 : (int)ReportTemplate.ReportType - 1);
 
 				title.Text = ReportTemplate.Title;
 
@@ -146,7 +147,6 @@ namespace Torn.UI
 				}
 
 				descriptionGroup.Text = ReportTemplate.Setting("Group");
-				withDescription.Checked = !string.IsNullOrEmpty(descriptionGroup.Text);
 
 				int? i = ReportTemplate.SettingInt("TopN");
 				showTopN.Checked = i != null;
@@ -205,6 +205,9 @@ namespace Torn.UI
 
 				if (orderBy.Enabled)
 					ReportTemplate.Settings.Add("OrderBy=" + OrderByText());
+
+				if (withDescription.Checked)
+					ReportTemplate.Settings.Add("Group=" + descriptionGroup.Text);
 			}
 		}
 
@@ -366,18 +369,15 @@ namespace Torn.UI
 				ReportTemplate.From = dateFrom.Checked ? datePickerFrom.Value.Add(timePickerFrom.Value.TimeOfDay) : (DateTime?)null;
 				ReportTemplate.To = dateTo.Checked ? datePickerTo.Value.Add(timePickerTo.Value.TimeOfDay) : (DateTime?)null;
 
-				if (withDescription.Checked)
-					ReportTemplate.Settings.Add("Group=" + descriptionGroup.Text);
+				Games = allGames.Where(g =>
+					g.Time > (ReportTemplate.From ?? DateTime.MinValue) &&
+					g.Time < (ReportTemplate.To ?? DateTime.MaxValue) &&
+					(!withDescription.Checked || (g.Title ?? "").Contains(descriptionGroup.Text)) &&
+					(!selectedGames.Checked || SelectedGameTimes.Any(dt => dt == g.Time))
+				).ToList();
+
+				panelGraphic.Invalidate();
 			}
-
-			Games = allGames.Where(g =>
-				g.Time > (ReportTemplate.From ?? DateTime.MinValue) &&
-				g.Time < (ReportTemplate.To ?? DateTime.MaxValue) &&
-				(!withDescription.Checked || (g.Title ?? "").Contains(descriptionGroup.Text)) &&
-				(!selectedGames.Checked || SelectedGameTimes.Any(dt => dt == g.Time))
-			).ToList();
-
-			panelGraphic.Invalidate();
 		}
 
 		private void PanelGraphicPaint(object sender, PaintEventArgs e)
