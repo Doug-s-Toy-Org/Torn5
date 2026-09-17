@@ -71,6 +71,7 @@ namespace Torn.UI
 
 		void ButtonAddClick(object sender, EventArgs e)
 		{
+			formReport.ReportTemplate = new ReportTemplate();
 			formReport.Icon = (Icon)Icon.Clone();
 
 			if (formReport.ShowDialog() == DialogResult.OK)
