@@ -45,15 +45,26 @@ namespace Torn5.Controls
 		{
 			RedrawTimer.Enabled = false;
 
-			if (Report == null)
-				BackgroundImage = null;
-			else if (!this.DesignMode)
-				BackgroundImage = Report.ToBitmap(Width, Height);
+			if (!DesignMode)
+				Redraw();
 		}
 
+		private bool IsDark()
+		{
+			try
+			{
+				return (int)Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) == 0;
+			}
+			catch
+			{
+				return false;
+			}
+		}
+        
 		public void Redraw()
 		{
-			BackgroundImage = Report.ToBitmap(Width, Height, true);
+			BackColor = IsDark() ? Color.Black : Color.White;
+			BackgroundImage = Report?.ToBitmap(Width, Height, true);
 		}
 	}
 }
