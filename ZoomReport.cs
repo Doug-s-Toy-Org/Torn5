@@ -688,9 +688,16 @@ namespace Zoom
 			if (!Columns[col].Arrows.Any(a => a.From.Any() && a.To.Any()))
 				return 0.0;
 
+			if (Columns[col].Arrows.All(a => a.From.Count == 1 && a.To.Count == 1 && a.From.First().Row == a.To.First().Row))  // All arrows in this column are simple and horizontal
+				return Columns[col].Arrows.Max(a => Math.Max(a.From.First().Width, a.To.First().Width)) / 2;  // so we report only half the max width, because there's no need for arrows to curve, cross, join or split.
+
 			double maxWidth = 0.0;
-			for (int row = Columns[col].Arrows.Min(a => Math.Min(a.From.Min(x => x.Row), a.To.Min(x => x.Row))); row < Columns[col].Arrows.Max(a => Math.Max(a.From.Max(x => x.Row), a.To.Max(x => x.Row))); row++)
-				maxWidth = Math.Max(maxWidth, Columns[col].Arrows.Where(a => (a.From.Any(x => x.Row <= row) && a.To.Any(x => x.Row >= row)) || (a.From.Any(x => x.Row >= row) && a.To.Any(x => x.Row <= row))).Sum(a => a.MaxWidth()));
+			int lastEnd = Columns[col].Arrows.Max(a => Math.Max(a.From.Max(x => x.Row), a.To.Max(x => x.Row)));
+			for (int row = Columns[col].Arrows.Min(a => Math.Min(a.From.Min(x => x.Row), a.To.Min(x => x.Row))); row <= lastEnd; row++)
+				maxWidth = Math.Max(maxWidth, Columns[col].Arrows.Where(a => 
+					(a.From.Any(x => x.Row <= row) && a.To.Any(x => x.Row >= row)) ||
+					(a.From.Any(x => x.Row >= row) && a.To.Any(x => x.Row <= row)))
+					.Sum(a => a.MaxWidth()));
 
 			return maxWidth;
 		}
