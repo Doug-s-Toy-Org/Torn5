@@ -1,0 +1,55 @@
+<svg viewBox="-9 -9 18 18" width="100%" height="100%">
+	<defs>
+		<filter id="f1" x="-100%" y="-100%" width="300%" height="300%">
+			<feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+		</filter>
+	</defs>
+
+	<circle cx="-3.5" cy="-2" r="6" style="opacity:0.4" filter="url(#f1)">
+		<animateTransform
+			attributeName="transform"
+			begin="0s" dur="10s"
+			type="rotate"
+			from="0 0 0"
+			to="360 0 0"
+			repeatCount="indefinite" />
+		<animate
+			attributeName="fill"
+			begin="0s" dur="24s"
+			keyTimes="0; 0.33; 0.66; 1"
+			values="#f66;#6f6;#66f;#f66"
+			repeatCount="indefinite"/>
+	</circle>
+
+	<circle cx="3.5" cy="-2" r="6" style="opacity:0.4" filter="url(#f1)">
+		<animateTransform
+			attributeName="transform"
+			begin="0s" dur="10s"
+			type="rotate"
+			from="0 0 0"
+			to="360 0 0"
+			repeatCount="indefinite" />
+		<animate
+			attributeName="fill"
+			begin="0s" dur="24s"
+			keyTimes="0; 0.33; 0.66; 1"
+			values="#6f6;#66f;#f66;#6f6"
+			repeatCount="indefinite"/>
+	</circle>
+
+	<circle cx="0" cy="4" r="6" style="opacity:0.4" filter="url(#f1)">
+		<animateTransform
+			attributeName="transform"
+			begin="0s" dur="10s"
+			type="rotate"
+			from="0 0 0"
+			to="360 0 0"
+			repeatCount="indefinite" />
+		<animate
+			attributeName="fill"
+			begin="0s" dur="24s"
+			keyTimes="0; 0.33; 0.66; 1"
+			values="#6060ff;#f66;#6f6;#66f"
+			repeatCount="indefinite"/>
+	</circle>
+</svg>

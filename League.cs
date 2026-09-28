@@ -1240,7 +1240,7 @@ namespace Torn
 			return leaguePlayer == null ? "null" : leaguePlayer.Name;
 		}
 
-		public Game CommitGame(ServerGame serverGame, List<GameTeamData> teamDatas, GroupPlayersBy groupPlayersBy)
+		public Game CommitGame(ServerGame serverGame, IEnumerable<GameTeamData> teamDatas, GroupPlayersBy groupPlayersBy)
 		{
 			//Load(FileName);
 			var debug = new StringBuilder();
@@ -1360,12 +1360,12 @@ namespace Torn
 			var serverTeams = game.Players.Select(x => x.ServerTeamId).Distinct();
 
 			foreach (int teamId in serverTeams)
-				result.Add(GuessTeam(game.Players.FindAll(x => x.ServerTeamId == teamId).Select(y => y.PlayerId).ToList()));
+				result.Add(GuessTeam(game.Players.FindAll(x => x.ServerTeamId == teamId).Select(y => y.PlayerId)));
 
 			return result.Where(x => x != null).ToList();
 		}
 
-		public LeagueTeam GuessTeam(List<string> ids)
+		public LeagueTeam GuessTeam(IEnumerable<string> ids)
 		{
 			lock (teams)
 				if (!teams.Any() || !ids.Any())
@@ -1390,6 +1390,11 @@ namespace Torn
 			return bestTeam;
 		}
 
+		public LeagueTeam GuessTeam(IEnumerable<ServerPlayer> serverPlayers)
+		{
+			return GuessTeam(serverPlayers.Select(sp => sp.PlayerId));
+		}
+
 		/// <summary>True if any game in this league has victory points.</summary>
 		public bool IsPoints()
 		{
@@ -1398,7 +1403,7 @@ namespace Torn
 		}
 
 		/// <summary>True if any game in the list has victory points.</summary>
-		public bool IsPoints(List<Game> games)
+		public bool IsPoints(IEnumerable<Game> games)
 		{
 			return games.Any(g => g.IsPoints());
 		}
@@ -1957,7 +1962,7 @@ namespace Torn
 			return played;
 		}
 
-		public List<GameTeam> Played(List<Game> games, LeagueTeam leagueTeam)
+		public List<GameTeam> Played(IEnumerable<Game> games, LeagueTeam leagueTeam)
 		{
 			var played = new List<GameTeam>();
 			foreach (var game in games)
@@ -2423,7 +2428,7 @@ namespace Torn
 			PopulateTerms(events);
 		}
 
-		public void PopulateTerms(List<Event> events)
+		public void PopulateTerms(IEnumerable<Event> events)
 		{
 			YellowCards = 0;
 			RedCards = 0;

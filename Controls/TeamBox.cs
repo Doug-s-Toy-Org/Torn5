@@ -104,14 +104,8 @@ namespace Torn.UI
 		LeagueTeam GetLeagueTeamFromFile()
 		{
 			League.Load();
-			List<string> playerIds = new List<string>();
-			foreach (ServerPlayer player in Players())
-			{
-				playerIds.Add(player.PlayerId);
 
-			}
-			LeagueTeam leagueTeam = League.GuessTeam(playerIds);
-			return leagueTeam;
+			return League.GuessTeam(Players());
 		}
 
 		protected override void Recalculate(bool guessTeam = true)
@@ -134,11 +128,7 @@ namespace Torn.UI
 
 			if (guessTeam && League != null)
 			{
-				var ids = new List<string>();
-				foreach (var listPlayer in Players())
-					ids.Add(listPlayer.PlayerId);
-
-				LeagueTeam = League.GuessTeam(ids);
+				LeagueTeam = League.GuessTeam(Players());
 				if (LeagueTeam != null)
 					tempTeam.TeamId = LeagueTeam.TeamId;
 			}
@@ -152,7 +142,7 @@ namespace Torn.UI
 				else
 				{
 					LeagueTeam leagueTeam = GetLeagueTeamFromFile();
-					if (leagueTeam != null && leagueTeam.Handicap != null)
+					if (leagueTeam?.Handicap != null)
 					{
 						ListView.Columns[3].Text = leagueTeam.Handicap.ToString();
 					}
@@ -348,7 +338,7 @@ namespace Torn.UI
 			leagueTeam.Name = LeagueTeam.Name;
 
 			League.Save();
-			League.Load();
+			//League.Load();
 		}
 
 		void MenuRememberTeamClick(object sender, EventArgs e)
