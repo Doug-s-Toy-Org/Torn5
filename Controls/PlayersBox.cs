@@ -38,14 +38,14 @@ namespace Torn.UI
 			if (serverGame.Players != null)
 				foreach (var player in serverGame.Players)
 				{
-					//league?.Load();
+					league?.Load();
 					LeaguePlayer leaguePlayer = league?.LeaguePlayer(player.PlayerId);
 					GamePlayer gamePlayer = league?.Games(false)?.Find(g => g.Time == serverGame.Time)?.Players()?.Find(p => p.PlayerId == player.PlayerId);
-					if (gamePlayer?.Grade != null)
+					if (gamePlayer != null && gamePlayer.Grade != null)
 					{
 						player.Grade = gamePlayer.Grade;
 					}
-					else if (leaguePlayer?.Grade != null)
+					else if (leaguePlayer != null && leaguePlayer.Grade != null)
 					{
 						player.Grade = leaguePlayer.Grade;
 					}
