@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Windows.Forms;
 using Torn5;
 using Zoom;
 
@@ -173,7 +174,7 @@ namespace Torn.Report
 				report.AddColumn(new ZColumn()).Arrows.AddRange(nextColumnArrows);
 				nextColumnArrows.Clear();
 
-				report.AddColumn(new ZColumn(game.Time.ToShortTimeString(), ZAlignment.Integer) { Hyper = GameHyper(game, rt) });  // Game scores.
+				report.AddColumn(new ZColumn(game.Time.ToShortTimeString(), ZAlignment.Integer | ZAlignment.Overflow) { Hyper = GameHyper(game, rt) });  // Game scores.
 
 				if (hasPoints)
 					report.AddColumn(new ZColumn("Points") { Rotate = true });
@@ -716,33 +717,85 @@ namespace Torn.Report
 			{
 				report.Colors.OddColor = default;
 
-				var lastAscensionGameTime = games.Last().Time;
+				var lastAscensionGameTime = games.Any() ? games.Last().Time : DateTime.MaxValue;
 				var laterGames = league.Games().Where(g => g.Time > lastAscensionGameTime).ToList();
-				var laterTeamIds = laterGames.SelectMany(g => g.Teams.Select(gt => gt.TeamId));
+				var laterTeamIds = laterGames.SelectMany(g => g.Teams.Select(gt => gt.TeamId)).Distinct();
+				if (laterTeamIds.Any())
+					report.AddColumn(new ZColumn());
 
-				for (int r = 0; r < report.Rows.Count; r++)
+				var gray = Color.FromArgb(64, Color.Gray);
+				var lastGame = new List<int>();  // For each row (i.e. for each team), the last non-blank cell's index (i.e. their last game).
+				for (int row = 0; row < report.Rows.Count; row++)
 				{
-					var row = report.Rows[r];
-					if (row.Count < 4)
-						continue;
+					if (report.Rows[row][2].Empty())
+						report.Columns[2].AddArrow(row, 5, gray, true);  // Starting arrows, from team name to team's first game.
 
-					string teamName = row[1].Text;
-					var color = Color.FromArgb(64, Color.Gray);
-					int col = 3;
-					while (col < row.Count)
+					// Find this team's last game.
+					if (laterTeamIds.Contains(((LeagueTeam)report.Rows[row][1].Tag).TeamId))
+						lastGame.Add(int.MaxValue);
+					else
+						for (int col = Math.Min(averageCol, report.Rows[row].Count()) - 1; col >= 0; col--)
+							if (col >= 0 && !report.Rows[row][col].Empty())
+							{
+								lastGame.Add(col);
+								break;
+							}
+				}
+
+				var groups = lastGame.GroupBy(x => x);
+				int teamsEliminatedPerEliminationGame = (int)Math.Round(groups.Average(g => g.Count()));  // In games which are teams' last games, how many teams are eliminated?
+
+				// Guess how many tracks are used, and create a list of colours for arrows leading out of each game. Don't use any colours that are used for teams.
+				List<Colour> colours = new List<Colour>() { Colour.Red, Colour.Blue, Colour.Green, Colour.Yellow, Colour.Pink, Colour.Cyan, Colour.Orange, Colour.Purple };  // This array has the hardest to distinguish colours last, so they get used the least.
+				var coloursUsed = games.SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct();
+				var unusedColours = colours.Where(c => !coloursUsed.Contains(c)).ToList();
+				int numTracks = (int)Math.Ceiling(1.0 * games.Count * teamsEliminatedPerEliminationGame / report.Rows.Count);
+				if (unusedColours.Count < numTracks)
+					unusedColours = colours;
+				var arrowColors = unusedColours.Take(numTracks).Select(c => Color.FromArgb(128, c.ToDarkColor())).ToList();
+
+				var tracks = Enumerable.Repeat(0, report.Rows.Count).ToList();  // What track is each team currently on? All start on track 0, the top track.
+
+				for (int col = 3; col < report.Columns.Count; col++)  // For each column after the first game,
+				{
+					var playedlastGame = new List<int>();
+					int track = int.MaxValue;
+					bool foundFull = false;
+					bool foundEmpty = false;  // If all the non-empty cells in the column immediately to the left are paired with non-empty cells in this column, then this is not a place to draw arrows: this is the victory points column following a score column, or this is the next game in an n-game series, etc.
+					for (int r = 0; r < report.Rows.Count; r++)
 					{
-						int newCol = col;
-						while (newCol < row.Count && row[newCol].Empty())
-							newCol++;
-
-						if (newCol < row.Count)
-							report.Columns[col].AddArrow(r, 5, color, true);
-
-						col = newCol + 1;
+						var row = report.Rows[r];
+						if (!row[col - 1].Empty())  // find cells where the cell immediately to the left is full,
+						{
+							bool full = row.Valid(col) && !row[col].Empty();
+							foundFull |= full;
+							foundEmpty |= !full;
+							playedlastGame.Add(r);
+						}
 					}
 
-					if (laterTeamIds.Contains(((LeagueTeam)row[1].Tag).TeamId))
-						report.Columns.Last().AddArrow(r, 5, color, true);
+					if (foundEmpty)  // and a cell is empty, ...
+					{
+						track = playedlastGame.Min(r => tracks[r]);  // "What track is this game?" is the same question as "What's the lowest track number of any team in this game?".
+
+						if (foundFull)  // Some of the cells we want to put arrows in are already filled (probably because back-to-back games)
+						{
+							report.InsertColumn(col).GroupHeading = report.Columns[col - 1].GroupHeading;  // so insert a column to contain the arrows.
+							for (int i = 0; i < lastGame.Count; i++)
+								if (lastGame[i] < int.MaxValue && col <= lastGame[i])
+									lastGame[i]++;
+						}
+
+						foreach (var r in playedlastGame)  // ... and put the left end of an arrow there, and set it to extend to the right.
+						{
+							var row = report.Rows[r];
+							if (col <= lastGame[r])
+								if (!row.Valid(col) || row[col].Empty())
+									report.Columns[col].AddArrow(r, 5, arrowColors[track % arrowColors.Count], true);
+
+							tracks[r] = track + 1;
+						}
+					}
 				}
 			}
 
