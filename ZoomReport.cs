@@ -95,7 +95,7 @@ namespace Zoom
 			Alignment = alignment;
 			GroupHeading = groupHeading;
 
-			if (alignment == ZAlignment.Float || alignment == ZAlignment.Integer)
+			if (alignment.HasFlag(ZAlignment.Float) || alignment.HasFlag(ZAlignment.Integer))
 				Alignment |= ZAlignment.Right;
 		}
 
@@ -659,6 +659,18 @@ namespace Zoom
 			return true;
 		}
 
+		public ZColumn InsertColumn(int i)
+		{
+			var column = new ZColumn();
+			Columns.Insert(i, column);
+
+			foreach (var row in Rows)
+				if (row.Valid(i))
+					row.Insert(i, new ZCell());
+
+			return column;
+		}
+
 		public void RemoveColumn(int i)
 		{
 			if (Columns.Valid(i))
@@ -764,7 +776,7 @@ namespace Zoom
 							min = Math.Min(min, n);
 							max = Math.Max(max, n);
 						}
-						else if (!string.IsNullOrEmpty(cell.Text) && !(column.Alignment | cell.Alignment).HasFlag(ZAlignment.Overflow))
+						else if (!string.IsNullOrEmpty(cell.Text) && !cell.Alignment.HasFlag(ZAlignment.Overflow))
 						{
 							float width = TextWidth(cell.Text);
 							total += width;
@@ -1386,32 +1398,56 @@ namespace Zoom
 		}
 
 		/// <summary>Formats the value of a cell then calls the other overload.</summary>
-		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell, bool transparent)
+		void SvgText(StringBuilder s, int indent, int x, int y, List<float> widths, int height, ZRow row, int col, bool transparent)
 		{
+			ZColumn column = Columns[col];
+			ZCell cell = row[col];
 			string cssClass = (cell.CssClass + (transparent && cell.Color == default ? " ld" : "")).Trim();
 
 			var leftrightcenter = cell.Alignment & (ZAlignment.Left | ZAlignment.Right | ZAlignment.Center);
 			if (leftrightcenter == ZAlignment.None)
 				leftrightcenter = column.Alignment & (ZAlignment.Left | ZAlignment.Right | ZAlignment.Center);
 
-			if ((column.Alignment | cell.Alignment).HasFlag(ZAlignment.Overflow))
+			float width = widths[col];
+
+			if (cell.Alignment.HasFlag(ZAlignment.Overflow))
 			{
 				if (leftrightcenter.HasFlag(ZAlignment.Left))
-					width = Right - x - 1;
+				{
+					int i;
+					for (i = col + 1; i < Columns.Count && i < row.Count && row[i].Empty(); i++)  // Walk rightwards through empty cells.
+						width += widths[i];
+
+					if (i == row.Count && i < Columns.Count)  // It's empty all the way to end of the row, but the row cells don't go all the way to the last column,
+						width = Right - x - 1;  // so set our width to take us all the way to the right edge.
+				}
 				else if (leftrightcenter.HasFlag(ZAlignment.Right))
 				{
-					width += x - 1;
-					x = 1;
+					int i;
+					for (i = col - 1; i >= 0 && row[i].Empty(); i--)  // Walk leftwards through empty cells.
+						width += widths[i];
+
+					x -= (int)(width - widths[col]);
+
+					if (i >= -1 && Columns[i + 1].Arrows.Any())
+					{
+						int rowIndex = Rows.IndexOf(row);
+						if (Columns[i + 1].Arrows.Any(a => a.From.Any(ae => ae.Row == rowIndex) || a.To.Any(ae => ae.Row == rowIndex)))  // If there's arrows that start/end in the leftmost cell we've expanded into,
+						{  // limit ourselves back a few pixels, to make sure there's room for that.
+							x += 3;
+							width -= 3;
+						}
+					}
 				}
 				else if (leftrightcenter.HasFlag(ZAlignment.Center))
 				{
 					var availableExpansion = Math.Min(x, Right - width);
-					x -= availableExpansion;
+					x -= (int)availableExpansion;
 					width += availableExpansion;
 				}
 			}
 
-			SvgText(s, indent, x, y, width, (int)Math.Round(height * 0.76), cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, leftrightcenter,
+			SvgText(s, indent, x, y, (int)width, (int)Math.Round(height * 0.76), cell.TextColor == Color.Empty ? Colors.TextColor : cell.TextColor, leftrightcenter,
 				cell.OutputText(OutputFormat.Svg), cssClass, cell.Hyper, column.FillWidth, false);
 		}
 
@@ -1598,8 +1634,7 @@ namespace Zoom
 			col = FindArrowEnd(end, col, -1);
 
 			// If the cell we've stopped at exists, and is in a column that exists, and is align right, and has Overflow set,
-			if (Rows[end.Row].Valid(col + 1) && Columns.Valid(col + 1) &&
-				(Rows[end.Row][col + 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow) || Columns[col + 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow)))
+			if (Rows[end.Row].Valid(col + 1) && Columns.Valid(col + 1) && Rows[end.Row][col + 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow))
 				return widths.Take(col).Sum(w => w + 1) + 0.5F + TextWidth(Rows[end.Row][col + 1].Text);  // step right by the width of the text in the cell with Overflow set.
 			else
 				return widths.Take(col + 1).Sum(w => w + 1) + 0.5F;
@@ -1610,8 +1645,7 @@ namespace Zoom
 			col = FindArrowEnd(end, col, 1);
 
 			// If the cell we've stopped at exists, and is in a column that exists, and is align right, and has Overflow set,
-			if (Rows[end.Row].Valid(col) && Columns.Valid(col) &&
-				(Rows[end.Row][col].Alignment.HasFlag(ZAlignment.Right | ZAlignment.Overflow) || Columns[col].Alignment.HasFlag(ZAlignment.Right | ZAlignment.Overflow)))
+			if (Rows[end.Row].Valid(col) && Columns.Valid(col) && Rows[end.Row][col].Alignment.HasFlag(ZAlignment.Right | ZAlignment.Overflow))
 				return widths.Take(col + 1).Sum(w => w + 1) - 1.5F - TextWidth(Rows[end.Row][col].Text);  // step left by the width of the text in the cell with Overflow set.
 			else
 				return widths.Take(col).Sum(w => w + 1) - 1.5F;
@@ -1667,8 +1701,13 @@ namespace Zoom
 
 				s.AppendFormat("<path d=\"M {0:0.#},{1:0.#} ", left, RowMid(top, leftEnd.Row, rowHeight));
 
-				if (leftEnd.Row == rightEnd.Row)  // Draw the straight arrow line.
-					s.AppendFormat("h {0:0.#}\" ", width - halfArrowH + 1);
+				if (leftEnd.Row == rightEnd.Row)  // Draw the straight arrow line as a filled shape.
+				{
+					s.AppendFormat("v {0:0.#} ", halfArrowH);  // Move down from centreline.
+					s.AppendFormat("h {0:0.#} ", width - halfArrowH);  // Right by width minus room for arrowhead.
+					s.AppendFormat("v {0:0.#} l {1:0.#},{2:0.#} l {2:0.#},{2:0.#} v {0:0.#} ", halfArrowH, fullArrow, -fullArrow);  // Right end arrowhead, starting at its bottom left: down, up/right, up/left, down.
+					s.AppendFormat("h {0:0.#} z\" fill=\"", halfArrowH - width);  // Left back to our starting x.
+				}
 				else  // Draw the curved arrow line with two SVG "q" splines, like: <path d=\"M 100,100 h1 q3,0 6,11 q3,11 6,11 h1" stroke="color" stroke-width="4"/>
 				{
 					// See if there are filled cells that this arrow needs to dodge around.
@@ -1744,20 +1783,20 @@ namespace Zoom
 						s.AppendFormat("h 1 q {0:0.#},0 {1:0.#},{2:0.#} t {1:0.#},{2:0.#} h {3:0.#}\" ",
 							// 0: Control point x;      1: width of each curve; 2: height of each curve;                      3: horizontal bit at end.
 							width / 4 - halfArrowH / 2, width / 2 - halfArrowH, (rightEnd.Row - leftEnd.Row) * rowHeight / 2, halfArrowH);
+
+					s.AppendFormat("fill=\"none\" stroke-width=\"{0:0.#}\"", fullArrow);
+
+					if (c.A < 255)
+						s.AppendFormat(" stroke-opacity=\"{0:0.###}\"", c.A / 255.0);
+
+					s.Append(" stroke=\"");
+					s.Append(ColorTranslator.ToHtml(c));
+					s.Append("\" /> ");
+
+					// Add triangular arrowhead.
+					s.AppendFormat("<path d=\"M {0:0.#},{1:0.#} ", left + width - halfArrowH, RowMid(top, rightEnd.Row, rowHeight));
+					s.AppendFormat("v {0:0.#} l {0:0.#},{1:0.#} l {1:0.#},{1:0.#} z\" fill=\"", fullArrow, -fullArrow);
 				}
-
-				s.AppendFormat("fill=\"none\" stroke-width=\"{0:0.#}\"", fullArrow);
-
-				if (c.A < 255)
-					s.AppendFormat(" stroke-opacity=\"{0:0.###}\"", c.A / 255.0);
-
-				s.Append(" stroke=\"");
-				s.Append(ColorTranslator.ToHtml(c));
-				s.Append("\" /> ");
-
-				// Add triangular arrowhead.
-				s.AppendFormat("<path d=\"M {0:0.#},{1:0.#} ", left + width - halfArrowH, RowMid(top, rightEnd.Row, rowHeight));
-				s.AppendFormat("v {0:0.#} l {0:0.#},{1:0.#} l {1:0.#},{1:0.#} z\" fill=\"", fullArrow, -fullArrow);
 			}
 			else  // Complex arrow: draw an assembly with multiple starts and/or ends, connected by a vertical "bus" via 90 degree turns.
 			{
@@ -2034,7 +2073,31 @@ namespace Zoom
 
 				// Paint column heading background.
 				if (hasGroupHeadings || (!column.Rotate && !nextRotated))
-					SvgRect(s, 1, x, top + headSpace, widths[col], height - headSpace, backColor);  // Paint column heading rectangle for no rotate or 90 degrees rotate.
+				{
+					// Draw a simple column heading rectangle for no rotate or 90 degrees rotate. (But take into account possible overflow.)
+					float xx = x;
+					float width = widths[col];
+
+					if (column.Alignment.HasFlag(ZAlignment.Overflow))
+					{
+						if (column.Alignment.HasFlag(ZAlignment.Left) && col < Columns.Count - 1 && string.IsNullOrEmpty(Columns[col + 1].Text))
+							width += widths[col + 1] + 1;  // Overflow this heading rightwards over the next column heading, which is empty.
+						else if (column.Alignment.HasFlag(ZAlignment.Right) && col > 0 && string.IsNullOrEmpty(Columns[col - 1].Text))
+						{  // Overflow this heading leftwards over the previous column heading, which is empty.
+							xx = x - widths[col - 1] - 1;
+							width += widths[col - 1] + 1;
+						}
+					}
+
+					if (string.IsNullOrEmpty(column.Text) &&
+						((col > 0 && Columns[col - 1].Alignment.HasFlag(ZAlignment.Left | ZAlignment.Overflow)) ||
+						(col < Columns.Count - 1 && Columns[col + 1].Alignment.HasFlag(ZAlignment.Right | ZAlignment.Overflow))))
+					{
+						// Don't paint this column heading, because its space will be taken by the column immediately to the left or right overflowing onto it.
+					}
+					else
+						SvgRect(s, 1, xx, top + headSpace, width, height - headSpace, backColor);  // Paint column heading rectangle for no rotate or 90 degrees rotate.
+				}
 				else  // Various 45 degree rotation cases.
 				{
 					float right = Math.Min(x + widths[col], Right - 1);
@@ -2078,59 +2141,63 @@ namespace Zoom
 				}
 
 				// Paint text.
-				if (hasGroupHeadings && column.Rotate)  // Rotate this column heading text by 90 degrees.
+				if (!string.IsNullOrEmpty(column.Text))
 				{
-					s.Append("\t<text alignment-baseline=\"middle\" ");
+					if (hasGroupHeadings && column.Rotate)  // Rotate this column heading text by 90 degrees.
+					{
+						s.Append("\t<text alignment-baseline=\"middle\" ");
 
-					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3:0.#}\"",
-									x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height, Math.Min((RowHeight * (_pure ? 0.681 : 0.75)), widths[col]));
+						s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(90 {0:F0},{1:F0})\" font-size=\"{3:0.#}\"",
+										x + widths[col] / 2 - RowHeight / 4, bottom - RowHeight / 4, height, Math.Min((RowHeight * (_pure ? 0.681 : 0.75)), widths[col]));
 
-					if (column.Color == default)
-						AppendStrings(s, " fill=\"", ColorTranslator.ToHtml(Colors.TitleFontColor), "\"");
+						if (column.Color == default)
+							AppendStrings(s, " fill=\"", ColorTranslator.ToHtml(Colors.TitleFontColor), "\"");
 
-					s.Append(">");
+						s.Append(">");
 
-					s.Append(WebUtility.HtmlEncode(column.Text));
-					s.Append("</text>\n");
-					text45Offset = float.MaxValue;
+						s.Append(WebUtility.HtmlEncode(column.Text));
+						s.Append("</text>\n");
+						text45Offset = float.MaxValue;
+					}
+					else if (!hasGroupHeadings && column.Rotate)  // Paint column heading text rotated 45 degrees.
+					{
+						s.Append("\t");
+
+						if (!_pure && !string.IsNullOrEmpty(column.Hyper))
+							AppendStrings(s, "<a href=\"", column.Hyper, "\">");
+
+						// Draw text inside parallelogram.
+						s.Append("<text ");
+
+						bool previousRotated = Columns.Valid(col - 1) && Columns[col - 1].Rotate;
+						float colWidth = previousRotated ? Math.Min(widths[col - 1], widths[col]) : widths[col];
+						float previousOffset = text45Offset;
+						text45Offset = widths[col] / 2 - (nextRotated ? RowHeight / 2F : 0);
+
+						s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3:0.#}\"",
+									   x + Math.Min(previousOffset, text45Offset), bottom - 3, height * 1.41 - RowHeight * 3 / 4, RowHeight * 3 / 4);
+
+						if (column.Color == default)
+							AppendStrings(s, " fill=\"", ColorTranslator.ToHtml(Colors.TitleFontColor), "\"");
+
+						s.Append(">");
+
+						s.Append(WebUtility.HtmlEncode(column.Text));
+						s.Append("</text>");
+
+						if (!_pure && !string.IsNullOrEmpty(column.Hyper))
+							s.Append("</a>");
+						s.Append("\n");
+					}
+					else  // Paint column heading text flat.
+					{
+						SvgMultilineText(s, 1, (int)x, top + headSpace, (int)widths[col] - (nextRotated && !hasGroupHeadings ? RowHeight : 0), height - headSpace, TextHeight,
+							column.Color == default ? Colors.TitleFontColor : default, column.Alignment, column.Text, null, column.Hyper);
+
+						text45Offset = float.MaxValue;
+					}
 				}
-				else if (!hasGroupHeadings && column.Rotate)  // Paint column heading text rotated 45 degrees.
-				{
-					s.Append("\t");
 
-					if (!_pure && !string.IsNullOrEmpty(column.Hyper))
-						AppendStrings(s, "<a href=\"", column.Hyper, "\">");
-
-					// Draw text inside parallelogram.
-					s.Append("<text ");
-
-					bool previousRotated = Columns.Valid(col - 1) && Columns[col - 1].Rotate;
-					float colWidth = previousRotated ? Math.Min(widths[col - 1], widths[col]) : widths[col];
-					float previousOffset = text45Offset;
-					text45Offset = widths[col] / 2 - (nextRotated ? RowHeight / 2F : 0);
-
-					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3:0.#}\"",
-								   x + Math.Min(previousOffset, text45Offset), bottom - 3, height * 1.41 - RowHeight * 3 / 4, RowHeight * 3 / 4);
-
-					if (column.Color == default)
-						AppendStrings(s, " fill=\"", ColorTranslator.ToHtml(Colors.TitleFontColor), "\"");
-
-					s.Append(">");
-
-					s.Append(WebUtility.HtmlEncode(column.Text));
-					s.Append("</text>");
-
-					if (!_pure && !string.IsNullOrEmpty(column.Hyper))
-						s.Append("</a>");
-					s.Append("\n");
-				}
-				else  // Paint column heading text flat.
-				{
-					SvgMultilineText(s, 1, (int)x, top + headSpace, (int)widths[col] - (nextRotated && !hasGroupHeadings ? RowHeight : 0), height - headSpace, TextHeight,
-						column.Color == default ? Colors.TitleFontColor : default, column.Alignment, column.Text, null, column.Hyper);
-
-					text45Offset = float.MaxValue;
-				}
 				x += widths[col] + 1;
 			}
 
@@ -2418,7 +2485,7 @@ namespace Zoom
 			float x = left;
 			for (int col = 0; col < Columns.Count && col < row.Count; col++)
 			{
-				SvgText(s, 1, (int)x, top, (int)widths[col], height, Columns[col], row[col], rowColor == default || rowColor.A <= 128);  // Write a data cell.
+				SvgText(s, 1, (int)x, top, widths, height, row, col, rowColor == default || rowColor.A <= 128);  // Write a data cell.
 
 				x += widths[col] + 1;
 			}
