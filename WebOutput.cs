@@ -107,7 +107,7 @@ namespace Torn.Report
 		{
 			string group = rt.Setting("Group");
 			return league.Games(includeSecret)
-				.Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue) && (string.IsNullOrEmpty(group) || (g.Title ?? "").Contains(group)))
+				.Where(g => g.Time > (rt.From ?? DateTime.MinValue) && g.Time < (rt.To ?? DateTime.MaxValue) && (string.IsNullOrEmpty(group) || (g.Title ?? "").IndexOf(group, StringComparison.CurrentCultureIgnoreCase) >= 0))
 				.ToList();
 		}
 

@@ -372,7 +372,7 @@ namespace Torn.UI
 				Games = allGames.Where(g =>
 					g.Time > (ReportTemplate.From ?? DateTime.MinValue) &&
 					g.Time < (ReportTemplate.To ?? DateTime.MaxValue) &&
-					(!withDescription.Checked || (g.Title ?? "").Contains(descriptionGroup.Text)) &&
+					(!withDescription.Checked || (g.Title ?? "").IndexOf(descriptionGroup.Text, StringComparison.CurrentCultureIgnoreCase) >= 0) &&
 					(!selectedGames.Checked || SelectedGameTimes.Any(dt => dt == g.Time))
 				).ToList();
 
