@@ -425,6 +425,7 @@ namespace TornWeb
 
 			Assert.That(teamBox.Empty(), Is.False, "teamBox Accept players.");
 			Assert.That(teamBox.Score, Is.EqualTo(6000));
+			Assert.That(teamBox.LeagueTeam.TeamId, Is.EqualTo(league.Teams()[0].TeamId));
 
 			teamBox.Clear();
 

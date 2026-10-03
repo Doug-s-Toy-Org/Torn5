@@ -1177,7 +1177,7 @@ namespace Torn
 			gameTeam.Time = game.Time;
 			game.Teams.Add(gameTeam);
 
-			LeagueTeam leagueTeam = LeagueTeam(gameTeam) ?? GuessTeam(teamData.Players.Select(x => x.PlayerId).ToList());
+			LeagueTeam leagueTeam = LeagueTeam(gameTeam) ?? GuessTeam(teamData.Players);
 
 			if (leagueTeam == null)
 			{
@@ -1360,15 +1360,15 @@ namespace Torn
 			var serverTeams = game.Players.Select(x => x.ServerTeamId).Distinct();
 
 			foreach (int teamId in serverTeams)
-				result.Add(GuessTeam(game.Players.FindAll(x => x.ServerTeamId == teamId).Select(y => y.PlayerId).ToList()));
+				result.Add(GuessTeam(game.Players.FindAll(x => x.ServerTeamId == teamId)));
 
 			return result.Where(x => x != null).ToList();
 		}
 
-		public LeagueTeam GuessTeam(List<string> ids)
+		public LeagueTeam GuessTeam(IEnumerable<ServerPlayer> serverPlayers)
 		{
 			lock (teams)
-				if (!teams.Any() || !ids.Any())
+				if (!teams.Any() || !serverPlayers.Any())
 					return null;
 
 			LeagueTeam bestTeam = null;
@@ -1378,7 +1378,7 @@ namespace Torn
 				foreach (LeagueTeam team in teams)
 					if (team.Players.Any())
 					{
-						double thisScore = 1.0 * team.Players.FindAll(p => ids.Contains(p.Id)).Count / team.Players.Count;
+						double thisScore = 1.0 * team.Players.Count(p => serverPlayers.Any(sp => sp.PlayerId == p.Id)) / team.Players.Count;
 
 						if (bestScore < thisScore)
 						{
