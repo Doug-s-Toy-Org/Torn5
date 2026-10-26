@@ -13,7 +13,7 @@ namespace Torn.Grids
 		public readonly ScoreScalers ScoreScalers = new ScoreScalers();
 		public ShuffleType ShuffleType = ShuffleType.Referees | ShuffleType.Games | ShuffleType.WithinGames;
 		public Sessions Sessions = new Sessions();
-		public bool Rings;
+		public int Rings;
 		public bool Changed = false;
 		public string Details;
 		public double RoundRobinness = 0.0;
@@ -47,7 +47,7 @@ namespace Torn.Grids
 
 				best.RefGames = new SetupGames() { Teams = teams, GameCount = games, TeamsPerGame = refereesPerGame }.Setup();
 
-				oneImprover = new Improver(best.PlayGames, ScoreScalers) { RefGames = best.RefGames, ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType };
+				oneImprover = new Improver(best.PlayGames, ScoreScalers) { RefGames = best.RefGames, ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = 1 };
 			}
 			else  // Append to existing games.
 			{
@@ -88,6 +88,9 @@ namespace Torn.Grids
 
 			Sessions.Amend(best.PlayGames.Count);
 			ToFixtureGames(best, fixture);
+			var result = oneImprover.Scored();
+			Details = result.ScoreString + errors.ToString() + result.Details;
+			RoundRobinness = result.RoundRobinness;
 		}
 
 		/// <summary>Used when improving Ring fixtures.</summary>
@@ -101,7 +104,7 @@ namespace Torn.Grids
 				return;
 
 			// Make a dictionary from TeamId's to indexes. Necessary because TeamId's start from 1 and may not be contiguous; but indexes must start from 0 and be contiguous.
-			var teamsInOrder = new Dictionary<int, int>();  // Key: teamID's from fixture. Value: new index into what will be new IndexGames's.
+			var teamsInOrder = new Dictionary<int, int>();  // Key: TeamId's from fixture. Value: new index into what will be new IndexGames's.
 			foreach (var team in fixture.Teams)
 				if (!teamsInOrder.ContainsKey(team.TeamId))
 					teamsInOrder.Add(team.TeamId, teamsInOrder.Count);
@@ -128,8 +131,51 @@ namespace Torn.Grids
 
 			ToFixtureGames(best, fixture);
 			var result = oneImprover.Scored();
-			Details = (result.ScoreString + errors.ToString() + result.Details);
+			Details = result.ScoreString + errors.ToString() + result.Details;
 			RoundRobinness = result.RoundRobinness;
+		}
+
+		/// <summary>Populate Colours with enough entries for all the teams in a non-Rings fixture.</summary>
+		public void SetupColours(List<Colour> coloursToUse, int teamsPerGame, int refereesPerGame)
+		{
+			Colours.Clear();
+			Colours.AddRange(coloursToUse);
+			if (Colours.Count > teamsPerGame)
+				Colours.RemoveRange(teamsPerGame, Colours.Count - teamsPerGame);
+
+			// If there was only one colour ticked, add more of that colour. Otherwise, just add Colour.None.
+			Colour colourToAdd = Colours.Count == 1 ? Colours.First() : Colour.None;
+			while (Colours.Count < teamsPerGame)
+				Colours.Add(colourToAdd);
+
+			// Add entries for referees, if any.
+			for (int i = 0; i < refereesPerGame; i++)
+				Colours.Add(Colour.Referee);
+		}
+
+		/// <summary>Populate Colours with enough entries for all the teams in a Rings fixture.</summary>
+		public void SetupColours(List<Colour> coloursToUse, int rings, int teamsPerRing, bool referees)
+		{
+			var bestColours = ColourExtensions.BestFirst();
+			for (int i = 0; i < bestColours.Count && coloursToUse.Count < rings; i++)
+				if (!coloursToUse.Contains(bestColours[i]))
+					coloursToUse.Add(bestColours[i]);
+
+			Colours.Clear();
+
+			// Add colours until we've got enough.
+			while (Colours.Count < rings * teamsPerRing)
+			{
+				var colourToAdd = coloursToUse.FirstOrDefault();
+				for (int i = 0; i < teamsPerRing; i++)
+					Colours.Add(colourToAdd);
+				coloursToUse.Remove(colourToAdd);
+			}
+
+			// Add entries for referees, if any.
+			if (referees)
+				for (int i = 0; i < rings * teamsPerRing; i++)
+					Colours.Add(Colour.Referee);
 		}
 
 		/// <summary>Improve a team fixture via hill-climbing.</summary>
@@ -206,7 +252,7 @@ namespace Torn.Grids
 				AddIndexesInOrderFromGames(playGames, indexesInOrder);
 				AddIndexesInOrderFromGames(refGames, indexesInOrder);
 
-				if (Rings && refGames.Any(g => g.Count > 0))
+				if (Rings > 1 && refGames.Any(g => g.Count > 0))
 				{
 					// Translate teamIndexes, but ensure that players who are marked as not refereeing (i.e. their team name ends in '*') get assigned to a non-refereeing slot (and everyone else gets assigned a refereeing slot).
 					// In the degenerate case where no teams end in '*', this produces the same output as the 'else' case below.
@@ -324,7 +370,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>Fill IndexGames with the appropriate number of games, teams, teams per game, games per team.</summary>
-	class SetupGames
+	internal class SetupGames
 	{
 		public List<LeagueTeam> Teams;
 		/// <summary>Desired number of games.</summary>
@@ -441,6 +487,14 @@ namespace Torn.Grids
 				Append();
 
 			Games.ClearCache();
+
+			if (Games.PlayCounts().Count(x => x != gamesPerTeam) > TeamsPerGame)  // If we've produced a grid where more than a few teams don't get the right number of games,
+			{
+				Games.Clear();
+				Append();  // just do the simple 112 thing.
+				Games.ClearCache();
+			}
+
 			return Games;
 		}
 
@@ -582,7 +636,8 @@ namespace Torn.Grids
 				Game(g + 0, g + mark2, g + mark3);
 		}
 
-		/// <summary>Create multiple sets of marks. Only supports TeamsPerGame = 3.</summary>
+		/// <summary>Create multiple sets of marks.
+		/// For many TeamsPerGame values that are not a multiple of 3, this will produce a bad fixture, with some teams getting too few and some teams getting too many games.</summary>
 		private void Mark3s(params int[] marks)
 		{
 			for (int group = 0; group < marks.Length - 1; group += 2)
@@ -602,7 +657,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>Just the hill-climbing bit.</summary>
-	class Improver
+	internal class Improver
 	{
 		public IndexGames PlayGames;
 		public IndexGames RefGames;
@@ -612,7 +667,7 @@ namespace Torn.Grids
 		public List<Colour> Colours;
 		public ShuffleType ShuffleType;
 		public double Score;
-		public bool Rings;  // True if this is a Lord of the Ring style game, where all players on each colour are their own sub-game.
+		public int Rings;  // Greater than 1 if this is a Lord of the Ring style game, where all players on each colour are their own sub-game.
 		public bool Running = false;
 
 		private readonly Plays plays;
@@ -749,6 +804,9 @@ namespace Torn.Grids
 			int game2 = random.Next(newGames.Count - 1);
 			if (game2 >= game1) game2++;
 
+			if (newGames[game1].Count == 0 || newGames[game2].Count == 0)
+				return new SwapRecord() { ShuffleType = ShuffleType.None, Game1 = game1, Game2 = game2 };
+
 			int team1 = random.Next(newGames[game1].Count);
 			int team2 = random.Next(newGames[game2].Count);
 
@@ -824,7 +882,9 @@ namespace Torn.Grids
 			plays.Calc(playGames, ExistingPlays, Colours, Rings);
 			double orphanScore = onSite.CalcOnSite(playGames, refGames, Sessions) * ScoreScalers.OneGameInSession; // Set up onSite.
 
-			double timesPlayedScore = TimesPlayedScore(playGames.AveragePlays + ExistingPlays.Average());
+			double averagePlays = playGames.AveragePlays(Rings) + ExistingPlays.Average();
+
+			double timesPlayedScore = TimesPlayedScore(playGames.AveragePlays(Rings) + ExistingPlays.Average());
 			int playSelfScore = PlaySelfScore(playGames, refGames);
 			double backToBackScore = BackToBackScore(playGames, refGames);
 			double dayNightLength = DayNightLengthScore(playGames);
@@ -911,25 +971,51 @@ namespace Torn.Grids
 		{
 			var sb = new StringBuilder();
 
-			if (ScoreScalers.BackToBack == 0)
+			if (ScoreScalers.BackToBack <= 0 && ScoreScalers.PlayThenRef <= 0 && ScoreScalers.RefThenPlay <= 0)
 				return sb;
+
+			int backToBacks = 0;
+			int playThenRef = 0;
+			int refThenPlay = 0;
+
+			if (ScoreScalers.BackToBack > 0 || ScoreScalers.PlayThenRef > 0 || ScoreScalers.RefThenPlay > 0)
+				for (int game = 0; game < playGames.Count - 1; game++)  // For each consecutive pair of games (other than the very last),
+					if (!Sessions.Any(s => s.Last == game))  // If this game is the Last in a Session, there is no next game, so don't look.
+					{
+						if (ScoreScalers.BackToBack > 0)
+							backToBacks += playGames[game].Count(teamIndex => playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex)); // same team plays in the next game
+
+						if (ScoreScalers.PlayThenRef > 0)
+							playThenRef += playGames[game].Count(teamIndex => refGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex));  // same team referees the next game
+
+						if (ScoreScalers.RefThenPlay > 0)
+							refThenPlay += refGames[game].Count(teamIndex => playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex));  // ref team plays in the next game
+					}
 
 			for (int game = 0; game < playGames.Count - 1; game++)  // For each consecutive pair of games (other than the very last),
 				if (!Sessions.Any(s => s.Last == game))  // If this game is the Last in a Session, there is no next game, so don't look.
 				{
 					foreach (int teamIndex in playGames[game])  // for each team playing this game
 					{
-						if (playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex) && ScoreScalers.BackToBack > 0)  // same team plays in the next game
+						if (ScoreScalers.BackToBack > 0 && backToBacks < 10 && playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team plays in the next game
 							sb.AppendFormat("Team ID {0} plays games {1} and {2}. ", teamIndex + 1, game + 1, game + 2);
 
-						if (refGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex) && ScoreScalers.PlayThenRef > 0)  // same team referees the next game
+						if (ScoreScalers.PlayThenRef > 0 && playThenRef < 10 && refGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team referees the next game
 							sb.AppendFormat("Team ID {0} plays game {1} then refs. ", teamIndex + 1, game + 1);
 					}
 
-					foreach (int teamIndex in refGames[game])  // for each team refereeing this game
-						if (playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex) && ScoreScalers.RefThenPlay > 0)  // same team plays in the next game
-							sb.AppendFormat("Team ID {0} refs game {1} then plays. ", teamIndex + 1, game + 1);
+					if (ScoreScalers.RefThenPlay > 0 && refThenPlay < 10)
+						foreach (int teamIndex in refGames[game])  // for each team refereeing this game
+							if (playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team plays in the next game
+								sb.AppendFormat("Team ID {0} refs game {1} then plays. ", teamIndex + 1, game + 1);
 				}
+
+			if (backToBacks >= 10)
+				sb.AppendFormat("On {0} occasions, a team plays twice in a row. ", playThenRef);
+			if (playThenRef >= 10)
+				sb.AppendFormat("On {0} occasions, a team plays then refs. ", playThenRef);
+			if (refThenPlay >= 10)
+				sb.AppendFormat("On {0} occasions, a team refs then plays. ", refThenPlay);
 
 			return sb;
 		}
@@ -1152,7 +1238,7 @@ namespace Torn.Grids
 			plays.Calc(PlayGames, ExistingPlays, Colours, Rings);
 			double orphanScore = onSite.CalcOnSite(PlayGames, RefGames, Sessions) * ScoreScalers.OneGameInSession; // Set up OnSite.
 
-			double timesPlayedScore = TimesPlayedScore(PlayGames.AveragePlays + ExistingPlays.Average());  // Score teams for how many times they play each other.
+			double timesPlayedScore = TimesPlayedScore(PlayGames.AveragePlays(Rings) + ExistingPlays.Average());  // Score teams for how many times they play each other.
 			int playSelfScore = PlaySelfScore(PlayGames, RefGames);
 			double backToBackScore = BackToBackScore(PlayGames, RefGames);
 			double dayNightLength = DayNightLengthScore(PlayGames);
@@ -1225,7 +1311,7 @@ namespace Torn.Grids
 				sb.Append(".\r\n");
 			}
 
-			plays.Calc(PlayGames, ExistingPlays, this.Colours, Rings);
+			plays.Calc(PlayGames, ExistingPlays, Colours, Rings);
 
 			var backToBacks = GetBackToBacks(PlayGames, RefGames);
 			if (backToBacks.Length > 0)
@@ -1354,7 +1440,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>A list of indexes into a List of LeagueTeam. This represents a future game, not yet played.</summary>
-	class IndexGame : List<int>
+	internal class IndexGame : List<int>
 	{
 		public IndexGame Clone()
 		{
@@ -1374,7 +1460,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>A list of games, with each game being a list of indexes into a List of LeagueTeam. These are future games, not yet played.</summary>
-	class IndexGames : List<IndexGame>
+	internal class IndexGames : List<IndexGame>
 	{
 		public IndexGames Clone()
 		{
@@ -1484,12 +1570,29 @@ namespace Torn.Grids
 		public double PlaysPerTeam => NumTeams == 0 ? 0 : 1.0 * Plays / NumTeams;
 
 		/// <summary>Average number of times each team plays each other team.</summary>
-		public double AveragePlays => NumTeams == 0 ? 0 : 1.0 * PlaysPerTeam * (TeamsPerGame - 1) / (NumTeams - 1);
+		public double AveragePlays(int rings)
+		{
+			return NumTeams == 0 ? 0 : 1.0 * PlaysPerTeam * (TeamsPerGame - 1) / (NumTeams - 1) / rings;
+		}
+
+		/// <summary>Count how many games each team gets.</summary>
+		public List<int> PlayCounts()
+		{
+			var playCounts = new List<int>();
+			for (int i = 0; i <= MaxIndex; i++)
+				playCounts.Add(0);
+
+			for (int g = 0; g < Count; g++)
+				for (int h = 0; h < this[g].Count; h++)
+					playCounts[this[g][h]]++;  // Count how many games each team gets.
+
+			return playCounts;
+		}
 	}
 
 	/// <summary>List of games, with each game containing a list of teams, 
 	/// with each team having a bool showing if they are marked as being on site during this game.</summary>
-	class OnSite : List<List<bool>>
+	internal class OnSite : List<List<bool>>
 	{
 		/// <summary>
 		/// Create (number of games) × (number of teams) bool grid.
@@ -1624,7 +1727,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>Plays is a n × n int array, with each plays[a,b] representing the number of times team a plays team b.</summary>
-	class Plays : List<List<int>>
+	internal class Plays : List<List<int>>
 	{
 		/// <summary>Return a size × size Plays object, all zeroes.</summary>
 		public Plays(int size)
@@ -1672,7 +1775,7 @@ namespace Torn.Grids
 			average = source.average;
 		}
 
-		public void Calc(IndexGames games, Plays existingPlays, List<Colour> colours, bool rings)
+		public void Calc(IndexGames games, Plays existingPlays, List<Colour> colours, int rings)
 		{
 			if (existingPlays == null || existingPlays.Size == 0)
 				ClearPlays();
@@ -1684,10 +1787,10 @@ namespace Torn.Grids
 				var game = games[g];
 
 				for (int t1 = 0; t1 < game.Count; t1++)
-					for (int t2 = t1 + 1; t2 < game.Count; t2++)
-						if (rings)
+					for (int t2 = t1 + 1; t2 < game.Count && t2 < colours.Count; t2++)
+						if (rings > 1)
 						{
-							if (colours[t1] == colours[t2] || game[t1] == game[t2])
+							if (colours[t1] == colours[t2] || game[t1] == game[t2])  // The game[t1] == game[t2] part is a team playing themself.
 							{
 								this[game[t1]][game[t2]]++;
 								this[game[t2]][game[t1]]++;
@@ -1706,12 +1809,8 @@ namespace Torn.Grids
 		public double Average()
 		{
 			if (average == -1)
-			{
-				if (!this.Any())
-					average = 0.0;
-				else
-					average = 1.0 * this.Sum(x => x.Sum()) / Size / (Size - 1);
-			}
+				average = Count < 2 ? 0.0 : 1.0 * this.Sum(x => x.Sum()) / Size / (Size - 1);
+
 			return average;
 		}
 
@@ -1736,7 +1835,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>All the things needed to initialise an Improver.</summary>
-	class Bundle
+	internal class Bundle
 	{
 		public IndexGames PlayGames;
 		public IndexGames RefGames;
@@ -1745,11 +1844,11 @@ namespace Torn.Grids
 		public Sessions Sessions;
 		public List<Colour> Colours;
 		public ShuffleType ShuffleType;
-		public bool Rings;
+		public int Rings;
 	}
 
 	/// <summary>Holder for a potential fixture, showing its games and its detailed score.</summary>
-	class GamesResult
+	internal class GamesResult
 	{
 		public IndexGames PlayGames;  // One list for teams that are playing in a game
 		public IndexGames RefGames;  // and another for teams that are refereeing that game.
@@ -1762,7 +1861,7 @@ namespace Torn.Grids
 	/// <summary>Holds settings for hill-climbing to find "good" possible fixtures.
 	/// Each value is used to multiply that part of the score calculating for how "good" this fixture is.
 	/// Bigger multipliers mean more weight to negative multipliers give that thing negative weight.</summary>
-	class ScoreScalers
+	internal class ScoreScalers
 	{
 		public int PlaySelf = 1000;  // This is the penalty for a team playing against itself. Set this high enough that this never happens.
 		public int TimesPlayed = 50;  // A scaling factor for the number of times teams play other teams.
@@ -1845,7 +1944,7 @@ namespace Torn.Grids
 	}
 
 	/// <summary>Represents the length of a team's day or night, for later display to the user. Long days are bad; short nights are bad.</summary>
-	class DayOrNightLength
+	internal class DayOrNightLength
 	{
 		public int TeamIndex;
 		public DateTime FirstGame;
@@ -1860,7 +1959,7 @@ namespace Torn.Grids
 	[Flags]
 	public enum ShuffleType { None = 0, BetweenGames = 1, Games = 2, Rings = 4, WithinGames = 8, Referees = 16, Multiple = 32 };
 
-	class SwapRecord
+	internal class SwapRecord
 	{
 		public ShuffleType ShuffleType;
 		public int Game1;
@@ -1872,13 +1971,14 @@ namespace Torn.Grids
 		{
 			switch (ShuffleType)
 			{
+				case ShuffleType.None: return string.Format("no swap between games {0} and {1} because empty game", Game1 + 1, Game2 + 1);
 				case ShuffleType.BetweenGames: return string.Format("game {0} team {1} with game {2} team {3}", Game1 + 1, Team1 + 1, Game2 + 1, Team2 + 1);
 				case ShuffleType.Games: return string.Format("games {0} and {1}", Game1 + 1, Game2 + 1);
 				case ShuffleType.Rings: return string.Format("game {0} ring {1} with game {2} ring {3}", Game1 + 1, Team1 + 1, Game2 + 1, Team2 + 1);
 				case ShuffleType.WithinGames: return string.Format("game {0} team {1} with team {2}", Game1 + 1, Team1 + 1, Team2 + 1);
 				case ShuffleType.Referees: return string.Format("game {0} referee {1} with game {2} referee {3}", Game1 + 1, Team1 + 1, Game2 + 1, Team2 + 1);
 				case ShuffleType.Multiple: return "multiple swaps";
-				default: return "none";
+				default: return "?";
 			}
 		}
 	}

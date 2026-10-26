@@ -2,10 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using System.Xml;
 using Torn;
+using Torn.Grids;
 using Torn.Report;
 using Torn.UI;
 using Zoom;
@@ -190,18 +192,28 @@ namespace TornWeb
 		public void TestHandicap()
 		{
 			var h = Handicap.Parse("100%");
-			Assert.That(100 == h.Value, "handicap is 100");
+			Assert.That(h.Value, Is.EqualTo(100), "handicap is 100");
 			Assert.That(h.IsZero(), "handicap is 100%");
+			Assert.That(h.Style, Is.EqualTo(HandicapStyle.Percent));
 
 			h = Handicap.Parse("+0");
-			Assert.That(0 == h.Value, "handicap is 0");
+			Assert.That(h.Value, Is.Zero, "handicap is 0");
 			Assert.That(h.IsZero(), "handicap is +0");
+			Assert.That(h.Style, Is.EqualTo(HandicapStyle.Plus));
 
 			h = Handicap.Parse("-0");
 			Assert.That(h.IsZero(), "handicap is -0");
+			Assert.That(h.Style, Is.EqualTo(HandicapStyle.Minus));
 
 			h = Handicap.Parse("0");
-			Assert.That(0 == h.Value, "handicap is still 0");
+			Assert.That(h.Value, Is.Zero, "handicap is still 0");
+
+			h = Handicap.Parse("101%");
+			Assert.That(h.Apply(1000), Is.EqualTo(1010));
+			h = Handicap.Parse("+1");
+			Assert.That(h.Apply(1000), Is.EqualTo(1001));
+			h = Handicap.Parse("-1");
+			Assert.That(h.Apply(1000), Is.EqualTo(999));
 		}
 
 		[Test]
@@ -251,6 +263,49 @@ namespace TornWeb
 			fixture.Games.Parse("8:00z1z2zz3", fixture.Teams, 'z');
 			Assert.That(fixture.Games[4], Is.SameAs(fixture.BestMatch(firstGame)), "match game 4");
 		}
+
+		[Test]
+		public void TestRingGrid()
+		{
+			var f = new Fixture();
+
+			new RingGrid().GenerateRingGrid(f, Teams(15), 4, 3, 6, new DateTime(2026, 1, 1, 12, 0, 0), 15, false);
+			Assert.That(f.Games.Count, Is.EqualTo(8));
+
+			new RingGrid().GenerateRingGrid(f, Teams(30), 4, 3, 6, new DateTime(2026, 1, 1, 12, 0, 0), 15, false);
+			Assert.That(f.Games.Count, Is.EqualTo(16));
+
+			var gridFinder = new GridFinder();
+			gridFinder.Sessions.Add(new Session() { Start = new DateTime(2026, 1, 1, 12, 0, 0), First = 0, Last = 15 });
+
+			gridFinder.SetupColours(new List<Colour>() { Colour.Red, Colour.Blue, Colour.Pink }, 4, 3, false);  // Manually supply some colours.
+			Assert.That(gridFinder.Colours.Count, Is.EqualTo(12));
+			Assert.That(gridFinder.Colours, Does.Contain(Colour.Pink));
+
+			gridFinder.SetupColours(new List<Colour>(), 4, 3, true);  // Let SetupColours pick colours by itself.
+			Assert.That(gridFinder.Colours.Count, Is.EqualTo(24));
+			Assert.That(gridFinder.Colours, Does.Contain(Colour.Green));
+
+			gridFinder.SetupFromFixture(f);
+			Assert.That(gridFinder.Details, Does.Not.Contain("back-to-back"));  // i.e. that back-to-back score is 0; i.e. no teams play twice in a row.
+
+			new RingGrid().GenerateRingGrid(f, Teams(30), 4, 3, 6, new DateTime(2026, 1, 1, 12, 0, 0), 15, true);  // A ring grid with referees.
+			gridFinder.SetupColours(new List<Colour>(), 4, 3, false);  // SetupColours' referees parameter is false here, and this is OK because existing referees continue to exist even if not listed in Colours.
+			Assert.That(f.Games.Count, Is.EqualTo(16));
+			Assert.That(f.Games[10].Teams.Count(kv => kv.Value == Colour.Blue) == 3);
+			Assert.That(f.Games[10].Teams.Count(kv => kv.Value == Colour.Referee) == 12);
+
+			var teams = Teams(30);
+			new RingGrid().GenerateRingGrid(f, teams, 4, 3, 6, new DateTime(2026, 1, 1, 12, 0, 0), 15, false);  // A ring grid without referees...
+			gridFinder.SetupColours(new List<Colour>(), 4, 3, false);
+			Assert.That(f.Games[10].Teams.Count(kv => kv.Value == Colour.Referee) == 0);
+
+			new RingGrid().AddReferees(f, teams, 0);  // ... that we then add referees to.
+			gridFinder.SetupFromFixture(f);
+			Assert.That(f.Games[10].Teams.Count(kv => kv.Value == Colour.Referee) == 12);
+		}
+
+		private List<LeagueTeam> Teams(int n) => new List<LeagueTeam>(Enumerable.Range(1, n).Select(i => new LeagueTeam() { Name = "Teem " + i.ToString(), TeamId = i }));
 
 		[Test]
 		public void TestScoreAndPoints()
@@ -427,6 +482,12 @@ namespace TornWeb
 			Assert.That(teamBox.Score, Is.EqualTo(6000));
 			Assert.That(teamBox.LeagueTeam.TeamId, Is.EqualTo(league.Teams()[0].TeamId));
 
+			var recalculate = teamBox.GetType().GetMethod("Recalculate", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+			teamBox.GameTeam.Adjustment = -1000;
+			recalculate.Invoke(teamBox, new object[] { false });
+
+			Assert.That(teamBox.Score, Is.EqualTo(5000));
+
 			teamBox.Clear();
 
 			Assert.That(teamBox.Empty(), Is.True, "teamBox Clear.");
@@ -443,6 +504,7 @@ namespace TornWeb
 				Assert.That(teamBox.Score, Is.EqualTo(6000));
 				Assert.That(teamBox2.Score, Is.EqualTo(0));
 			});
+
 		}
 
 		Form CreateUI()
@@ -464,17 +526,19 @@ namespace TornWeb
 
 			Assert.Multiple(() =>
 			{
-				Assert.That(method.Invoke(report, new object[] { "one two", 2 }), Is.EqualTo(new string[] { "one", "two" }));
-				Assert.That(method.Invoke(report, new object[] { "one two", 4 }), Is.EqualTo(new string[] { "one", "two" }));
-				Assert.That(method.Invoke(report, new object[] { "one two three", 3 }), Is.EqualTo(new string[] { "one", "two", "three" }));
-				Assert.That(method.Invoke(report, new object[] { "one two three", 2 }), Is.EqualTo(new string[] { "one two", "three" }));
-				Assert.That(method.Invoke(report, new object[] { "one two three four", 2 }), Is.EqualTo(new string[] { "one two", "three four" }));
-				Assert.That(method.Invoke(report, new object[] { "one two three verylongwordgoeshereandgoesonforquiteabit", 2 }), Is.EqualTo(new string[] { "one two three", "verylongwordgoeshereandgoesonforquiteabit" }));
-				Assert.That(method.Invoke(report, new object[] { "verylongwordgoeshereandgoesonforquiteabit two three four", 2 }), Is.EqualTo(new string[] { "verylongwordgoeshereandgoesonforquiteabit", "two three four" }));
-				Assert.That(method.Invoke(report, new object[] { "ZLTAC Teams 2026 Round Robin Colour Performance from 28/02/2026 to 3/03/2026", 3 }), Is.EqualTo(new string[] { "ZLTAC Teams 2026 Round", "Robin Colour Performance", "from 28/02/2026 to 3/03/2026" }));
-				Assert.That(method.Invoke(report, new object[] { "ZLTAC Teams 2026 Round Robin Colour Performance from 28/02/2026 to 3/03/2026", 4 }), Is.EqualTo(new string[] { "ZLTAC Teams 2026", "Round Robin Colour", "Performance from", "28/02/2026 to 3/03/2026" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "one two", 2 })), Is.EqualTo(new string[] { "one", "two" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "one two", 4 })), Is.EqualTo(new string[] { "one", "two" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "one two three", 3 })), Is.EqualTo(new string[] { "one", "two", "three" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "one two three", 2 })), Is.EqualTo(new string[] { "one two", "three" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "one two three four", 2 })), Is.EqualTo(new string[] { "one two", "three four" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "one two three verylongwordgoeshereandgoesonforquiteabit", 2 })), Is.EqualTo(new string[] { "one two three", "verylongwordgoeshereandgoesonforquiteabit" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "verylongwordgoeshereandgoesonforquiteabit two three four", 2 })), Is.EqualTo(new string[] { "verylongwordgoeshereandgoesonforquiteabit", "two three four" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "ZLTAC Teams 2026 Round Robin Colour Performance from 28/02/2026 to 3/03/2026", 3 })), Is.EqualTo(new string[] { "ZLTAC Teams 2026 Round", "Robin Colour Performance", "from 28/02/2026 to 3/03/2026" }));
+				Assert.That(BreakTextStrings(method.Invoke(report, new object[] { "ZLTAC Teams 2026 Round Robin Colour Performance from 28/02/2026 to 3/03/2026", 4 })), Is.EqualTo(new string[] { "ZLTAC Teams 2026", "Round Robin Colour", "Performance from", "28/02/2026 to 3/03/2026" }));
 			});
 		}
+
+		string[] BreakTextStrings(object o) => (((string[], float))o).Item1;
 
 		[Test]
 		public void TestZCellFormatNumber()

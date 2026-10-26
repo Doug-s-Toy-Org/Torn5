@@ -116,6 +116,7 @@ namespace Torn.UI
 			gridFinder = new GridFinder();
 			Holder.Fixture.Games.Clear();
 			reportTeamsList.Report = null;
+			textBoxScore.Text = "";
 		}
 
 		void ButtonGenerateClick(object sender, EventArgs e)
@@ -144,7 +145,7 @@ namespace Torn.UI
 				PopulateScoreScalers();
 				gridFinder.ShuffleType = GetShuffleType();
 				fixtureSessions.PopulateIntoSessions(gridFinder.Sessions);
-				gridFinder.Rings = checkRings.Checked;
+				gridFinder.Rings = checkRings.Checked ? (int)numericRings.Value : 1;
 
 				if (checkRings.Checked)
 					GenerateRingGrid(teams);
@@ -159,18 +160,26 @@ namespace Torn.UI
 
 		private void GenerateRingGrid(List<LeagueTeam> teams)
 		{
+			bool didSomething = false;
 			if (reportTeamsList.Report == null)  // Blank slate.
 			{
 				// Generate a starting-point fixture.
-				var grid = new RingGrid();
-				textBoxScore.Text = grid.GenerateRingGrid(holder.League, holder.Fixture, teams, (int)numericTeamsPerGame.Value, (int)numericGamesPerTeam.Value, gridFinder.Sessions.First().Start, (int)gridFinder.Sessions.Between.TotalMinutes, numericReferees.Value > 0);
-
+				textBoxScore.Text = new RingGrid().GenerateRingGrid(holder.Fixture, teams, (int)numericRings.Value, (int)numericTeamsPerRing.Value, (int)numericGamesPerTeam.Value, gridFinder.Sessions.First().Start, (int)gridFinder.Sessions.Between.TotalMinutes, checkRefsRings.Checked);
+				didSomething = true;
 				if (holder.Fixture.Games.Any())  // If that generate succeeded,
-				{
 					SetFixtureTitle(holder.Fixture, numericGamesPerTeam.Value == 4 && teams.Count == 9, numericGamesPerTeam.Value == 4 && teams.Count == 36);
-					RefreshReports();
-					gridFinder.SetupFromFixture(holder.Fixture);  // set us up to improve it.
-				}
+			}
+			else if (checkRefsRings.Checked && holder.Fixture.Games.Sum(g => g.Teams.Count(t => t.Value == Colour.Referee)) < holder.Fixture.Games.Sum(g => g.Teams.Count(t => t.Value != Colour.Referee)))
+			{
+				new RingGrid().AddReferees(holder.Fixture, teams, 0);
+				didSomething = true;
+			}
+
+			if (didSomething)
+			{
+				gridFinder.SetupFromFixture(holder.Fixture);  // set us up to improve it.
+				RefreshReports();
+				textBoxScore.Text += gridFinder.Details;
 			}
 
 			if (holder.Fixture.Games.Any())
@@ -180,14 +189,14 @@ namespace Torn.UI
 		private void GenerateTeamGrid(List<LeagueTeam> teams)
 		{
 			gridFinder.Setup(Holder.League, Holder.Fixture, teams, (int)numericGamesPerTeam.Value, (int)numericReferees.Value);
+			RefreshReports();
+			textBoxScore.Text = gridFinder.Details;
 
 			Improve(CountModifierKeys() >= 2);
 		}
 
 		private bool Improve(bool singleThread)
 		{
-			RefreshReports();
-			textBoxScore.Text = gridFinder.Details;
 
 			while (run && gridFinder.ShuffleType != ShuffleType.None)
 			{
@@ -234,44 +243,12 @@ namespace Torn.UI
 
 		private void PopulateColours()
 		{
-			int ringMultiplier = checkRings.Checked ? 3 : 1;
+			List<Colour> checkedColours = tabFixtureSettings.Controls.OfType<CheckBox>().Where(c => c.Tag is Colour colour && c.Checked).Select(c => (Colour)c.Tag).ToList();
 
-			gridFinder.Colours.Clear();
-			foreach (var checkBox in tabFixtureSettings.Controls.OfType<CheckBox>())
-				if (checkBox.Tag is Colour colour && checkBox.Checked)
-					for (int i = 0; i < ringMultiplier; i++)
-						gridFinder.Colours.Add(colour);
-
-			// Add more entries to the Colours list if necessary (because the user has ticked some boxes and then manually turned up the Teams Per Game value).
 			if (checkRings.Checked)
-			{
-				// Make a list of colours not yet used, with hard-to-distinguish colours last.
-				var bestColours = ColourExtensions.BestFirst().Where(c => !gridFinder.Colours.Contains(c)).ToList();
-
-				// Add colours until we've got enough.
-				while (gridFinder.Colours.Count < numericTeamsPerGame.Value * ringMultiplier)
-				{
-					var colourToAdd = bestColours.FirstOrDefault();
-					for (int i = 0; i < ringMultiplier; i++)
-						gridFinder.Colours.Add(colourToAdd);
-					bestColours.Remove(colourToAdd);
-				}
-			}
+				gridFinder.SetupColours(checkedColours, (int)numericRings.Value, (int)numericTeamsPerRing.Value, checkRefsRings.Checked);
 			else
-			{
-				// If there was only one colour ticked, add more of that colour. Otherwise, just add Colour.None.
-				Colour colourToAdd = gridFinder.Colours.Count == 1 ? gridFinder.Colours.First() : Colour.None;
-				while (gridFinder.Colours.Count < numericTeamsPerGame.Value)
-					gridFinder.Colours.Add(colourToAdd);
-			}
-
-			// Add entries for referees, if any.
-			if (checkRings.Checked && numericReferees.Value > 0)
-				for (int i = 0; i < numericTeamsPerGame.Value * ringMultiplier; i++)
-					gridFinder.Colours.Add(Colour.Referee);
-			else
-				for (int i = 0; i < numericReferees.Value; i++)
-					gridFinder.Colours.Add(Colour.Referee);
+				gridFinder.SetupColours(checkedColours, (int)numericTeamsPerGame.Value, (int)numericReferees.Value);
 		}
 
 		private void PopulateScoreScalers()
@@ -299,18 +276,10 @@ namespace Torn.UI
 		{
 			ShuffleType st = ShuffleType.None;
 
-			if (checkRings.Checked)
-			{
-				if (checkShuffleGames.Checked) st |= ShuffleType.Rings;
-			}
-			else
-			{
-				if (checkShuffleTeams.Checked) st |= ShuffleType.BetweenGames;
-				if (checkShuffleGames.Checked) st |= ShuffleType.Games;
-				if (checkShuffleColours.Checked) st |= ShuffleType.WithinGames;
-			}
-
-			if (checkShuffleReferees.Checked) st |= ShuffleType.Referees;
+			if (checkShuffleGames.Checked) st |= checkRings.Checked ? ShuffleType.Rings : ShuffleType.Games;
+			if (checkShuffleTeams.Checked) st |= ShuffleType.BetweenGames;
+			if (checkShuffleColours.Checked) st |= ShuffleType.WithinGames;
+			if (checkShuffleReferees.Checked && checkShuffleReferees.Enabled) st |= ShuffleType.Referees;
 
 			return st;
 		}
@@ -486,14 +455,16 @@ namespace Torn.UI
 				numericTeams.Value = Math.Max(leagueTeams.Count, 2);
 
 				var coloursUsed = Holder.League.Games().SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct().ToList();
+
 				if (coloursUsed.Any())
-				{
 					foreach (var control in tabFixtureSettings.Controls)
 						if (control is CheckBox cb && cb.Tag is Colour colour)
 							cb.Checked = coloursUsed.Contains(colour);
 
+				if (coloursUsed.Count > 1)
 					numericTeamsPerGame.Value = Math.Max(coloursUsed.Count, 2);
-				}
+				else if (holder.League.AnyGames())
+					numericTeamsPerGame.Value = (int)Math.Round(holder.League.Games().Average(g => g.PlayerCount()));
 
 				loading = false;
 				TeamCheckedChanged(null, null);
@@ -597,13 +568,18 @@ namespace Torn.UI
 				numericBackToBack.Value = 250;
 				numericRefThenPlay.Value = 125;
 				numericPlayThenRef.Value = 100;
-				numericClusterRefereeing.Value = 1;
+			}
+
+			if (lotr)
+			{
+				numericBackToBack.Value = 500;
+				numericPlayThenRef.Value = 1;
 			}
 
 			if (!referees)
 			{
 				checkPastTimesPlayed.Checked = league;
-				numericDayLength.Value = lotr ? 90 : defaults || cascade || roundRobin ? 30 : 0;
+				numericDayLength.Value = defaults || cascade || roundRobin || lotr ? 30 : 0;
 				numericNightLength.Value = defaults || cascade || roundRobin || lotr ? 3 : 0;
 				numericNoGamesInSession.Value = defaults || cascade || roundRobin || lotr ? -1 : 0;
 				numericOneGameInSession.Value = defaults || cascade || roundRobin || lotr ? 2 : 0;
@@ -612,9 +588,6 @@ namespace Torn.UI
 				numericCascadeDifficulty.Value = cascade ? 10 : 0;
 				numericPerfectColour.Value = sides || lotr ? 0 : -1;
 				numericClusterRefereeing.Value = lotr ? 0 : 1;
-
-				if (lotr)
-					numericRefThenPlay.Value = -1;
 
 				if (sides)
 				{
@@ -631,14 +604,17 @@ namespace Torn.UI
 				numericGamesPerTeam.Value = roundRobin ? (int)(numericTeams.Value / 2) : cascade || lotr ? 6 : league ? 3 : 2;
 			}
 
-			numericReferees.Value = referees ? 2 : league || lotr ? 1 : 0;  // I want to set cascade || roundRobin to have 2 referees per game, but I can't get there in one hop: we have to generate the fixture without referees, then have the user hit Stop, add referees, and hit Generate again.
+			numericReferees.Value = referees ? 2 : league ? 1 : 0;  // I want to set cascade || roundRobin to have 2 referees per game, but I can't get there in one hop: we have to generate the fixture without referees, then have the user hit Stop, add referees, and hit Generate again.
+			if (referees && checkRings.Checked)
+				checkRefsRings.Checked = true;
 
-			checkShuffleTeams.Checked = league | roundRobin | sides;
+			checkShuffleTeams.Checked = league || roundRobin || sides || lotr;
 			checkShuffleGames.Checked = cascade;
 			checkShuffleColours.Checked = cascade;
-			checkShuffleReferees.Checked = !lotr && numericReferees.Value > 0;
+			checkShuffleReferees.Checked = !lotr && !checkRings.Checked && numericReferees.Value > 0;
 
-			checkRings.Checked = lotr;  // Do this last or last-ish, as it will fire CheckRingsCheckedChanged().
+			if (!referees)
+				checkRings.Checked = lotr;  // Do this last or last-ish, as it will fire CheckRingsCheckedChanged().
 		}
 
 		private void FixturesValueChanged(object sender, EventArgs e)
@@ -674,12 +650,10 @@ namespace Torn.UI
 
 		private void TeamCountValueChanged(object sender, EventArgs e)
 		{
-			gamesCount = numericTeams.Value * numericGamesPerTeam.Value / numericTeamsPerGame.Value;
-			if (checkRings.Checked)
-				gamesCount /= 3;
+			gamesCount = numericTeams.Value * numericGamesPerTeam.Value / (checkRings.Checked ? numericRings.Value * numericTeamsPerRing.Value : numericTeamsPerGame.Value);
 
-			labelGameCount.Text = gamesCount == Math.Round(gamesCount) ? gamesCount.ToString() : gamesCount.ToString("N2");
-			fixtureSessions.Games = (int)gamesCount;
+			labelGameCount.Text = gamesCount.ToString("0.##");
+			fixtureSessions.Games = (int)Math.Ceiling(gamesCount);
 		}
 
 		private void ColourCheckedChanged(object sender, EventArgs e)
@@ -696,25 +670,31 @@ namespace Torn.UI
 				numericTeamsPerGame.Value = count;
 		}
 
-		private void NumericRefereesValueChanged(object sender, EventArgs e)
+		private void RefereesValueChanged(object sender, EventArgs e)
 		{
-			checkShuffleReferees.Enabled = numericReferees.Value > 0;
+			checkShuffleReferees.Enabled = checkRings.Checked ? checkRefsRings.Checked : numericReferees.Value > 0;
 		}
 
 		private void CheckRingsCheckedChanged(object sender, EventArgs e)
 		{
 			bool c = checkRings.Checked;
 
-			labelTeamsPerGame.Text = c ? "Rings" : "Teams per game";
+			labelTeamsPerGame.Visible = !c;
+			numericTeamsPerGame.Visible = !c;
+			labelRefs.Visible = !c;
+			numericReferees.Visible = !c;
 
-			checkShuffleTeams.Enabled = !c;
-			checkShuffleColours.Enabled = !c;
+			labelTeamsPerRing.Visible = c;
+			numericTeamsPerRing.Visible = c;
+			labelRings.Visible = c;
+			numericRings.Visible = c;
+			labelRefsRings.Visible = c;
+			checkRefsRings.Visible = c;
+
+			checkShuffleGames.Text = (c ? "Rings" : "Games") + " (will not affect who plays who)";
 
 			if (c)
 			{
-				numericGamesPerTeam.Value = 6;
-				checkShuffleTeams.Checked = false;
-				checkShuffleColours.Checked = false;
 				numericRefThenPlay.Value = -10;
 
 				if (numericTeams.Value < 18)
@@ -722,18 +702,20 @@ namespace Torn.UI
 			}
 
 			TeamCountValueChanged(sender, e);
+			RefereesValueChanged(sender, e);
 		}
 
 		private void CheckShuffleChanged(object sender, EventArgs e)
 		{
-			bool c = ((CheckBox)sender).Checked;
+			if (!((CheckBox)sender).Checked)
+				return;
 
-			if (sender == checkShuffleTeams && c)
+			if (sender == checkShuffleTeams)
 			{
 				checkShuffleGames.Checked = false;
 				checkShuffleColours.Checked = false;
 			}
-			else if ((sender == checkShuffleGames || sender == checkShuffleColours) && c)
+			else if (sender == checkShuffleGames || sender == checkShuffleColours)
 				checkShuffleTeams.Checked = false;
 		}
 

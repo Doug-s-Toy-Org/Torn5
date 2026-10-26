@@ -40,17 +40,16 @@ namespace Torn.UI
 			this.textBoxGames = new System.Windows.Forms.TextBox();
 			this.tabControl1 = new System.Windows.Forms.TabControl();
 			this.tabTeams = new System.Windows.Forms.TabPage();
-			this.panelRight = new System.Windows.Forms.Panel();
-			this.printReport1 = new Torn5.Controls.PrintReport();
-			this.reportTeamsList = new Torn5.Controls.DisplayReport();
-			this.checkGameGrid = new System.Windows.Forms.CheckBox();
-			this.checkGameList = new System.Windows.Forms.CheckBox();
 			this.splitContainerTeams = new System.Windows.Forms.SplitContainer();
 			this.tabControlFixtures = new System.Windows.Forms.TabControl();
 			this.tabFixtureTeams = new System.Windows.Forms.TabPage();
 			this.fixtureTeamsList = new System.Windows.Forms.Panel();
 			this.tabFixtureSettings = new System.Windows.Forms.TabPage();
 			this.label7 = new System.Windows.Forms.Label();
+			this.labelTeamsPerRing = new System.Windows.Forms.Label();
+			this.numericTeamsPerRing = new System.Windows.Forms.NumericUpDown();
+			this.labelRings = new System.Windows.Forms.Label();
+			this.numericRings = new System.Windows.Forms.NumericUpDown();
 			this.groupBoxWhatToShuffle = new System.Windows.Forms.GroupBox();
 			this.checkShuffleColours = new System.Windows.Forms.CheckBox();
 			this.checkShuffleReferees = new System.Windows.Forms.CheckBox();
@@ -134,7 +133,12 @@ namespace Torn.UI
 			this.buttonStop = new System.Windows.Forms.Button();
 			this.buttonClear = new System.Windows.Forms.Button();
 			this.splitContainerRight = new System.Windows.Forms.SplitContainer();
+			this.reportTeamsList = new Torn5.Controls.DisplayReport();
 			this.textBoxScore = new System.Windows.Forms.TextBox();
+			this.panelRight = new System.Windows.Forms.Panel();
+			this.printReport1 = new Torn5.Controls.PrintReport();
+			this.checkGameGrid = new System.Windows.Forms.CheckBox();
+			this.checkGameList = new System.Windows.Forms.CheckBox();
 			this.tabGamesList = new System.Windows.Forms.TabPage();
 			this.splitContainerGamesList = new System.Windows.Forms.SplitContainer();
 			this.buttonExportGames = new System.Windows.Forms.Button();
@@ -161,9 +165,10 @@ namespace Torn.UI
 			this.framePyramid1 = new Torn5.Controls.FramePyramid();
 			this.tabPyramidRound = new System.Windows.Forms.TabPage();
 			this.framePyramidRound1 = new Torn5.Controls.FramePyramidRound();
+			this.labelRefsRings = new System.Windows.Forms.Label();
+			this.checkRefsRings = new System.Windows.Forms.CheckBox();
 			this.tabControl1.SuspendLayout();
 			this.tabTeams.SuspendLayout();
-			this.panelRight.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.splitContainerTeams)).BeginInit();
 			this.splitContainerTeams.Panel1.SuspendLayout();
 			this.splitContainerTeams.Panel2.SuspendLayout();
@@ -171,6 +176,8 @@ namespace Torn.UI
 			this.tabControlFixtures.SuspendLayout();
 			this.tabFixtureTeams.SuspendLayout();
 			this.tabFixtureSettings.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericTeamsPerRing)).BeginInit();
+			((System.ComponentModel.ISupportInitialize)(this.numericRings)).BeginInit();
 			this.groupBoxWhatToShuffle.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeamsPerGame)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeams)).BeginInit();
@@ -198,6 +205,7 @@ namespace Torn.UI
 			this.splitContainerRight.Panel1.SuspendLayout();
 			this.splitContainerRight.Panel2.SuspendLayout();
 			this.splitContainerRight.SuspendLayout();
+			this.panelRight.SuspendLayout();
 			this.tabGamesList.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.splitContainerGamesList)).BeginInit();
 			this.splitContainerGamesList.Panel1.SuspendLayout();
@@ -344,64 +352,6 @@ namespace Torn.UI
 			this.tabTeams.Text = "Teams";
 			this.tabTeams.UseVisualStyleBackColor = true;
 			// 
-			// panelRight
-			// 
-			this.panelRight.BackColor = System.Drawing.SystemColors.Control;
-			this.panelRight.Controls.Add(this.printReport1);
-			this.panelRight.Controls.Add(this.checkGameGrid);
-			this.panelRight.Controls.Add(this.checkGameList);
-			this.panelRight.Dock = System.Windows.Forms.DockStyle.Right;
-			this.panelRight.Location = new System.Drawing.Point(1148, 3);
-			this.panelRight.Name = "panelRight";
-			this.panelRight.Size = new System.Drawing.Size(73, 605);
-			this.panelRight.TabIndex = 28;
-			this.panelRight.Resize += new System.EventHandler(this.PanelRightResize);
-			// 
-			// printReport1
-			// 
-			this.printReport1.DisplayReport = this.reportTeamsList;
-			this.printReport1.FileName = null;
-			this.printReport1.Location = new System.Drawing.Point(0, 0);
-			this.printReport1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-			this.printReport1.Name = "printReport1";
-			this.printReport1.Size = new System.Drawing.Size(75, 513);
-			this.printReport1.TabIndex = 0;
-			this.printReport1.SaveHtmlTable += new System.EventHandler(this.PrintReportSaveHtmlTable);
-			// 
-			// reportTeamsList
-			// 
-			this.reportTeamsList.BackColor = System.Drawing.SystemColors.Control;
-			this.reportTeamsList.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-			this.reportTeamsList.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.reportTeamsList.Location = new System.Drawing.Point(0, 0);
-			this.reportTeamsList.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-			this.reportTeamsList.Name = "reportTeamsList";
-			this.reportTeamsList.Report = null;
-			this.reportTeamsList.Size = new System.Drawing.Size(801, 562);
-			this.reportTeamsList.TabIndex = 0;
-			// 
-			// checkGameGrid
-			// 
-			this.checkGameGrid.Checked = true;
-			this.checkGameGrid.CheckState = System.Windows.Forms.CheckState.Checked;
-			this.checkGameGrid.Location = new System.Drawing.Point(0, 521);
-			this.checkGameGrid.Name = "checkGameGrid";
-			this.checkGameGrid.Size = new System.Drawing.Size(79, 19);
-			this.checkGameGrid.TabIndex = 1;
-			this.checkGameGrid.Text = "Game Grid";
-			this.checkGameGrid.UseVisualStyleBackColor = true;
-			this.checkGameGrid.CheckedChanged += new System.EventHandler(this.OutputCheckChanged);
-			// 
-			// checkGameList
-			// 
-			this.checkGameList.Location = new System.Drawing.Point(0, 546);
-			this.checkGameList.Name = "checkGameList";
-			this.checkGameList.Size = new System.Drawing.Size(79, 19);
-			this.checkGameList.TabIndex = 2;
-			this.checkGameList.Text = "Game List";
-			this.checkGameList.UseVisualStyleBackColor = true;
-			this.checkGameList.CheckedChanged += new System.EventHandler(this.OutputCheckChanged);
-			// 
 			// splitContainerTeams
 			// 
 			this.splitContainerTeams.BackColor = System.Drawing.SystemColors.ControlDark;
@@ -437,7 +387,7 @@ namespace Torn.UI
 			this.tabControlFixtures.Name = "tabControlFixtures";
 			this.tabControlFixtures.SelectedIndex = 0;
 			this.tabControlFixtures.Size = new System.Drawing.Size(340, 477);
-			this.tabControlFixtures.TabIndex = 1;
+			this.tabControlFixtures.TabIndex = 0;
 			// 
 			// tabFixtureTeams
 			// 
@@ -463,7 +413,13 @@ namespace Torn.UI
 			// 
 			// tabFixtureSettings
 			// 
+			this.tabFixtureSettings.Controls.Add(this.checkRefsRings);
+			this.tabFixtureSettings.Controls.Add(this.labelRefsRings);
 			this.tabFixtureSettings.Controls.Add(this.label7);
+			this.tabFixtureSettings.Controls.Add(this.labelTeamsPerRing);
+			this.tabFixtureSettings.Controls.Add(this.numericTeamsPerRing);
+			this.tabFixtureSettings.Controls.Add(this.labelRings);
+			this.tabFixtureSettings.Controls.Add(this.numericRings);
 			this.tabFixtureSettings.Controls.Add(this.groupBoxWhatToShuffle);
 			this.tabFixtureSettings.Controls.Add(this.labelGameCount);
 			this.tabFixtureSettings.Controls.Add(this.label8);
@@ -500,6 +456,64 @@ namespace Torn.UI
 			this.label7.TabIndex = 4;
 			this.label7.Text = "Lord of the Ring";
 			// 
+			// labelTeamsPerRing
+			// 
+			this.labelTeamsPerRing.AutoSize = true;
+			this.labelTeamsPerRing.Location = new System.Drawing.Point(6, 86);
+			this.labelTeamsPerRing.Name = "labelTeamsPerRing";
+			this.labelTeamsPerRing.Size = new System.Drawing.Size(77, 13);
+			this.labelTeamsPerRing.TabIndex = 6;
+			this.labelTeamsPerRing.Text = "Teams per ring";
+			this.labelTeamsPerRing.Visible = false;
+			// 
+			// numericTeamsPerRing
+			// 
+			this.numericTeamsPerRing.Location = new System.Drawing.Point(89, 84);
+			this.numericTeamsPerRing.Minimum = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+			this.numericTeamsPerRing.Name = "numericTeamsPerRing";
+			this.numericTeamsPerRing.Size = new System.Drawing.Size(40, 20);
+			this.numericTeamsPerRing.TabIndex = 7;
+			this.numericTeamsPerRing.Value = new decimal(new int[] {
+            3,
+            0,
+            0,
+            0});
+			this.numericTeamsPerRing.Visible = false;
+			this.numericTeamsPerRing.ValueChanged += new System.EventHandler(this.TeamCountValueChanged);
+			// 
+			// labelRings
+			// 
+			this.labelRings.AutoSize = true;
+			this.labelRings.Location = new System.Drawing.Point(144, 86);
+			this.labelRings.Name = "labelRings";
+			this.labelRings.Size = new System.Drawing.Size(34, 13);
+			this.labelRings.TabIndex = 8;
+			this.labelRings.Text = "Rings";
+			this.labelRings.Visible = false;
+			// 
+			// numericRings
+			// 
+			this.numericRings.Location = new System.Drawing.Point(184, 84);
+			this.numericRings.Minimum = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+			this.numericRings.Name = "numericRings";
+			this.numericRings.Size = new System.Drawing.Size(40, 20);
+			this.numericRings.TabIndex = 9;
+			this.numericRings.Value = new decimal(new int[] {
+            3,
+            0,
+            0,
+            0});
+			this.numericRings.Visible = false;
+			this.numericRings.ValueChanged += new System.EventHandler(this.TeamCountValueChanged);
+			// 
 			// groupBoxWhatToShuffle
 			// 
 			this.groupBoxWhatToShuffle.Controls.Add(this.checkShuffleColours);
@@ -509,7 +523,7 @@ namespace Torn.UI
 			this.groupBoxWhatToShuffle.Location = new System.Drawing.Point(9, 224);
 			this.groupBoxWhatToShuffle.Name = "groupBoxWhatToShuffle";
 			this.groupBoxWhatToShuffle.Size = new System.Drawing.Size(220, 113);
-			this.groupBoxWhatToShuffle.TabIndex = 20;
+			this.groupBoxWhatToShuffle.TabIndex = 22;
 			this.groupBoxWhatToShuffle.TabStop = false;
 			this.groupBoxWhatToShuffle.Text = "Shuffle";
 			// 
@@ -565,7 +579,7 @@ namespace Torn.UI
 			this.labelGameCount.Location = new System.Drawing.Point(124, 161);
 			this.labelGameCount.Name = "labelGameCount";
 			this.labelGameCount.Size = new System.Drawing.Size(53, 13);
-			this.labelGameCount.TabIndex = 17;
+			this.labelGameCount.TabIndex = 19;
 			this.labelGameCount.Text = "99";
 			// 
 			// label8
@@ -574,7 +588,7 @@ namespace Torn.UI
 			this.label8.Location = new System.Drawing.Point(6, 161);
 			this.label8.Name = "label8";
 			this.label8.Size = new System.Drawing.Size(115, 13);
-			this.label8.TabIndex = 16;
+			this.label8.TabIndex = 18;
 			this.label8.Text = "Total number of games";
 			// 
 			// numericTeamsPerGame
@@ -607,6 +621,11 @@ namespace Torn.UI
 			// numericTeams
 			// 
 			this.numericTeams.Location = new System.Drawing.Point(124, 6);
+			this.numericTeams.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
 			this.numericTeams.Minimum = new decimal(new int[] {
             2,
             0,
@@ -637,13 +656,13 @@ namespace Torn.UI
 			this.numericReferees.Margin = new System.Windows.Forms.Padding(2);
 			this.numericReferees.Name = "numericReferees";
 			this.numericReferees.Size = new System.Drawing.Size(53, 20);
-			this.numericReferees.TabIndex = 19;
+			this.numericReferees.TabIndex = 21;
 			this.numericReferees.Value = new decimal(new int[] {
             1,
             0,
             0,
             0});
-			this.numericReferees.ValueChanged += new System.EventHandler(this.NumericRefereesValueChanged);
+			this.numericReferees.ValueChanged += new System.EventHandler(this.RefereesValueChanged);
 			// 
 			// labelRefs
 			// 
@@ -652,7 +671,7 @@ namespace Torn.UI
 			this.labelRefs.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
 			this.labelRefs.Name = "labelRefs";
 			this.labelRefs.Size = new System.Drawing.Size(102, 13);
-			this.labelRefs.TabIndex = 18;
+			this.labelRefs.TabIndex = 20;
 			this.labelRefs.Text = "Ref teams per game";
 			// 
 			// label22
@@ -701,7 +720,7 @@ namespace Torn.UI
 			this.checkRed.Location = new System.Drawing.Point(15, 110);
 			this.checkRed.Name = "checkRed";
 			this.checkRed.Size = new System.Drawing.Size(46, 17);
-			this.checkRed.TabIndex = 8;
+			this.checkRed.TabIndex = 10;
 			this.checkRed.Tag = Torn.Colour.Red;
 			this.checkRed.Text = "Red";
 			this.checkRed.UseVisualStyleBackColor = true;
@@ -715,7 +734,7 @@ namespace Torn.UI
 			this.checkBlue.Location = new System.Drawing.Point(15, 129);
 			this.checkBlue.Name = "checkBlue";
 			this.checkBlue.Size = new System.Drawing.Size(47, 17);
-			this.checkBlue.TabIndex = 9;
+			this.checkBlue.TabIndex = 14;
 			this.checkBlue.Tag = Torn.Colour.Blue;
 			this.checkBlue.Text = "Blue";
 			this.checkBlue.UseVisualStyleBackColor = true;
@@ -727,7 +746,7 @@ namespace Torn.UI
 			this.checkGreen.Location = new System.Drawing.Point(65, 110);
 			this.checkGreen.Name = "checkGreen";
 			this.checkGreen.Size = new System.Drawing.Size(55, 17);
-			this.checkGreen.TabIndex = 10;
+			this.checkGreen.TabIndex = 11;
 			this.checkGreen.Tag = Torn.Colour.Green;
 			this.checkGreen.Text = "Green";
 			this.checkGreen.UseVisualStyleBackColor = true;
@@ -741,7 +760,7 @@ namespace Torn.UI
 			this.checkYellow.Location = new System.Drawing.Point(65, 128);
 			this.checkYellow.Name = "checkYellow";
 			this.checkYellow.Size = new System.Drawing.Size(57, 17);
-			this.checkYellow.TabIndex = 11;
+			this.checkYellow.TabIndex = 15;
 			this.checkYellow.Tag = Torn.Colour.Yellow;
 			this.checkYellow.Text = "Yellow";
 			this.checkYellow.UseVisualStyleBackColor = true;
@@ -753,7 +772,7 @@ namespace Torn.UI
 			this.checkOrange.Location = new System.Drawing.Point(177, 128);
 			this.checkOrange.Name = "checkOrange";
 			this.checkOrange.Size = new System.Drawing.Size(61, 17);
-			this.checkOrange.TabIndex = 15;
+			this.checkOrange.TabIndex = 17;
 			this.checkOrange.Tag = Torn.Colour.Orange;
 			this.checkOrange.Text = "Orange";
 			this.checkOrange.UseVisualStyleBackColor = true;
@@ -777,7 +796,7 @@ namespace Torn.UI
 			this.checkPurple.Location = new System.Drawing.Point(177, 110);
 			this.checkPurple.Name = "checkPurple";
 			this.checkPurple.Size = new System.Drawing.Size(56, 17);
-			this.checkPurple.TabIndex = 14;
+			this.checkPurple.TabIndex = 13;
 			this.checkPurple.Tag = Torn.Colour.Purple;
 			this.checkPurple.Text = "Purple";
 			this.checkPurple.UseVisualStyleBackColor = true;
@@ -789,7 +808,7 @@ namespace Torn.UI
 			this.checkPink.Location = new System.Drawing.Point(124, 129);
 			this.checkPink.Name = "checkPink";
 			this.checkPink.Size = new System.Drawing.Size(47, 17);
-			this.checkPink.TabIndex = 13;
+			this.checkPink.TabIndex = 16;
 			this.checkPink.Tag = Torn.Colour.Pink;
 			this.checkPink.Text = "Pink";
 			this.checkPink.UseVisualStyleBackColor = true;
@@ -1631,6 +1650,18 @@ namespace Torn.UI
 			this.splitContainerRight.SplitterDistance = 562;
 			this.splitContainerRight.TabIndex = 29;
 			// 
+			// reportTeamsList
+			// 
+			this.reportTeamsList.BackColor = System.Drawing.SystemColors.Control;
+			this.reportTeamsList.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
+			this.reportTeamsList.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.reportTeamsList.Location = new System.Drawing.Point(0, 0);
+			this.reportTeamsList.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+			this.reportTeamsList.Name = "reportTeamsList";
+			this.reportTeamsList.Report = null;
+			this.reportTeamsList.Size = new System.Drawing.Size(801, 562);
+			this.reportTeamsList.TabIndex = 0;
+			// 
 			// textBoxScore
 			// 
 			this.textBoxScore.BackColor = System.Drawing.SystemColors.Control;
@@ -1643,6 +1674,52 @@ namespace Torn.UI
 			this.textBoxScore.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
 			this.textBoxScore.Size = new System.Drawing.Size(801, 39);
 			this.textBoxScore.TabIndex = 2;
+			// 
+			// panelRight
+			// 
+			this.panelRight.BackColor = System.Drawing.SystemColors.Control;
+			this.panelRight.Controls.Add(this.printReport1);
+			this.panelRight.Controls.Add(this.checkGameGrid);
+			this.panelRight.Controls.Add(this.checkGameList);
+			this.panelRight.Dock = System.Windows.Forms.DockStyle.Right;
+			this.panelRight.Location = new System.Drawing.Point(1148, 3);
+			this.panelRight.Name = "panelRight";
+			this.panelRight.Size = new System.Drawing.Size(73, 605);
+			this.panelRight.TabIndex = 28;
+			this.panelRight.Resize += new System.EventHandler(this.PanelRightResize);
+			// 
+			// printReport1
+			// 
+			this.printReport1.DisplayReport = this.reportTeamsList;
+			this.printReport1.FileName = null;
+			this.printReport1.Location = new System.Drawing.Point(0, 0);
+			this.printReport1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+			this.printReport1.Name = "printReport1";
+			this.printReport1.Size = new System.Drawing.Size(75, 513);
+			this.printReport1.TabIndex = 0;
+			this.printReport1.SaveHtmlTable += new System.EventHandler(this.PrintReportSaveHtmlTable);
+			// 
+			// checkGameGrid
+			// 
+			this.checkGameGrid.Checked = true;
+			this.checkGameGrid.CheckState = System.Windows.Forms.CheckState.Checked;
+			this.checkGameGrid.Location = new System.Drawing.Point(0, 521);
+			this.checkGameGrid.Name = "checkGameGrid";
+			this.checkGameGrid.Size = new System.Drawing.Size(79, 19);
+			this.checkGameGrid.TabIndex = 1;
+			this.checkGameGrid.Text = "Game Grid";
+			this.checkGameGrid.UseVisualStyleBackColor = true;
+			this.checkGameGrid.CheckedChanged += new System.EventHandler(this.OutputCheckChanged);
+			// 
+			// checkGameList
+			// 
+			this.checkGameList.Location = new System.Drawing.Point(0, 546);
+			this.checkGameList.Name = "checkGameList";
+			this.checkGameList.Size = new System.Drawing.Size(79, 19);
+			this.checkGameList.TabIndex = 2;
+			this.checkGameList.Text = "Game List";
+			this.checkGameList.UseVisualStyleBackColor = true;
+			this.checkGameList.CheckedChanged += new System.EventHandler(this.OutputCheckChanged);
 			// 
 			// tabGamesList
 			// 
@@ -1974,6 +2051,29 @@ namespace Torn.UI
 			this.framePyramidRound1.Size = new System.Drawing.Size(1224, 611);
 			this.framePyramidRound1.TabIndex = 0;
 			// 
+			// labelRefsRings
+			// 
+			this.labelRefsRings.AutoSize = true;
+			this.labelRefsRings.Location = new System.Drawing.Point(6, 191);
+			this.labelRefsRings.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+			this.labelRefsRings.Name = "labelRefsRings";
+			this.labelRefsRings.Size = new System.Drawing.Size(50, 13);
+			this.labelRefsRings.TabIndex = 20;
+			this.labelRefsRings.Text = "Referees";
+			this.labelRefsRings.Visible = false;
+			// 
+			// checkRefsRings
+			// 
+			this.checkRefsRings.AutoSize = true;
+			this.checkRefsRings.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+			this.checkRefsRings.Location = new System.Drawing.Point(124, 191);
+			this.checkRefsRings.Name = "checkRefsRings";
+			this.checkRefsRings.Size = new System.Drawing.Size(15, 14);
+			this.checkRefsRings.TabIndex = 21;
+			this.checkRefsRings.UseVisualStyleBackColor = true;
+			this.checkRefsRings.Visible = false;
+			this.checkRefsRings.CheckedChanged += new System.EventHandler(this.RefereesValueChanged);
+			// 
 			// FormFixture
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1989,7 +2089,6 @@ namespace Torn.UI
 			this.ResizeEnd += new System.EventHandler(this.FormFixtureResizeEnd);
 			this.tabControl1.ResumeLayout(false);
 			this.tabTeams.ResumeLayout(false);
-			this.panelRight.ResumeLayout(false);
 			this.splitContainerTeams.Panel1.ResumeLayout(false);
 			this.splitContainerTeams.Panel2.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)(this.splitContainerTeams)).EndInit();
@@ -1998,6 +2097,8 @@ namespace Torn.UI
 			this.tabFixtureTeams.ResumeLayout(false);
 			this.tabFixtureSettings.ResumeLayout(false);
 			this.tabFixtureSettings.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericTeamsPerRing)).EndInit();
+			((System.ComponentModel.ISupportInitialize)(this.numericRings)).EndInit();
 			this.groupBoxWhatToShuffle.ResumeLayout(false);
 			this.groupBoxWhatToShuffle.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeamsPerGame)).EndInit();
@@ -2029,6 +2130,7 @@ namespace Torn.UI
 			this.splitContainerRight.Panel2.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.splitContainerRight)).EndInit();
 			this.splitContainerRight.ResumeLayout(false);
+			this.panelRight.ResumeLayout(false);
 			this.tabGamesList.ResumeLayout(false);
 			this.splitContainerGamesList.Panel1.ResumeLayout(false);
 			this.splitContainerGamesList.Panel1.PerformLayout();
@@ -2182,5 +2284,11 @@ namespace Torn.UI
 		private System.Windows.Forms.NumericUpDown numericClusterRefereeing;
 		private System.Windows.Forms.Label label38;
 		private System.Windows.Forms.TextBox textBoxScore;
+		private System.Windows.Forms.Label labelRings;
+		private System.Windows.Forms.Label labelTeamsPerRing;
+		private System.Windows.Forms.NumericUpDown numericRings;
+		private System.Windows.Forms.NumericUpDown numericTeamsPerRing;
+		private System.Windows.Forms.CheckBox checkRefsRings;
+		private System.Windows.Forms.Label labelRefsRings;
 	}
 }

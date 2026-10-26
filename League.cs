@@ -80,7 +80,7 @@ namespace Torn
 
 		public static char ToChar(this Colour c)
 		{
-			return "xRBGYPMCOWbfiecrcu"[(int)c];
+			return c <= Colour.Referee ? "xRBGYPMCOWbfiecrcu"[(int)c] : '?';
 		}
 
 		public static Colour ToColour(int i) // Converts from a Laserforce colour index number.
