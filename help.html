@@ -1,4 +1,4 @@
-<html><head><title>Torn 5 Help</title></head><meta charset="UTF-8"><body>
+<html><head><title>Torn 5 Help</title><meta charset="UTF-8">
 <style type="text/css" media="screen">
 	.back   { background: #eef; color: black; }
 	.mnu { font-family: Sans-Serif; outline: 1px solid #aaf; background-color: #eee }
@@ -17,6 +17,7 @@
 <a href="#Edit">Edit</a><br/>
 <a href="#Fixtures">Fixtures</a>:
 <a href="#Teams">Teams</a>
+<a href="#LotR">Lord of the Ring</a>
 <a href="#Finals">Finals</a>
 <a href="#Pyramid">Pyramid</a>
 <a href="#PyramidRound">Pyramid Round</a><br/>
@@ -35,6 +36,7 @@ Torn 5 is a laser tag tournament scores manager, and can read data from Nexus, H
 <h2>Changes from Torn 4</h2>
 <p>
 If you're familiar with Torn 4, here's the very quick guide:
+</p>
 <ul><li>Torn 4 and Torn 5 can read each others' .Torn files.</li>
 <li>Torn 5 can have several leagues (i.e. .Torn files) open at once.</li>
 <li>The Games drop-down "combo box" is now an always-visible Games list.</li>
@@ -42,17 +44,17 @@ If you're familiar with Torn 4, here's the very quick guide:
 <li>Drop-down menus are replaced with toolbar buttons for improved visibility. There are still some right-click menus.</li>
 <li>You can generate fixtures.</li>
 <li>Torn 5 acts as a web server so that players can get up-to-the-minute reports without you having to click anything other than Commit.</li></ul>
-</p>
 <a name="QuickStart"><h2>Quick Start</h2></a>
-</p><p>
+<p>
 Run the program. Click <span class="mnu">Preferences</span>. If you have a lasergame system, select the appropriate system and enter the laser game database server address. 
+</p>
 <ul>
 <li>For P&amp;C Nexus systems, this is the name or IP address of the database server machine.</li>
 <li>For P&amp;C O-Zone systems, use the Helios net IP address, and port 123123. You will need a system that supports print server.</li>
 <li>For Laserforce, this is probably lf-main\lf6. (Depending on firewall and SQL Server configuration, you may need to run Torn 5 on the database PC.)</li>
 <li>If you don't have a lasergame system, just leave it at Demo.</li>
 </ul>
-</p><p>
+<p>
 Click <span class="mnu">OK</span>. Click <span class="mnu">Latest</span>. This will cause Torn to query the lasergame server. A list of games should appear.
 </p><p>
 On the Leagues toolbar, click <span class="mnu">New</span> or <span class="mnu">Open</span>. Torn 5 can open Torn 4 .Torn files. When it saves those files it will write extra information. The latest version of Torn 4 will ignore all that extra information, so you <em>should</em> be able to open the file in one, make changes, then open it in the other, and then back again. But after Torn 4 has opened the file, made changes and saved it again, the extra Torn 5 data will be missing.
@@ -110,11 +112,13 @@ The next three tabs, <span class="mnu">Handicap</span>, <span class="mnu">Grades
 The <span class="mnu">Terminations</span> tab lets you set values that will be used when you right-click on a player in a game and select <span class="mnu">Manage Terms</span>.
 </p><p>
 <strong><span class="mnu">Preferences</span></strong>: brings up the Preferences dialog. These preferences are global to all of Torn, and are not specific to a league.
-</p><p>
+</p>
 <a name="Fixtures"><h2>Fixtures</h2></a>
+<p>
 The <span class="mnu">Fixtures</span> dialog is "non-modal" &mdash; you can flip back to Torn's main window without closing this one. It has four tabs: <a href="#Teams">Teams</a>, <a href="#Finals">Finals</a>, <a href="#Pyramid">Pyramid</a>, and <a href="#PyramidRound">Pyramid Round</a>.
-</p><p>
+</p>
 <a name="Teams"><h3>Teams</h3></a>
+<p>
 On the <span class="mnu">Teams</span> tab, you'll see a list of teams that the fixture system already knows about. If your league has teams, they will appear here. If not, you can go to the <span class="mnu">Edit</span> dialog and use <span class="mnu">Add</span> or <span class="mnu">Paste Teams</span>.
 Here, you can generate fixtures. Once generated, Torn 5 will serve a list of these games from its internal web server, and can export the fixtures as HTML for upload to the web. It will also endeavour to keep track of where you are up to in your fixtures &mdash; the Now page from its internal web server will endeavour to identify the game just played (from lasergame server data) and the next game (from fixtures) automatically.
 </p><p>
@@ -129,7 +133,13 @@ To change how the fixture is displayed, tick or untick the <span class="mnu">Gam
 </p>
 <a name="LotR"><h4>Lord of the Ring</h4></a>
 <p>
-To generate Lord of the Ring-style fixtures, in which several small games are run in parallel, click <span class="mnu">Rings</span> and specify the desired number and/or colour of rings. At the moment, only 2 to 6 rings are supported, and only 6 games per team is supported. Setting <span class="mnu">Referee</span> to a number greater than 0 will attempt to assign as many referees to each game as there are players in that game. Note that your starting league file should have team names in randomised order &mdash; if not, teams near each other on the list will play each other more. Team names ending with an '*' will not be assigned refereeing spots. If you select no Shuffle options, players will mostly referee immediately before playing, so most players will referee 6 games, and you can tell players to referee the colour ring they're about to play. If you select one or more Shuffle options, Torn may be able to optimise to e.g. reduce day length for players, but the "referee before you play" pattern will be lost.
+To generate Lord of the Ring-style fixtures, in which several small games are run in parallel, click the <span class="mnu">Lord of the Ring</span> preset, and specify the desired number and/or colour of rings.
+</p><p>
+Ticking <span class="mnu">Referees</span> will attempt to assign as many referees to each game as there are players in that game. If you want referees, it may be best to do it in two steps: first, generate a fixture without referees. After it's had a few seconds to optimise, click <span class="mnu">Stop</span>, under <span class="mnu">Shuffle</span> untick anything that's ticked, tick the <span class="mnu">Referees</span> box, and click <span class="mnu">Generate</span>. This will set each team/player to referee each game that is immediately before a game they play in, and you can tell players to referee the colour ring they're about to play.
+</p><p>
+Note that your starting league file should have team names in randomised order &mdash; if not, teams near each other on the list will play each other more. Team names ending with an '*' will not be assigned refereeing spots.
+</p><p>
+You can generate <strong>Base Run</strong>-style fixtures: set <span class="mnu">Teams per ring</span> to 2, and set <span class="mnu">Rings</span> to 3 (assuming you're using 3 bases). Select the colours for the bases you're using. In the generated fixture, both teams at e.g. the red base will be shown in red. You'll want to assign each team different pack colours &mdash; the fixture only shows what base they'll be playing at, not what colour vests they'll be wearing.
 </p>
 <a name="Finals"><h3>Finals</h3></a>
 <p>
@@ -192,14 +202,14 @@ If you would like for a player or team to not appear in the next round, click <s
 </p><p>
 <strong><span class="mnu">Remove Column</span></strong>: Removes a column of team boxes.
 </p><p>
-<strong><span class="mnu">Remember Teams</span></strong>: for any teams in this game that aren't already on the list of teams in this league, Torn will add those teams to the league. You can then edit them under Leagues &#x25b8 <span class="mnu">Edit</span>.
+<strong><span class="mnu">Remember Teams</span></strong>: for any teams in this game that aren't already on the list of teams in this league, Torn will add those teams to the league. You can then edit them under Leagues &#x25b8; <span class="mnu">Edit</span>.
 </p><p>
 </p>
 <a name="Reports"><h2>Reports</h2></a>
 <p>
 <strong><span class="mnu">Report</span></strong>: generates and saves a set of HTML reports for the selected leagues. If you have not used the Configure button to configure reports for a league, a default set will be used, which may include a team ladder, a games list, a games pyramid or games grid, and a solo ladder. Exactly what reports are in the default set depends on the type of league: if Torn recognises that you're using a pyramid-style fixture, it will include a games pyramid. If not, it won't. If it detects that you're titling groups of games, it will include a report for your semifinals and a report for your grand finals; if not, it won't. In addition to these "overview" reports, detailed reports will be generated for each game, team and player.
 </p><p>
-The first time you generate reports Torn will ask what folder to export to. You can change this in <span class="mnu">Preferences</span> &#x25b8 <span class="mnu">Reports</span>.
+The first time you generate reports Torn will ask what folder to export to. You can change this in <span class="mnu">Preferences</span> &#x25b8; <span class="mnu">Reports</span>.
 </p><p>
 <strong><span class="mnu">Upload</span></strong>: All files in the reports folder will be uploaded to the web site you specified in <span class="mnu">Preferences</span>.
 </p><p>
@@ -217,25 +227,25 @@ The first time you generate reports Torn will ask what folder to export to. You 
 </p><p>
 <strong><span class="mnu">About</span></strong>: a brief About dialog.
 </p>
-<a name="ReportTypes"><h3>Report Types</h3></a>
+<a name="ReportTypes"><h2>Report Types</h2></a>
 <p>
 Reporting is my favourite part of the software, so it gets all the attention. There are a variety of report types available, detailed below.
 </p><p>
 For a report you can manually set a title. If you don't set one, Torn will make up a title based on the league name and the report type.
 </p>
-<h4>Filters</h4>
+<h3>Filters</h3>
 <p>
 In the Filters section you can limit reports to games within a certain date/time range. You can also limit reports to games that you've given a particular description back on the main screen: if you've told Torn that a group of games are "Round Robin", and you set the report to only show games with description "Round Robin", that's what you'll get. There's no way to tell it to only show games with no description, so... give your games descriptions.
 </p>
-<h4>Drops</h4>
+<h3>Drops</h3>
 <p>
 You can tell Torn to drop some scores: for example, drop each team's worst game. You can specify by number of games or by percentage. If each team has played four games and you want to drop their worst, but one team missed out a game and thus you want to count just the three they played, tell Torn to drop the worst 25% of games for each team. For teams that played all four games, that'll drop one game; for the team that played three, it'll drop zero games.
 </p>
-<h4>Chart Types</h4>
+<h3>Chart Types</h3>
 <p>
 You can choose various chart types for various reports, though not every type makes sense for every report. <span class="mnu">Bar chart</span> will show little embedded bar charts in the background of each cell. These are good where each cell holds a single value -- for example, in a game grid. Where cells hold many values (for example in a team ladder, where "Average Score" is, well, an average of many scores) the bar will show the aggregate (e.g. the average). <span class="mnu">Rug</span> shows a series of "tick marks" along the bottom of the cell showing each value. So in a team ladder, that would be every individual score. <a href="https://en.wikipedia.org/wiki/Rug_plot">Wikipedia</a> has more. In Torn, if several tick marks coincide or nearly coincide, they stack vertically, into a sort of drunk histogram. Speaking of which, there's also an actual <span class="mnu">histogram</span> option, which <a href="https://en.wikipedia.org/wiki/Histogram">does what you'd expect</a>. Much more technical is the <a href="https://en.wikipedia.org/wiki/Kernel_density_estimation"><span class="mnu">kernel density estimate</span></a>, only useful for large amounts of data (e.g. the Pack Report).
 </p>
-<h4>Clickability</h4>
+<h3>Clickability</h3>
 <p>
 If you export reports as HTML SVG or HTML tables, your reports will contain hyperlinks, which users can click to go to the appropriate place. Anywhere you see a team name, click it to see that team's stats page. Anywhere you see a player's name, click it to see that player's stats. Anywhere you see a game title or game time, click it to see details of that game.
 </p>
@@ -260,7 +270,7 @@ If you export reports as HTML SVG or HTML tables, your reports will contain hype
 	<rect x="-147.2" y="48" width="432.3" height="15" style="fill:#EEC0A0" />
 
 	<text text-anchor="middle" x="11" y="59" width="21" font-size="11">1</text>
-	<text text-decoration="underline" x="24" y="59" width="162" font-size="11" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" x="24" y="59" width="162" font-size="11" fill="Navy">Spartans</text>
 	<text text-anchor="end" x="207" y="59" width="21" font-size="11">70</text>
 	<text text-anchor="end" x="260" y="59" width="51" font-size="11">43,459</text>
 	<text text-anchor="end" x="283" y="59" width="21" font-size="11">12</text>
@@ -269,7 +279,7 @@ If you export reports as HTML SVG or HTML tables, your reports will contain hype
 	<rect x="-147.2" y="64" width="419.9" height="15" style="fill:#FFC0A0" />
 
 	<text text-anchor="middle" x="11" y="75" width="21" font-size="11">2</text>
-	<text text-decoration="underline" x="24" y="75" width="162" font-size="11" fill="Navy">Wolfpack</text></a>
+	<text text-decoration="underline" x="24" y="75" width="162" font-size="11" fill="Navy">Wolfpack</text>
 	<text text-anchor="end" x="207" y="75" width="21" font-size="11">68</text>
 	<text text-anchor="end" x="260" y="75" width="51" font-size="11">44,202</text>
 	<text text-anchor="end" x="283" y="75" width="21" font-size="11">12</text>
@@ -278,7 +288,7 @@ If you export reports as HTML SVG or HTML tables, your reports will contain hype
 	<rect x="-147.2" y="80" width="407.6" height="15" style="fill:#EEC0A0" />
 
 	<text text-anchor="middle" x="11" y="91" width="21" font-size="11">3</text>
-	<text text-decoration="underline" x="24" y="91" width="162" font-size="11" fill="Navy">Brisbane Beavers</text></a>
+	<text text-decoration="underline" x="24" y="91" width="162" font-size="11" fill="Navy">Brisbane Beavers</text>
 	<text text-anchor="end" x="207" y="91" width="21" font-size="11">66</text>
 	<text text-anchor="end" x="260" y="91" width="51" font-size="11">43,502</text>
 	<text text-anchor="end" x="283" y="91" width="21" font-size="11">12</text>
@@ -342,75 +352,75 @@ If you tick <span class="mnu">longitudinal chart</span> you'll get an extra colu
 	<rect x="419.9" y="92" width="30.9" height="22" style="fill:#EEC0A0" />
 
 	<text text-anchor="middle" x="7" y="108" width="13" font-size="16">1</text>
-	<text text-decoration="underline" x="16" y="108" width="132" font-size="16" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" x="16" y="108" width="132" font-size="16" fill="Navy">Spartans</text>
 	<text text-anchor="end" x="168" y="108" width="21" font-size="16">70</text>
 	<text text-anchor="end" x="221" y="108" width="51" font-size="16">43,459</text>
 	<text text-anchor="end" x="244" y="108" width="21" font-size="16">12</text>
-	<text text-decoration="underline" x="264" y="108" width="124" font-size="16" fill="Navy">Wolfpack</text></a>
+	<text text-decoration="underline" x="264" y="108" width="124" font-size="16" fill="Navy">Wolfpack</text>
 	<text text-anchor="end" x="417" y="108" width="30" font-size="16">100</text>
 	<text text-anchor="end" x="469" y="108" width="51" font-size="16">42,248</text>
 	<text text-anchor="end" x="484" y="108" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="503" y="108" width="132" font-size="16" fill="Navy">Brisbane Beavers</text></a>
+	<text text-decoration="underline" x="503" y="108" width="132" font-size="16" fill="Navy">Brisbane Beavers</text>
 
 	<rect x="1" y="115" width="1166" height="22" style="fill:White" />
 	<rect x="171.9" y="115" width="32.3" height="22" style="fill:#FFC0A0" />
 	<rect x="419.9" y="115" width="29" height="22" style="fill:#FFC0A0" />
 
 	<text text-anchor="middle" x="7" y="131" width="13" font-size="16">2</text>
-	<text text-decoration="underline" x="16" y="131" width="132" font-size="16" fill="Navy">Wolfpack</text></a>
+	<text text-decoration="underline" x="16" y="131" width="132" font-size="16" fill="Navy">Wolfpack</text>
 	<text text-anchor="end" x="168" y="131" width="21" font-size="16">68</text>
 	<text text-anchor="end" x="221" y="131" width="51" font-size="16">44,202</text>
 	<text text-anchor="end" x="244" y="131" width="21" font-size="16">12</text>
-	<text text-decoration="underline" x="264" y="131" width="124" font-size="16" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" x="264" y="131" width="124" font-size="16" fill="Navy">Spartans</text>
 	<text text-anchor="end" x="417" y="131" width="30" font-size="16">100</text>
 	<text text-anchor="end" x="469" y="131" width="51" font-size="16">39,705</text>
 	<text text-anchor="end" x="484" y="131" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="503" y="131" width="99" font-size="16" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" x="503" y="131" width="99" font-size="16" fill="Navy">Spartans</text>
 
 	<rect x="1" y="138" width="1166" height="22" style="fill:#EEFFFF" />
 	<rect x="171.9" y="138" width="31.8" height="22" style="fill:#EEC0A0" />
 	<rect x="419.9" y="138" width="29.2" height="22" style="fill:#EEC0A0" />
 
 	<text text-anchor="middle" x="7" y="154" width="13" font-size="16">3</text>
-	<text text-decoration="underline" x="16" y="154" width="132" font-size="16" fill="Navy">Brisbane Beavers</text></a>
+	<text text-decoration="underline" x="16" y="154" width="132" font-size="16" fill="Navy">Brisbane Beavers</text>
 	<text text-anchor="end" x="168" y="154" width="21" font-size="16">66</text>
 	<text text-anchor="end" x="221" y="154" width="51" font-size="16">43,502</text>
 	<text text-anchor="end" x="244" y="154" width="21" font-size="16">12</text>
-	<text text-decoration="underline" x="264" y="154" width="124" font-size="16" fill="Navy">Brisbane Beavers</text></a>
+	<text text-decoration="underline" x="264" y="154" width="124" font-size="16" fill="Navy">Brisbane Beavers</text>
 	<text text-anchor="end" x="417" y="154" width="30" font-size="16">98</text>
 	<text text-anchor="end" x="469" y="154" width="51" font-size="16">39,917</text>
 	<text text-anchor="end" x="484" y="154" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="503" y="154" width="99" font-size="16" fill="Navy">Wolfpack</text></a>
+	<text text-decoration="underline" x="503" y="154" width="99" font-size="16" fill="Navy">Wolfpack</text>
 
 	<rect x="1" y="161" width="1166" height="22" style="fill:White" />
 	<rect x="171.9" y="161" width="29.6" height="22" style="fill:#FFC0A0" />
 	<rect x="419.9" y="161" width="27.4" height="22" style="fill:#FFC0A0" />
 
 	<text text-anchor="middle" x="7" y="177" width="13" font-size="16">4</text>
-	<text text-decoration="underline" x="16" y="177" width="132" font-size="16" fill="Navy">GP</text></a>
+	<text text-decoration="underline" x="16" y="177" width="132" font-size="16" fill="Navy">GP</text>
 	<text text-anchor="end" x="168" y="177" width="21" font-size="16">66</text>
 	<text text-anchor="end" x="221" y="177" width="51" font-size="16">40,531</text>
 	<text text-anchor="end" x="244" y="177" width="21" font-size="16">12</text>
-	<text text-decoration="underline" x="264" y="177" width="124" font-size="16" fill="Navy">WA Grizzlies</text></a>
+	<text text-decoration="underline" x="264" y="177" width="124" font-size="16" fill="Navy">WA Grizzlies</text>
 	<text text-anchor="end" x="417" y="177" width="30" font-size="16">90</text>
 	<text text-anchor="end" x="469" y="177" width="51" font-size="16">37,419</text>
 	<text text-anchor="end" x="484" y="177" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="503" y="177" width="99" font-size="16" fill="Navy">GP</text></a>
+	<text text-decoration="underline" x="503" y="177" width="99" font-size="16" fill="Navy">GP</text>
 
 	<rect x="1" y="184" width="1166" height="22" style="fill:#EEFFFF" />
 	<rect x="171.9" y="184" width="28.7" height="22" style="fill:#EEC0A0" />
 	<rect x="419.9" y="184" width="27.6" height="22" style="fill:#EEC0A0" />
 
 	<text text-anchor="middle" x="7" y="200" width="13" font-size="16">5</text>
-	<text text-decoration="underline" x="16" y="200" width="132" font-size="16" fill="Navy">Queensland Ducks</text></a>
+	<text text-decoration="underline" x="16" y="200" width="132" font-size="16" fill="Navy">Queensland Ducks</text>
 	<text text-anchor="end" x="168" y="200" width="21" font-size="16">64</text>
 	<text text-anchor="end" x="221" y="200" width="51" font-size="16">39,320</text>
 	<text text-anchor="end" x="244" y="200" width="21" font-size="16">12</text>
-	<text text-decoration="underline" x="264" y="200" width="124" font-size="16" fill="Navy">GP</text></a>
+	<text text-decoration="underline" x="264" y="200" width="124" font-size="16" fill="Navy">GP</text>
 	<text text-anchor="end" x="417" y="200" width="30" font-size="16">88</text>
 	<text text-anchor="end" x="469" y="200" width="51" font-size="16">37,808</text>
 	<text text-anchor="end" x="484" y="200" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="503" y="200" width="84" font-size="16" fill="Navy">NZ Cobras</text></a>
+	<text text-decoration="underline" x="503" y="200" width="84" font-size="16" fill="Navy">NZ Cobras</text>
 
 	<path d="M 246.9,381.2 c 7.8,0 7.8,-103.5 7.8,-107.8 s 0,-99.2 3.4,-99.2 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 c -7.8,0 -7.8,103.5 -7.8,107.8 s 0,99.2 -3.4,99.2 Z" fill="#8A2208" />
 	<path d="M 246.9,128.2 c 7.8,0 7.8,-11.5 7.8,-15.8 s 0,-7.2 3.4,-7.2 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 c -7.8,0 -7.8,11.5 -7.8,15.8 s 0,7.2 -3.4,7.2 Z" fill="#788358" />
@@ -459,7 +469,7 @@ If you have set descriptions for groups of games, this report will show you seve
 	<rect x="179.1" y="117" width="26.1" height="15" style="fill:#EEC0A0" />
 	<rect x="206.2" y="117" width="15.7" height="15" style="fill:#EEC0A0" />
 
-	<text text-decoration="underline" x="2" y="128" width="162" font-size="11" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" x="2" y="128" width="162" font-size="11" fill="Navy">Spartans</text>
 	<text text-anchor="middle" x="137" y="128" width="26" font-size="11">╲</text>
 	<text text-anchor="middle" x="164" y="128" width="26" font-size="11">5/9</text>
 	<text text-anchor="middle" x="192" y="128" width="26" font-size="11">4/4</text>
@@ -472,7 +482,7 @@ If you have set descriptions for groups of games, this report will show you seve
 	<rect x="179.1" y="133" width="13.1" height="15" style="fill:#FFC0A0" />
 	<rect x="206.2" y="133" width="15.7" height="15" style="fill:#FFC0A0" />
 
-	<text text-decoration="underline" x="2" y="144" width="162" font-size="11" fill="Navy">Brisbane Beavers</text></a>
+	<text text-decoration="underline" x="2" y="144" width="162" font-size="11" fill="Navy">Brisbane Beavers</text>
 	<text text-anchor="middle" x="137" y="144" width="26" font-size="11">4/9</text>
 	<text text-anchor="middle" x="164" y="144" width="26" font-size="11">╲</text>
 	<text text-anchor="middle" x="192" y="144" width="26" font-size="11">2/4</text>
@@ -485,7 +495,7 @@ If you have set descriptions for groups of games, this report will show you seve
 	<rect x="206.2" y="149" width="4.4" height="15" style="fill:#EEC0A0" />
 	<rect x="233.3" y="189" width="26.1" height="15" style="fill:#EEC0A0" />
 
-	<text text-decoration="underline" x="2" y="160" width="162" font-size="11" fill="Navy">GP</text></a>
+	<text text-decoration="underline" x="2" y="160" width="162" font-size="11" fill="Navy">GP</text>
 	<text text-anchor="middle" x="137" y="160" width="26" font-size="11">0/4</text>
 	<text text-anchor="middle" x="164" y="160" width="26" font-size="11">2/4</text>
 	<text text-anchor="middle" x="192" y="160" width="26" font-size="11">╲</text>
@@ -498,7 +508,7 @@ If you have set descriptions for groups of games, this report will show you seve
 	<rect x="206.2" y="165" width="26.1" height="15" style="fill:Gray" />
 	<rect x="206.2" y="165" width="26.1" height="15" style="fill:#686868" />
 
-	<text text-decoration="underline" x="2" y="176" width="162" font-size="11" fill="Navy">Wolfpack</text></a>
+	<text text-decoration="underline" x="2" y="176" width="162" font-size="11" fill="Navy">Wolfpack</text>
 	<text text-anchor="middle" x="137" y="176" width="26" font-size="11">4/10</text>
 	<text text-anchor="middle" x="164" y="176" width="26" font-size="11">4/10</text>
 	<text text-anchor="middle" x="192" y="176" width="26" font-size="11">5/6</text>
@@ -540,11 +550,11 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="394.7" y="92" width="229.8" height="22" style="fill:#A0FFA0" />
 	<rect x="394.7" y="92" width="70" height="22" style="fill:#82D082" />
 
-	<text text-decoration="underline" text-anchor="end" x="161" y="108" width="161" font-size="16" fill="Navy">Round Robin 9:56 AM</text></a>
-	<text text-decoration="underline" x="164" y="108" width="162" font-size="16" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" text-anchor="end" x="161" y="108" width="161" font-size="16" fill="Navy">Round Robin 9:56 AM</text>
+	<text text-decoration="underline" x="164" y="108" width="162" font-size="16" fill="Navy">Spartans</text>
 	<text text-anchor="end" x="377" y="108" width="51" font-size="16">53,400</text>
 	<text text-anchor="end" x="392" y="108" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="395" y="108" width="162" font-size="16" fill="Navy">WASP</text></a>
+	<text text-decoration="underline" x="395" y="108" width="162" font-size="16" fill="Navy">WASP</text>
 
 	<rect x="1" y="115" width="856" height="22" style="fill:#EEFFFF" />
 	<rect x="163.9" y="115" width="229.8" height="22" style="fill:#FFA0A0" />
@@ -552,11 +562,11 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="394.7" y="115" width="229.8" height="22" style="fill:#A0D0FF" />
 	<rect x="394.7" y="115" width="114.2" height="22" style="fill:#75AAD0" />
 
-	<text text-decoration="underline" text-anchor="end" x="161" y="131" width="161" font-size="16" fill="Navy">Round Robin 10:12 AM</text></a>
-	<text text-decoration="underline" x="164" y="131" width="162" font-size="16" fill="Navy">Sydney Basilisk</text></a>
+	<text text-decoration="underline" text-anchor="end" x="161" y="131" width="161" font-size="16" fill="Navy">Round Robin 10:12 AM</text>
+	<text text-decoration="underline" x="164" y="131" width="162" font-size="16" fill="Navy">Sydney Basilisk</text>
 	<text text-anchor="end" x="377" y="131" width="51" font-size="16">40,386</text>
 	<text text-anchor="end" x="392" y="131" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="395" y="131" width="162" font-size="16" fill="Navy">1up</text></a>
+	<text text-decoration="underline" x="395" y="131" width="162" font-size="16" fill="Navy">1up</text>
 
 	<rect x="1" y="138" width="856" height="22" style="fill:White" />
 	<rect x="163.9" y="138" width="229.8" height="22" style="fill:#FFA0A0" />
@@ -564,11 +574,11 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="394.7" y="138" width="229.8" height="22" style="fill:#A0D0FF" />
 	<rect x="394.7" y="138" width="135.6" height="22" style="fill:#82AAD0" />
 
-	<text text-decoration="underline" text-anchor="end" x="161" y="154" width="161" font-size="16" fill="Navy">Round Robin 10:27 AM</text></a>
-	<text text-decoration="underline" x="164" y="154" width="162" font-size="16" fill="Navy">Dragons</text></a>
+	<text text-decoration="underline" text-anchor="end" x="161" y="154" width="161" font-size="16" fill="Navy">Round Robin 10:27 AM</text>
+	<text text-decoration="underline" x="164" y="154" width="162" font-size="16" fill="Navy">Dragons</text>
 	<text text-anchor="end" x="377" y="154" width="51" font-size="16">49,139</text>
 	<text text-anchor="end" x="392" y="154" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="395" y="154" width="162" font-size="16" fill="Navy">Adelaide Aftershock</text></a>
+	<text text-decoration="underline" x="395" y="154" width="162" font-size="16" fill="Navy">Adelaide Aftershock</text>
 
 	<rect x="1" y="161" width="856" height="22" style="fill:#EEFFFF" />
 	<rect x="163.9" y="161" width="229.8" height="22" style="fill:#A0FFA0" />
@@ -576,11 +586,11 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="394.7" y="161" width="229.8" height="22" style="fill:#FFA0A0" />
 	<rect x="394.7" y="161" width="109.6" height="22" style="fill:#C28282" />
 
-	<text text-decoration="underline" text-anchor="end" x="161" y="177" width="161" font-size="16" fill="Navy">Round Robin 10:43 AM</text></a>
-	<text text-decoration="underline" x="164" y="177" width="162" font-size="16" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" text-anchor="end" x="161" y="177" width="161" font-size="16" fill="Navy">Round Robin 10:43 AM</text>
+	<text text-decoration="underline" x="164" y="177" width="162" font-size="16" fill="Navy">Spartans</text>
 	<text text-anchor="end" x="377" y="177" width="51" font-size="16">45,926</text>
 	<text text-anchor="end" x="392" y="177" width="13" font-size="16">6</text>
-	<text text-decoration="underline" x="395" y="177" width="162" font-size="16" fill="Navy">Box Hill Sentinels</text></a>
+	<text text-decoration="underline" x="395" y="177" width="162" font-size="16" fill="Navy">Box Hill Sentinels</text>
 </svg><br/><br/>
 <svg viewBox="0 0 357 112" width="500" align="center">
 	<rect x="1" y="1" width="349" height="30" style="fill:Gray" />
@@ -596,11 +606,11 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="15.4" y="48" width="124.1" height="15" style="fill:Gray" />
 	<text x="16" y="59" width="124" font-size="11" fill="White">Team</text>
 	<rect x="140.5" y="48" width="51.6" height="15" style="fill:Gray" />
-	<text text-decoration="underline" text-anchor="end" x="190" y="59" width="51" font-size="11" fill="White">4:51 PM</text></a>
+	<text text-decoration="underline" text-anchor="end" x="190" y="59" width="51" font-size="11" fill="White">4:51 PM</text>
 	<rect x="193.1" y="48" width="51.6" height="15" style="fill:Gray" />
-	<text text-decoration="underline" text-anchor="end" x="243" y="59" width="51" font-size="11" fill="White">5:12 PM</text></a>
+	<text text-decoration="underline" text-anchor="end" x="243" y="59" width="51" font-size="11" fill="White">5:12 PM</text>
 	<rect x="245.7" y="48" width="51.6" height="15" style="fill:Gray" />
-	<text text-decoration="underline" text-anchor="end" x="295" y="59" width="51" font-size="11" fill="White">5:30 PM</text></a>
+	<text text-decoration="underline" text-anchor="end" x="295" y="59" width="51" font-size="11" fill="White">5:30 PM</text>
 	<rect x="298.3" y="48" width="51.6" height="15" style="fill:Gray" />
 	<text text-anchor="end" x="348" y="59" width="51" font-size="11" fill="White">Average</text>
 
@@ -614,7 +624,7 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="298.3" y="64" width="44.9" height="15" style="fill:#EEC0A0" />
 
 	<text text-anchor="middle" x="7" y="75" width="13" font-size="11">1</text>
-	<text text-decoration="underline" x="16" y="75" width="124" font-size="11" fill="Navy">Wolfpack</text></a>
+	<text text-decoration="underline" x="16" y="75" width="124" font-size="11" fill="Navy">Wolfpack</text>
 	<text text-anchor="end" x="190" y="75" width="51" font-size="11">23,684</text>
 	<text text-anchor="end" x="243" y="75" width="51" font-size="11">21,312</text>
 	<text text-anchor="end" x="295" y="75" width="51" font-size="11">27,984</text>
@@ -630,7 +640,7 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="298.3" y="80" width="44.2" height="15" style="fill:#FFC0A0" />
 
 	<text text-anchor="middle" x="7" y="91" width="13" font-size="11">2</text>
-	<text text-decoration="underline" x="16" y="91" width="124" font-size="11" fill="Navy">Brisbane Beavers</text></a>
+	<text text-decoration="underline" x="16" y="91" width="124" font-size="11" fill="Navy">Brisbane Beavers</text>
 	<text text-anchor="end" x="190" y="91" width="51" font-size="11">25,173</text>
 	<text text-anchor="end" x="243" y="91" width="51" font-size="11">27,623</text>
 	<text text-anchor="end" x="295" y="91" width="51" font-size="11">19,101</text>
@@ -646,7 +656,7 @@ The solo ladder has most of the same options as the team ladder. No <span class=
 	<rect x="298.3" y="96" width="44" height="15" style="fill:#EEC0A0" />
 
 	<text text-anchor="middle" x="7" y="107" width="13" font-size="11">3</text>
-	<text text-decoration="underline" x="16" y="107" width="124" font-size="11" fill="Navy">Spartans</text></a>
+	<text text-decoration="underline" x="16" y="107" width="124" font-size="11" fill="Navy">Spartans</text>
 	<text text-anchor="end" x="190" y="107" width="51" font-size="11">22,772</text>
 	<text text-anchor="end" x="243" y="107" width="51" font-size="11">27,774</text>
 	<text text-anchor="end" x="295" y="107" width="51" font-size="11">21,003</text>
@@ -698,7 +708,7 @@ The <strong>Game grid condensed</strong> report (see Pyramid condensed illustrat
 	<rect x="327" y="64" width="21.9" height="15" style="fill:#A0D0FF" />
 
 	<text text-anchor="middle" x="16" y="75" width="30" font-size="11">1</text>
-	<text text-decoration="underline" x="33" y="75" width="101" font-size="11" fill="Navy">ninja</text></a>
+	<text text-decoration="underline" x="33" y="75" width="101" font-size="11" fill="Navy">ninja</text>
 	<text text-anchor="end" x="142" y="75" width="69" font-size="11">12:08 PM</text>
 	<text text-anchor="end" x="187" y="75" width="43" font-size="11">6,750</text>
 	<text text-anchor="end" x="209" y="75" width="21" font-size="11">1</text>
@@ -715,7 +725,7 @@ The <strong>Game grid condensed</strong> report (see Pyramid condensed illustrat
 	<rect x="327" y="80" width="21.9" height="15" style="fill:#A0D0FF" />
 
 	<text text-anchor="middle" x="16" y="91" width="30" font-size="11">2</text>
-	<text text-decoration="underline" x="33" y="91" width="101" font-size="11" fill="Navy">Bootza</text></a>
+	<text text-decoration="underline" x="33" y="91" width="101" font-size="11" fill="Navy">Bootza</text>
 	<text text-anchor="end" x="142" y="91" width="69" font-size="11">12:42 PM</text>
 	<text text-anchor="end" x="187" y="91" width="43" font-size="11">7,120</text>
 	<text text-anchor="end" x="209" y="91" width="21" font-size="11">1</text>
@@ -732,7 +742,7 @@ The <strong>Game grid condensed</strong> report (see Pyramid condensed illustrat
 	<rect x="327" y="96" width="21.9" height="15" style="fill:#A0D0FF" />
 
 	<text text-anchor="middle" x="16" y="107" width="30" font-size="11">3</text>
-	<text text-decoration="underline" x="33" y="107" width="101" font-size="11" fill="Navy">lakeo</text></a>
+	<text text-decoration="underline" x="33" y="107" width="101" font-size="11" fill="Navy">lakeo</text>
 	<text text-anchor="end" x="142" y="107" width="69" font-size="11">1:13 PM</text>
 	<text text-anchor="end" x="187" y="107" width="43" font-size="11">5,020</text>
 	<text text-anchor="end" x="209" y="107" width="21" font-size="11">2</text>
@@ -749,7 +759,7 @@ The <strong>Game grid condensed</strong> report (see Pyramid condensed illustrat
 	<rect x="327" y="112" width="21.9" height="15" style="fill:#A0D0FF" />
 
 	<text text-anchor="middle" x="16" y="123" width="30" font-size="11">4</text>
-	<text text-decoration="underline" x="33" y="123" width="101" font-size="11" fill="Navy">Blitz</text></a>
+	<text text-decoration="underline" x="33" y="123" width="101" font-size="11" fill="Navy">Blitz</text>
 	<text text-anchor="end" x="142" y="123" width="69" font-size="11">1:02 PM</text>
 	<text text-anchor="end" x="187" y="123" width="43" font-size="11">5,430</text>
 	<text text-anchor="end" x="209" y="123" width="21" font-size="11">4</text>
@@ -764,8 +774,192 @@ The pyramid report is useful when you're running a competition that gradually el
 The <strong>Pyramid condensed</strong> report (illustrated) still has a row for each team, but similar to the game grid condensed, it doesn't try to put each game in a column; instead just listing all a team's games across that team's row.
 </p>
 <a name="Ascension"><h3>Ascension</h3></a>
+</div>
+<div style="float:left; margin-right:10">
+<svg viewBox="2180 0 328 186" width="328" align="center" font-size="17" class="ld">
+	<rect x="1" y="1" width="2761" height="46" style="fill-opacity:0.753; fill:#404040;" />
+	<text x="1720" y="35" font-size="34" fill="White">ZLTAC Teams 2026 System D Ascension for 6/03/2026</text>
+
+	<rect x="2106.8" y="48" width="97.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="2202" y="66" width="51" fill="White">2:13</text>
+	<text text-decoration="underline" text-anchor="end" x="2202" y="83" width="51" fill="White">PM</text>
+	<rect x="2204.9" y="48" width="97.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="2300" y="66" width="51" fill="White">2:28</text>
+	<text text-decoration="underline" text-anchor="end" x="2300" y="83" width="51" fill="White">PM</text>
+	<rect x="2303.1" y="48" width="59.7" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="2361" y="66" width="51" fill="White">2:43</text>
+	<text text-decoration="underline" text-anchor="end" x="2361" y="83" width="51" fill="White">PM</text>
+	<rect x="2363.8" y="48" width="97.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="2459" y="66" width="51" fill="White">2:58</text>
+	<text text-decoration="underline" text-anchor="end" x="2459" y="83" width="51" fill="White">PM</text>
+	<rect x="2461.9" y="48" width="45" height="40" style="fill-opacity:0.753; fill:#404040;" />
+
+	<rect x="2631.6" y="48" width="30" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<rect x="2662.6" y="48" width="99.7" height="40" style="fill-opacity:0.753; fill:#404040;" />
+
+	<rect x="1" y="89" width="2762" height="22" style="fill-opacity:0.063; fill:#00FFFF;" />
+	<rect x="1" y="135" width="2762" height="22" style="fill-opacity:0.063; fill:#00FFFF;" />
+	<rect x="1" y="181" width="2762" height="22" style="fill-opacity:0.063; fill:#00FFFF;" />
+
+	<path d="M 2045.6,146 v 2.2 h 150.3 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -150.3 z" fill="#9084BD" />
+	<path d="M 2204.4,169 h 1 q 13.8,0 27.5,23 t 27.5,23 h 2.2" fill="none" stroke-width="4.3" stroke="#1EA079" />
+	<path d="M 2204.4,192 q 27.6,0 55.2,-11.5 q 27.6,-11.5 77.1,-11.5" fill="none" stroke-width="4.3" stroke="#3E012A" /> <path d="M 2334.6,169 v 4.3 l 4.3,-4.3 l -4.3,-4.3 z" fill="#3E012A" />
+	<path d="M 2302.6,100 v 2.2 h 355.3 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -355.3 z" fill="#2E5018" />
+	<path d="M 2302.6,123 v 2.2 h 48.8 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -48.8 z" fill="#A2ABCC" />
+	<path d="M 2302.6,146 v 2.2 h 52.1 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -52.1 z" fill="#9084BD" />
+	<path d="M 2461.4,123 h 1 q 9.9,0 19.8,23 t 19.8,23 h 2.2" fill="none" stroke-width="4.3" stroke="#A2ABCC" /> <path d="M 2503.2,169 v 4.3 l 4.3,-4.3 l -4.3,-4.3 z" fill="#A2ABCC" />
+	<path d="M 2461.4,146 q 22,0 44,-11.5 q 22,-11.5 154.6,-11.5" fill="none" stroke-width="4.3" stroke="#9084BD" /> <path d="M 2657.9,123 v 4.3 l 4.3,-4.3 l -4.3,-4.3 z" fill="#9084BD" />
+	<path d="M 2461.4,169 h 1 q 9.9,0 19.8,-11.5 t 19.8,-11.5 h 2.2" fill="none" stroke-width="4.3" stroke="#3E012A" /> <path d="M 2503.2,146 v 4.3 l 4.3,-4.3 l -4.3,-4.3 z" fill="#3E012A" />
+	<path d="M 2631.1,169 h 1 q 6.2,0 12.3,-11.5 t 12.3,-11.5 h 2.2" fill="none" stroke-width="4.3" stroke="#A2ABCC" /> <path d="M 2657.9,146 v 4.3 l 4.3,-4.3 l -4.3,-4.3 z" fill="#A2ABCC" />
+	<path d="M 2631.1,146 h 1 q 6.2,0 12.3,11.5 t 12.3,11.5 h 2.2" fill="none" stroke-width="4.3" stroke="#3E012A" /> <path d="M 2657.9,169 v 4.3 l 4.3,-4.3 l -4.3,-4.3 z" fill="#3E012A" />
+
+	<rect x="2250.9" y="89" width="51.2" height="22" style="fill-opacity:0.439; fill:#FF2626;" />
+	<rect x="2250.9" y="89" width="50.5" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text class="ld" text-anchor="end" x="2248" y="106" width="2195">Spartans</text>
+	<text text-anchor="end" x="2300" y="106" width="51">54,810</text>
+
+	<rect x="2250.9" y="112" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="2250.9" y="112" width="43.9" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="2409.7" y="112" width="51.2" height="22" style="fill-opacity:0.439; fill:#FF2626;" />
+	<rect x="2409.7" y="112" width="32.2" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text class="ld" text-anchor="end" x="2248" y="129" width="2195">Cobras</text>
+	<text text-anchor="end" x="2300" y="129" width="51">47,699</text>
+	<text class="ld" text-anchor="end" x="2407" y="129" width="100">Cobras</text>
+	<text text-anchor="end" x="2459" y="129" width="51">34,956</text>
+
+	<rect x="2250.9" y="135" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="2250.9" y="135" width="39.9" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="2409.7" y="135" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="2409.7" y="135" width="34.8" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text class="ld" text-anchor="end" x="2248" y="152" width="196">Fusion</text>
+	<text text-anchor="end" x="2300" y="152" width="51">43,328</text>
+	<text class="ld" text-anchor="end" x="2407" y="152" width="100">Fusion</text>
+	<text text-anchor="end" x="2459" y="152" width="51">37,746</text>
+
+	<rect x="2152.8" y="158" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="2152.8" y="158" width="27.7" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="2409.7" y="158" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="2409.7" y="158" width="34" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text text-anchor="end" x="2202" y="175" width="51">30,034</text>
+	<text class="ld" text-anchor="end" x="2407" y="175" width="196">Rampage</text>
+	<text text-anchor="end" x="2459" y="175" width="51">36,887</text>
+
+	<rect x="2152.8" y="181" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="2152.8" y="181" width="46.1" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="2311.6" y="181" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="2311.6" y="181" width="33.6" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text class="ld" text-anchor="end" x="2150" y="198" width="100">Rampage</text>
+	<text text-anchor="end" x="2202" y="198" width="51">50,070</text>
+	<text class="ld" text-anchor="end" x="2309" y="198" width="100">Quake</text>
+	<text text-anchor="end" x="2361" y="198" width="51">36,447</text>
+
+</svg></div>
+
+<div style="max-width:800px; margin:auto">
 <p>
-An ascension report is like a game grid, with one team per row and one game per column, but teams are ranked by the last game they survived in. This is useful for semifinals series.
+The Ascension report (illustrated at left) follows each team through a semifinals series. Arrows show what game each team goes to from here. Each team has a distinct arrow colour.
+</p>
+<a name="Ascension"><h3>Ascension as a grid</h3></a>
+</div>
+<div style="float:right">
+<svg viewBox="1365 0 328 209" width="328" align="center" font-size="17" class="ld">
+	<rect x="1" y="1" width="1691" height="46" style="fill-opacity:0.753; fill:#404040;" />
+	<text x="905" y="35" font-size="34" fill="White">ZLTAC Teams 2026 System D Ascension for 6/03/2026</text>
+
+	<rect x="103.6" y="48" width="1580.9" height="22" style="fill-opacity:0.753; fill:#404040;" />
+	<text x="1410" y="64" font-size="16" fill="White">System D</text>
+
+	<rect x="1364" y="71" width="51.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="1414" y="89" width="51" fill="White">1:59</text>
+	<text text-decoration="underline" text-anchor="end" x="1414" y="106" width="51" fill="White">PM</text>
+	<rect x="1416.2" y="71" width="51.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="1466" y="89" width="51" fill="White">2:13</text>
+	<text text-decoration="underline" text-anchor="end" x="1466" y="106" width="51" fill="White">PM</text>
+	<rect x="1468.3" y="71" width="51.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="1518" y="89" width="51" fill="White">2:28</text>
+	<text text-decoration="underline" text-anchor="end" x="1518" y="106" width="51" fill="White">PM</text>
+	<rect x="1520.5" y="71" width="51.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="1570" y="89" width="51" fill="White">2:43</text>
+	<text text-decoration="underline" text-anchor="end" x="1570" y="106" width="51" fill="White">PM</text>
+	<rect x="1572.7" y="71" width="51.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="1622" y="89" width="51" fill="White">2:58</text>
+	<text text-decoration="underline" text-anchor="end" x="1622" y="106" width="51" fill="White">PM</text>
+	<rect x="1624.8" y="71" width="7.5" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<rect x="1633.3" y="71" width="51.2" height="40" style="fill-opacity:0.753; fill:#404040;" />
+	<text text-decoration="underline" text-anchor="end" x="1683" y="89" width="51" fill="White">3:20</text>
+	<text text-decoration="underline" text-anchor="end" x="1683" y="106" width="51" fill="White">PM</text>
+	<rect x="1685.5" y="48" width="7.5" height="63" style="fill-opacity:0.753; fill:#404040;" />
+
+	<path d="M 103.1,123 v 2.2 h 1360.5 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -1360.5 z" fill="#808080" fill-opacity="0.251" />
+	<path d="M 103.1,169 v 2.2 h 1360.5 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -1360.5 z" fill="#808080" fill-opacity="0.251" />
+	<path d="M 1363.5,146 v 2.2 h 100.1 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -100.1 z" fill="#A0A000" fill-opacity="0.502" />
+	<path d="M 1363.5,192 v 2.2 h 48 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -48 z" fill="#A0A000" fill-opacity="0.502" />
+	<path d="M 1467.8,192 v 2.2 h 100.1 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -100.1 z" fill="#FF10B0" fill-opacity="0.502" />
+	<path d="M 1520,123 v 2.2 h 169.3 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -169.3 z" fill="#A0A000" fill-opacity="0.502" />
+	<path d="M 1520,146 v 2.2 h 48 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -48 z" fill="#A0A000" fill-opacity="0.502" />
+	<path d="M 1520,169 v 2.2 h 48 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -48 z" fill="#A0A000" fill-opacity="0.502" />
+	<path d="M 1624.3,146 v 2.2 h 65 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -65 z" fill="#FF10B0" fill-opacity="0.502" />
+	<path d="M 1624.3,169 v 2.2 h 4.3 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -4.3 z" fill="#FF10B0" fill-opacity="0.502" />
+	<path d="M 1624.3,192 v 2.2 h 4.3 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -4.3 z" fill="#FF10B0" fill-opacity="0.502" />
+	<path d="M 1685,169 v 2.2 h 4.3 v 2.2 l 4.3,-4.3 l -4.3,-4.3 v 2.2 h -4.3 z" fill="#00C0C0" fill-opacity="0.502" />
+
+	<rect x="1468.3" y="112" width="51.2" height="22" style="fill-opacity:0.439; fill:#FF2626;" />
+	<rect x="1468.3" y="112" width="50.5" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text text-anchor="end" x="1518" y="129" width="51">54,810</text>
+
+	<rect x="1468.3" y="135" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="1468.3" y="135" width="39.9" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="1572.7" y="135" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="1572.7" y="135" width="34.8" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text text-anchor="end" x="1518" y="152" width="51">43,328</text>
+	<text text-anchor="end" x="1622" y="152" width="51">37,746</text>
+
+	<rect x="1468.3" y="158" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="1468.3" y="158" width="43.9" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="1572.7" y="158" width="51.2" height="22" style="fill-opacity:0.439; fill:#FF2626;" />
+	<rect x="1572.7" y="158" width="32.2" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="1633.3" y="158" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="1633.3" y="158" width="44.7" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text text-anchor="end" x="1518" y="175" width="51">47,699</text>
+	<text text-anchor="end" x="1622" y="175" width="51">34,956</text>
+	<text text-anchor="end" x="1683" y="175" width="51">48,579</text>
+
+	<rect x="1416.2" y="181" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="1416.2" y="181" width="46.1" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="1572.7" y="181" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="1572.7" y="181" width="34" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="1633.3" y="181" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="1633.3" y="181" width="41.7" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text text-anchor="end" x="1466" y="198" width="51">50,070</text>
+	<text text-anchor="end" x="1622" y="198" width="51">36,887</text>
+	<text text-anchor="end" x="1683" y="198" width="51">45,319</text>
+
+	<rect x="1416.2" y="204" width="51.2" height="22" style="fill-opacity:0.439; fill:#26FF26;" />
+	<rect x="1416.2" y="204" width="27.7" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="1520.5" y="204" width="51.2" height="22" style="fill-opacity:0.439; fill:#2694FF;" />
+	<rect x="1520.5" y="204" width="46.1" height="22" style="fill-opacity:0.376; fill:#808080;" />
+	<rect x="1633.3" y="204" width="51.2" height="22" style="fill-opacity:0.439; fill:#FF2626;" />
+	<rect x="1633.3" y="204" width="39.4" height="22" style="fill-opacity:0.376; fill:#808080;" />
+
+	<text text-anchor="end" x="1361" y="221" width="51">30,016</text>
+	<text text-anchor="end" x="1466" y="221" width="51">30,034</text>
+	<text text-anchor="end" x="1570" y="221" width="51">50,049</text>
+	<text text-anchor="end" x="1683" y="221" width="51">42,818</text>
+
+</svg></div>
+<div style="max-width:800px; margin:auto">
+<p>
+This report (illustrated at right) is like a game grid, with one team per row and one game per column, but teams are ranked by the last game they survived in. Coloured arrows are shown between games. All games that are the first game for at least one team will have arrows in the same colour; all games where this is no team's first game but is at least one team's second game will get a second colour; etc. 
+This report takes less space than the Ascension report above, so for a given size screen, text will appear larger in the Ascension as a grid report than it would in the Ascension report.
 </p>
 <a name="ColourReport"><h3>Colours</h3></a>
 </div>
@@ -921,12 +1115,14 @@ If you're running Torn on a computer called mymachine and you've left it on the 
 There's a scoreboard showing the most recent committed game at <a href="http://localhost:8080/tag/scoreboard.html"><span class="url">http://localhost:8080/</span>[tag]<span class="url">/scoreboard.html</span></a>, where [tag] is the tag you set for this league file.
 </p><p>
 In addition to HTML, Torn 5's internal web server will serve JSON.
+</p>
 <ul>
 <li>Query <a href="http://localhost:8080/elapsed" class="url">http://localhost:8080/elapsed</a> to get the time elapsed in the current game. This will return a number of seconds elapsed, or -1 if no game is in progress. (This query doesn't return JSON; it just returns a bare integer.)</li>
 <li>Query <a href="http://localhost:8080/games.json" class="url">http://localhost:8080/games.json</a> to get a list of games known to Torn. This lists the games in the game server, even the uncommitted ones.</li>
 <li>Query a URL like <span class="url">http://localhost:8080/game2020-01-02T13:45:56.json</span> to get a specific game. That date/time is in .NET's "<a href="https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-date-and-time-format-strings#UniversalSortable">sortable</a>" date/time format, which in turn follows ISO 8601. No timezone is given &mdash; the timezone of the Torn 5 machine is assumed. You can copy a game start time from the games list, remove the timezone and use it for a game query.</li>
 <li>Query <a href="http://localhost:8080/players.json" class="url">http://localhost:8080/players.json</a> to get a list of players known to Torn. This lists the players known to the game server, not just the players in Torn's league file. This is the list used in Torn 5's Re-ID dialog. For Laserforce servers, this list may be long.</li>
 </ul>
+<p>
 The object of all this is to eventually allow a remote copy of Torn 5 to pull the statistics it needs from a lasergame server via a local copy of Torn 5 &mdash; the local copy pulls results from the lasergame server and in turn passes them as JSON to the remote copy of Torn 5. This avoids any need to directly expose the lasergame server to the internet. But this feature isn't well tested. It's also eventually intended to be able to push these files from the local Torn 5 to a web location, so that a remote Torn 5 can query those static files from an ordinary web server. This isn't implemented.
 </p>
 <a name="Download"><h2>Download</h2></a>
