@@ -18,7 +18,8 @@ namespace Torn
 
 			if (daysAgo == 0) return "Today";
 			if (daysAgo == 1) return "Yesterday";
-			if (daysAgo > 0 && daysAgo < 7) return date.DayOfWeek.ToString().Substring(0, 3) + " " + Ordinate(date.Day);
+			if (daysAgo == -1) return "Tomorrow";
+			if (-7 < daysAgo && daysAgo < 7) return date.DayOfWeek.ToString().Substring(0, 3) + " " + Ordinate(date.Day);
 			return date.ToShortDateString();
 		}
 

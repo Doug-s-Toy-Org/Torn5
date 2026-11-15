@@ -262,6 +262,13 @@ namespace TornWeb
 			Assert.That(fixture.Games[0], Is.SameAs(fixture.BestMatch(firstGame)), "match game 1 again");
 			fixture.Games.Parse("8:00z1z2zz3", fixture.Teams, 'z');
 			Assert.That(fixture.Games[4], Is.SameAs(fixture.BestMatch(firstGame)), "match game 4");
+
+			fixture.Games.Parse("8:02\t2\t1\t3\t4\t5", fixture.Teams);
+			Assert.That(fixture.Games[5].Teams.Count, Is.EqualTo(5));
+			Assert.That(fixture.Games[5].Teams.ContainsValue(Colour.Cyan), "when 5 or less teams, assign colours");
+
+			fixture.Games.Parse("8:03\t2\t1\t3\t4\t5\t6", fixture.Teams);
+			Assert.That(!fixture.Games[6].Teams.ContainsValue(Colour.Cyan), "when 6 or more teams, don't assign colours");
 		}
 
 		[Test]

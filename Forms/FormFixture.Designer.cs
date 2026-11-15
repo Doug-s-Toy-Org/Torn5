@@ -30,14 +30,6 @@ namespace Torn.UI
 		private void InitializeComponent()
 		{
 			this.buttonGenerate = new System.Windows.Forms.Button();
-			this.buttonImportGrid = new System.Windows.Forms.Button();
-			this.buttonImportGames = new System.Windows.Forms.Button();
-			this.textBoxSeparator = new System.Windows.Forms.TextBox();
-			this.radioButtonOther = new System.Windows.Forms.RadioButton();
-			this.radioButtonTab = new System.Windows.Forms.RadioButton();
-			this.label3 = new System.Windows.Forms.Label();
-			this.label2 = new System.Windows.Forms.Label();
-			this.textBoxGames = new System.Windows.Forms.TextBox();
 			this.tabControl1 = new System.Windows.Forms.TabControl();
 			this.tabTeams = new System.Windows.Forms.TabPage();
 			this.splitContainerTeams = new System.Windows.Forms.SplitContainer();
@@ -45,6 +37,8 @@ namespace Torn.UI
 			this.tabFixtureTeams = new System.Windows.Forms.TabPage();
 			this.fixtureTeamsList = new System.Windows.Forms.Panel();
 			this.tabFixtureSettings = new System.Windows.Forms.TabPage();
+			this.checkRefsRings = new System.Windows.Forms.CheckBox();
+			this.labelRefsRings = new System.Windows.Forms.Label();
 			this.label7 = new System.Windows.Forms.Label();
 			this.labelTeamsPerRing = new System.Windows.Forms.Label();
 			this.numericTeamsPerRing = new System.Windows.Forms.NumericUpDown();
@@ -74,6 +68,7 @@ namespace Torn.UI
 			this.checkCyan = new System.Windows.Forms.CheckBox();
 			this.checkPurple = new System.Windows.Forms.CheckBox();
 			this.checkPink = new System.Windows.Forms.CheckBox();
+			this.buttonEdit = new System.Windows.Forms.Button();
 			this.tabFixtureTuning = new System.Windows.Forms.TabPage();
 			this.label37 = new System.Windows.Forms.Label();
 			this.numericClusterRefereeing = new System.Windows.Forms.NumericUpDown();
@@ -139,25 +134,6 @@ namespace Torn.UI
 			this.printReport1 = new Torn5.Controls.PrintReport();
 			this.checkGameGrid = new System.Windows.Forms.CheckBox();
 			this.checkGameList = new System.Windows.Forms.CheckBox();
-			this.tabGamesList = new System.Windows.Forms.TabPage();
-			this.splitContainerGamesList = new System.Windows.Forms.SplitContainer();
-			this.buttonExportGames = new System.Windows.Forms.Button();
-			this.buttonClearGames = new System.Windows.Forms.Button();
-			this.displayReportGames = new Torn5.Controls.DisplayReport();
-			this.tabGamesGrid = new System.Windows.Forms.TabPage();
-			this.splitContainerGamesGrid = new System.Windows.Forms.SplitContainer();
-			this.datePicker = new System.Windows.Forms.DateTimePicker();
-			this.timePicker = new System.Windows.Forms.DateTimePicker();
-			this.numericMinutes = new System.Windows.Forms.NumericUpDown();
-			this.buttonClearGrid = new System.Windows.Forms.Button();
-			this.textBoxGrid = new System.Windows.Forms.TextBox();
-			this.label4 = new System.Windows.Forms.Label();
-			this.label5 = new System.Windows.Forms.Label();
-			this.label6 = new System.Windows.Forms.Label();
-			this.displayReportGrid = new Torn5.Controls.DisplayReport();
-			this.tabGraphic = new System.Windows.Forms.TabPage();
-			this.numericSize = new System.Windows.Forms.NumericUpDown();
-			this.panelGraphic = new System.Windows.Forms.Panel();
 			this.tabFinals = new System.Windows.Forms.TabPage();
 			this.teamsList = new System.Windows.Forms.Panel();
 			this.frameFinals1 = new Torn5.Controls.FrameFinals();
@@ -165,8 +141,6 @@ namespace Torn.UI
 			this.framePyramid1 = new Torn5.Controls.FramePyramid();
 			this.tabPyramidRound = new System.Windows.Forms.TabPage();
 			this.framePyramidRound1 = new Torn5.Controls.FramePyramidRound();
-			this.labelRefsRings = new System.Windows.Forms.Label();
-			this.checkRefsRings = new System.Windows.Forms.CheckBox();
 			this.tabControl1.SuspendLayout();
 			this.tabTeams.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.splitContainerTeams)).BeginInit();
@@ -206,19 +180,6 @@ namespace Torn.UI
 			this.splitContainerRight.Panel2.SuspendLayout();
 			this.splitContainerRight.SuspendLayout();
 			this.panelRight.SuspendLayout();
-			this.tabGamesList.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)(this.splitContainerGamesList)).BeginInit();
-			this.splitContainerGamesList.Panel1.SuspendLayout();
-			this.splitContainerGamesList.Panel2.SuspendLayout();
-			this.splitContainerGamesList.SuspendLayout();
-			this.tabGamesGrid.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)(this.splitContainerGamesGrid)).BeginInit();
-			this.splitContainerGamesGrid.Panel1.SuspendLayout();
-			this.splitContainerGamesGrid.Panel2.SuspendLayout();
-			this.splitContainerGamesGrid.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)(this.numericMinutes)).BeginInit();
-			this.tabGraphic.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)(this.numericSize)).BeginInit();
 			this.tabFinals.SuspendLayout();
 			this.tabPyramid.SuspendLayout();
 			this.tabPyramidRound.SuspendLayout();
@@ -226,101 +187,13 @@ namespace Torn.UI
 			// 
 			// buttonGenerate
 			// 
-			this.buttonGenerate.Location = new System.Drawing.Point(3, 102);
+			this.buttonGenerate.Location = new System.Drawing.Point(3, 131);
 			this.buttonGenerate.Name = "buttonGenerate";
 			this.buttonGenerate.Size = new System.Drawing.Size(75, 23);
-			this.buttonGenerate.TabIndex = 0;
+			this.buttonGenerate.TabIndex = 3;
 			this.buttonGenerate.Text = "&Generate";
 			this.buttonGenerate.UseVisualStyleBackColor = true;
 			this.buttonGenerate.Click += new System.EventHandler(this.ButtonGenerateClick);
-			// 
-			// buttonImportGrid
-			// 
-			this.buttonImportGrid.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.buttonImportGrid.Location = new System.Drawing.Point(674, 575);
-			this.buttonImportGrid.Name = "buttonImportGrid";
-			this.buttonImportGrid.Size = new System.Drawing.Size(75, 23);
-			this.buttonImportGrid.TabIndex = 25;
-			this.buttonImportGrid.Text = "Import Grid";
-			this.buttonImportGrid.UseVisualStyleBackColor = true;
-			this.buttonImportGrid.Click += new System.EventHandler(this.ButtonImportGridClick);
-			// 
-			// buttonImportGames
-			// 
-			this.buttonImportGames.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.buttonImportGames.Location = new System.Drawing.Point(449, 579);
-			this.buttonImportGames.Name = "buttonImportGames";
-			this.buttonImportGames.Size = new System.Drawing.Size(75, 23);
-			this.buttonImportGames.TabIndex = 19;
-			this.buttonImportGames.Text = "Import";
-			this.buttonImportGames.UseVisualStyleBackColor = true;
-			this.buttonImportGames.Click += new System.EventHandler(this.ButtonImportGamesClick);
-			// 
-			// textBoxSeparator
-			// 
-			this.textBoxSeparator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.textBoxSeparator.Location = new System.Drawing.Point(65, 579);
-			this.textBoxSeparator.Name = "textBoxSeparator";
-			this.textBoxSeparator.Size = new System.Drawing.Size(49, 20);
-			this.textBoxSeparator.TabIndex = 24;
-			this.textBoxSeparator.Text = " ";
-			// 
-			// radioButtonOther
-			// 
-			this.radioButtonOther.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.radioButtonOther.Location = new System.Drawing.Point(10, 576);
-			this.radioButtonOther.Name = "radioButtonOther";
-			this.radioButtonOther.Size = new System.Drawing.Size(104, 24);
-			this.radioButtonOther.TabIndex = 23;
-			this.radioButtonOther.Text = "Other";
-			this.radioButtonOther.UseVisualStyleBackColor = true;
-			// 
-			// radioButtonTab
-			// 
-			this.radioButtonTab.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.radioButtonTab.Checked = true;
-			this.radioButtonTab.Location = new System.Drawing.Point(10, 555);
-			this.radioButtonTab.Name = "radioButtonTab";
-			this.radioButtonTab.Size = new System.Drawing.Size(104, 24);
-			this.radioButtonTab.TabIndex = 22;
-			this.radioButtonTab.TabStop = true;
-			this.radioButtonTab.Text = "Tab";
-			this.radioButtonTab.UseVisualStyleBackColor = true;
-			// 
-			// label3
-			// 
-			this.label3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.label3.Location = new System.Drawing.Point(6, 541);
-			this.label3.Name = "label3";
-			this.label3.Size = new System.Drawing.Size(100, 23);
-			this.label3.TabIndex = 21;
-			this.label3.Text = "Separator:";
-			// 
-			// label2
-			// 
-			this.label2.Location = new System.Drawing.Point(6, 6);
-			this.label2.Name = "label2";
-			this.label2.Size = new System.Drawing.Size(251, 27);
-			this.label2.TabIndex = 20;
-			this.label2.Text = "Enter a list of games, one game per line.\r\n(Date/time,teamnumber,teamnumber, ...)" +
-    "";
-			// 
-			// textBoxGames
-			// 
-			this.textBoxGames.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.textBoxGames.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.textBoxGames.Location = new System.Drawing.Point(6, 36);
-			this.textBoxGames.Multiline = true;
-			this.textBoxGames.Name = "textBoxGames";
-			this.textBoxGames.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-			this.textBoxGames.Size = new System.Drawing.Size(598, 502);
-			this.textBoxGames.TabIndex = 18;
-			this.textBoxGames.Text = "1/1/2000 7:00pm\t1\t2\t3\r\n1/1/2000 7:15pm\t2\t3\t4\r\n1/1/2000 7:30pm\t3\t4\t1\r\n1/1/2000 7:4" +
-    "5pm\t2\t3\t4";
-			this.textBoxGames.WordWrap = false;
-			this.textBoxGames.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TextBoxKeyDown);
 			// 
 			// tabControl1
 			// 
@@ -328,9 +201,6 @@ namespace Torn.UI
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.tabControl1.Controls.Add(this.tabTeams);
-			this.tabControl1.Controls.Add(this.tabGamesList);
-			this.tabControl1.Controls.Add(this.tabGamesGrid);
-			this.tabControl1.Controls.Add(this.tabGraphic);
 			this.tabControl1.Controls.Add(this.tabFinals);
 			this.tabControl1.Controls.Add(this.tabPyramid);
 			this.tabControl1.Controls.Add(this.tabPyramidRound);
@@ -386,7 +256,7 @@ namespace Torn.UI
 			this.tabControlFixtures.Location = new System.Drawing.Point(0, 0);
 			this.tabControlFixtures.Name = "tabControlFixtures";
 			this.tabControlFixtures.SelectedIndex = 0;
-			this.tabControlFixtures.Size = new System.Drawing.Size(340, 477);
+			this.tabControlFixtures.Size = new System.Drawing.Size(340, 447);
 			this.tabControlFixtures.TabIndex = 0;
 			// 
 			// tabFixtureTeams
@@ -443,10 +313,33 @@ namespace Torn.UI
 			this.tabFixtureSettings.Location = new System.Drawing.Point(4, 4);
 			this.tabFixtureSettings.Name = "tabFixtureSettings";
 			this.tabFixtureSettings.Padding = new System.Windows.Forms.Padding(3);
-			this.tabFixtureSettings.Size = new System.Drawing.Size(332, 451);
+			this.tabFixtureSettings.Size = new System.Drawing.Size(332, 421);
 			this.tabFixtureSettings.TabIndex = 1;
 			this.tabFixtureSettings.Text = "Settings";
 			this.tabFixtureSettings.UseVisualStyleBackColor = true;
+			// 
+			// checkRefsRings
+			// 
+			this.checkRefsRings.AutoSize = true;
+			this.checkRefsRings.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+			this.checkRefsRings.Location = new System.Drawing.Point(124, 191);
+			this.checkRefsRings.Name = "checkRefsRings";
+			this.checkRefsRings.Size = new System.Drawing.Size(15, 14);
+			this.checkRefsRings.TabIndex = 21;
+			this.checkRefsRings.UseVisualStyleBackColor = true;
+			this.checkRefsRings.Visible = false;
+			this.checkRefsRings.CheckedChanged += new System.EventHandler(this.RefereesValueChanged);
+			// 
+			// labelRefsRings
+			// 
+			this.labelRefsRings.AutoSize = true;
+			this.labelRefsRings.Location = new System.Drawing.Point(6, 191);
+			this.labelRefsRings.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+			this.labelRefsRings.Name = "labelRefsRings";
+			this.labelRefsRings.Size = new System.Drawing.Size(50, 13);
+			this.labelRefsRings.TabIndex = 20;
+			this.labelRefsRings.Text = "Referees";
+			this.labelRefsRings.Visible = false;
 			// 
 			// label7
 			// 
@@ -813,6 +706,16 @@ namespace Torn.UI
 			this.checkPink.Text = "Pink";
 			this.checkPink.UseVisualStyleBackColor = true;
 			this.checkPink.CheckedChanged += new System.EventHandler(this.ColourCheckedChanged);
+			// 
+			// buttonEdit
+			// 
+			this.buttonEdit.Location = new System.Drawing.Point(84, 102);
+			this.buttonEdit.Name = "buttonEdit";
+			this.buttonEdit.Size = new System.Drawing.Size(75, 23);
+			this.buttonEdit.TabIndex = 2;
+			this.buttonEdit.Text = "Edit";
+			this.buttonEdit.UseVisualStyleBackColor = true;
+			this.buttonEdit.Click += new System.EventHandler(this.ButtonEditClick);
 			// 
 			// tabFixtureTuning
 			// 
@@ -1481,7 +1384,7 @@ namespace Torn.UI
 			this.tabFixtureSessions.Location = new System.Drawing.Point(4, 4);
 			this.tabFixtureSessions.Name = "tabFixtureSessions";
 			this.tabFixtureSessions.Padding = new System.Windows.Forms.Padding(3);
-			this.tabFixtureSessions.Size = new System.Drawing.Size(332, 451);
+			this.tabFixtureSessions.Size = new System.Drawing.Size(332, 351);
 			this.tabFixtureSessions.TabIndex = 3;
 			this.tabFixtureSessions.Text = "Sessions";
 			this.tabFixtureSessions.UseVisualStyleBackColor = true;
@@ -1493,7 +1396,7 @@ namespace Torn.UI
 			this.fixtureSessions.Games = 8;
 			this.fixtureSessions.Location = new System.Drawing.Point(3, 3);
 			this.fixtureSessions.Name = "fixtureSessions";
-			this.fixtureSessions.Size = new System.Drawing.Size(326, 445);
+			this.fixtureSessions.Size = new System.Drawing.Size(326, 345);
 			this.fixtureSessions.TabIndex = 0;
 			// 
 			// panelBottomLeft
@@ -1502,10 +1405,11 @@ namespace Torn.UI
 			this.panelBottomLeft.Controls.Add(this.buttonGenerate);
 			this.panelBottomLeft.Controls.Add(this.buttonStop);
 			this.panelBottomLeft.Controls.Add(this.buttonClear);
+			this.panelBottomLeft.Controls.Add(this.buttonEdit);
 			this.panelBottomLeft.Dock = System.Windows.Forms.DockStyle.Bottom;
-			this.panelBottomLeft.Location = new System.Drawing.Point(0, 477);
+			this.panelBottomLeft.Location = new System.Drawing.Point(0, 447);
 			this.panelBottomLeft.Name = "panelBottomLeft";
-			this.panelBottomLeft.Size = new System.Drawing.Size(340, 128);
+			this.panelBottomLeft.Size = new System.Drawing.Size(340, 158);
 			this.panelBottomLeft.TabIndex = 1;
 			// 
 			// groupBoxPresets
@@ -1520,7 +1424,7 @@ namespace Torn.UI
 			this.groupBoxPresets.Location = new System.Drawing.Point(3, 6);
 			this.groupBoxPresets.Name = "groupBoxPresets";
 			this.groupBoxPresets.Size = new System.Drawing.Size(241, 90);
-			this.groupBoxPresets.TabIndex = 15;
+			this.groupBoxPresets.TabIndex = 0;
 			this.groupBoxPresets.TabStop = false;
 			this.groupBoxPresets.Text = "Presets";
 			// 
@@ -1608,21 +1512,20 @@ namespace Torn.UI
 			// buttonStop
 			// 
 			this.buttonStop.Enabled = false;
-			this.buttonStop.Location = new System.Drawing.Point(83, 102);
-			this.buttonStop.Margin = new System.Windows.Forms.Padding(2);
+			this.buttonStop.Location = new System.Drawing.Point(84, 131);
 			this.buttonStop.Name = "buttonStop";
 			this.buttonStop.Size = new System.Drawing.Size(75, 23);
-			this.buttonStop.TabIndex = 1;
+			this.buttonStop.TabIndex = 4;
 			this.buttonStop.Text = "&Stop";
 			this.buttonStop.UseVisualStyleBackColor = true;
 			this.buttonStop.Click += new System.EventHandler(this.ButtonStopClick);
 			// 
 			// buttonClear
 			// 
-			this.buttonClear.Location = new System.Drawing.Point(163, 102);
+			this.buttonClear.Location = new System.Drawing.Point(3, 102);
 			this.buttonClear.Name = "buttonClear";
 			this.buttonClear.Size = new System.Drawing.Size(75, 23);
-			this.buttonClear.TabIndex = 2;
+			this.buttonClear.TabIndex = 1;
 			this.buttonClear.Text = "&Clear";
 			this.buttonClear.UseVisualStyleBackColor = true;
 			this.buttonClear.Click += new System.EventHandler(this.ButtonClearClick);
@@ -1721,260 +1624,6 @@ namespace Torn.UI
 			this.checkGameList.UseVisualStyleBackColor = true;
 			this.checkGameList.CheckedChanged += new System.EventHandler(this.OutputCheckChanged);
 			// 
-			// tabGamesList
-			// 
-			this.tabGamesList.Controls.Add(this.splitContainerGamesList);
-			this.tabGamesList.Location = new System.Drawing.Point(4, 22);
-			this.tabGamesList.Name = "tabGamesList";
-			this.tabGamesList.Padding = new System.Windows.Forms.Padding(3);
-			this.tabGamesList.Size = new System.Drawing.Size(1224, 611);
-			this.tabGamesList.TabIndex = 1;
-			this.tabGamesList.Text = "Games as a list";
-			this.tabGamesList.UseVisualStyleBackColor = true;
-			// 
-			// splitContainerGamesList
-			// 
-			this.splitContainerGamesList.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.splitContainerGamesList.Location = new System.Drawing.Point(3, 3);
-			this.splitContainerGamesList.Name = "splitContainerGamesList";
-			// 
-			// splitContainerGamesList.Panel1
-			// 
-			this.splitContainerGamesList.Panel1.Controls.Add(this.buttonExportGames);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.label2);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.radioButtonTab);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.buttonClearGames);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.textBoxSeparator);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.textBoxGames);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.buttonImportGames);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.radioButtonOther);
-			this.splitContainerGamesList.Panel1.Controls.Add(this.label3);
-			// 
-			// splitContainerGamesList.Panel2
-			// 
-			this.splitContainerGamesList.Panel2.Controls.Add(this.displayReportGames);
-			this.splitContainerGamesList.Size = new System.Drawing.Size(1218, 605);
-			this.splitContainerGamesList.SplitterDistance = 609;
-			this.splitContainerGamesList.TabIndex = 27;
-			// 
-			// buttonExportGames
-			// 
-			this.buttonExportGames.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.buttonExportGames.Location = new System.Drawing.Point(529, 579);
-			this.buttonExportGames.Name = "buttonExportGames";
-			this.buttonExportGames.Size = new System.Drawing.Size(75, 23);
-			this.buttonExportGames.TabIndex = 26;
-			this.buttonExportGames.Text = "Export";
-			this.buttonExportGames.UseVisualStyleBackColor = true;
-			this.buttonExportGames.Click += new System.EventHandler(this.ButtonExportClick);
-			// 
-			// buttonClearGames
-			// 
-			this.buttonClearGames.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.buttonClearGames.Location = new System.Drawing.Point(369, 579);
-			this.buttonClearGames.Name = "buttonClearGames";
-			this.buttonClearGames.Size = new System.Drawing.Size(75, 23);
-			this.buttonClearGames.TabIndex = 25;
-			this.buttonClearGames.Text = "Clear Fixture";
-			this.buttonClearGames.UseVisualStyleBackColor = true;
-			this.buttonClearGames.Click += new System.EventHandler(this.ButtonClearGamesGridClick);
-			// 
-			// displayReportGames
-			// 
-			this.displayReportGames.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-			this.displayReportGames.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.displayReportGames.Location = new System.Drawing.Point(0, 0);
-			this.displayReportGames.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-			this.displayReportGames.Name = "displayReportGames";
-			this.displayReportGames.Report = null;
-			this.displayReportGames.Size = new System.Drawing.Size(605, 605);
-			this.displayReportGames.TabIndex = 26;
-			// 
-			// tabGamesGrid
-			// 
-			this.tabGamesGrid.Controls.Add(this.splitContainerGamesGrid);
-			this.tabGamesGrid.Location = new System.Drawing.Point(4, 22);
-			this.tabGamesGrid.Name = "tabGamesGrid";
-			this.tabGamesGrid.Padding = new System.Windows.Forms.Padding(3);
-			this.tabGamesGrid.Size = new System.Drawing.Size(1224, 611);
-			this.tabGamesGrid.TabIndex = 2;
-			this.tabGamesGrid.Text = "Games as a grid";
-			this.tabGamesGrid.UseVisualStyleBackColor = true;
-			// 
-			// splitContainerGamesGrid
-			// 
-			this.splitContainerGamesGrid.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.splitContainerGamesGrid.Location = new System.Drawing.Point(3, 3);
-			this.splitContainerGamesGrid.Name = "splitContainerGamesGrid";
-			// 
-			// splitContainerGamesGrid.Panel1
-			// 
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.datePicker);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.timePicker);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.numericMinutes);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.buttonClearGrid);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.buttonImportGrid);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.textBoxGrid);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.label4);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.label5);
-			this.splitContainerGamesGrid.Panel1.Controls.Add(this.label6);
-			// 
-			// splitContainerGamesGrid.Panel2
-			// 
-			this.splitContainerGamesGrid.Panel2.Controls.Add(this.displayReportGrid);
-			this.splitContainerGamesGrid.Size = new System.Drawing.Size(1218, 605);
-			this.splitContainerGamesGrid.SplitterDistance = 750;
-			this.splitContainerGamesGrid.TabIndex = 33;
-			// 
-			// datePicker
-			// 
-			this.datePicker.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.datePicker.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-			this.datePicker.Location = new System.Drawing.Point(85, 578);
-			this.datePicker.Name = "datePicker";
-			this.datePicker.Size = new System.Drawing.Size(98, 20);
-			this.datePicker.TabIndex = 28;
-			this.datePicker.Value = new System.DateTime(2019, 3, 1, 0, 0, 0, 0);
-			// 
-			// timePicker
-			// 
-			this.timePicker.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.timePicker.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-			this.timePicker.Location = new System.Drawing.Point(189, 578);
-			this.timePicker.Name = "timePicker";
-			this.timePicker.ShowUpDown = true;
-			this.timePicker.Size = new System.Drawing.Size(98, 20);
-			this.timePicker.TabIndex = 29;
-			this.timePicker.Value = new System.DateTime(2000, 3, 1, 8, 0, 0, 0);
-			// 
-			// numericMinutes
-			// 
-			this.numericMinutes.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.numericMinutes.Location = new System.Drawing.Point(433, 578);
-			this.numericMinutes.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-			this.numericMinutes.Name = "numericMinutes";
-			this.numericMinutes.Size = new System.Drawing.Size(61, 20);
-			this.numericMinutes.TabIndex = 30;
-			this.numericMinutes.Value = new decimal(new int[] {
-            15,
-            0,
-            0,
-            0});
-			// 
-			// buttonClearGrid
-			// 
-			this.buttonClearGrid.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.buttonClearGrid.Location = new System.Drawing.Point(593, 575);
-			this.buttonClearGrid.Name = "buttonClearGrid";
-			this.buttonClearGrid.Size = new System.Drawing.Size(75, 23);
-			this.buttonClearGrid.TabIndex = 31;
-			this.buttonClearGrid.Text = "Clear Fixture";
-			this.buttonClearGrid.UseVisualStyleBackColor = true;
-			this.buttonClearGrid.Click += new System.EventHandler(this.ButtonClearGamesGridClick);
-			// 
-			// textBoxGrid
-			// 
-			this.textBoxGrid.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.textBoxGrid.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.textBoxGrid.Location = new System.Drawing.Point(6, 36);
-			this.textBoxGrid.Multiline = true;
-			this.textBoxGrid.Name = "textBoxGrid";
-			this.textBoxGrid.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-			this.textBoxGrid.Size = new System.Drawing.Size(740, 533);
-			this.textBoxGrid.TabIndex = 21;
-			this.textBoxGrid.Text = "R...G.B\r\nBR...G.\r\n.BR...G\r\nG.BR...\r\n.G.BR..\r\n..G.BR.\r\n...G.BR\r\n";
-			this.textBoxGrid.WordWrap = false;
-			this.textBoxGrid.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TextBoxKeyDown);
-			// 
-			// label4
-			// 
-			this.label4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.label4.Location = new System.Drawing.Point(6, 6);
-			this.label4.Name = "label4";
-			this.label4.Size = new System.Drawing.Size(738, 27);
-			this.label4.TabIndex = 22;
-			this.label4.Text = "Enter a grid of games, with each row being a team, each column being a game, and " +
-    "each letter representing the colour of that team in that game: RGBYPMCOW";
-			// 
-			// label5
-			// 
-			this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.label5.Location = new System.Drawing.Point(3, 580);
-			this.label5.Name = "label5";
-			this.label5.Size = new System.Drawing.Size(99, 18);
-			this.label5.TabIndex = 26;
-			this.label5.Text = "First game time:";
-			// 
-			// label6
-			// 
-			this.label6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.label6.Location = new System.Drawing.Point(300, 580);
-			this.label6.Name = "label6";
-			this.label6.Size = new System.Drawing.Size(137, 23);
-			this.label6.TabIndex = 27;
-			this.label6.Text = "Minutes between games:";
-			// 
-			// displayReportGrid
-			// 
-			this.displayReportGrid.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-			this.displayReportGrid.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.displayReportGrid.Location = new System.Drawing.Point(0, 0);
-			this.displayReportGrid.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-			this.displayReportGrid.Name = "displayReportGrid";
-			this.displayReportGrid.Report = null;
-			this.displayReportGrid.Size = new System.Drawing.Size(464, 605);
-			this.displayReportGrid.TabIndex = 32;
-			// 
-			// tabGraphic
-			// 
-			this.tabGraphic.Controls.Add(this.numericSize);
-			this.tabGraphic.Controls.Add(this.panelGraphic);
-			this.tabGraphic.Location = new System.Drawing.Point(4, 22);
-			this.tabGraphic.Name = "tabGraphic";
-			this.tabGraphic.Padding = new System.Windows.Forms.Padding(3);
-			this.tabGraphic.Size = new System.Drawing.Size(1224, 611);
-			this.tabGraphic.TabIndex = 3;
-			this.tabGraphic.Text = "Graphic";
-			this.tabGraphic.UseVisualStyleBackColor = true;
-			// 
-			// numericSize
-			// 
-			this.numericSize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.numericSize.Location = new System.Drawing.Point(698, 516);
-			this.numericSize.Minimum = new decimal(new int[] {
-            2,
-            0,
-            0,
-            0});
-			this.numericSize.Name = "numericSize";
-			this.numericSize.Size = new System.Drawing.Size(56, 20);
-			this.numericSize.TabIndex = 1;
-			this.numericSize.Value = new decimal(new int[] {
-            15,
-            0,
-            0,
-            0});
-			this.numericSize.ValueChanged += new System.EventHandler(this.NumericSizeValueChanged);
-			// 
-			// panelGraphic
-			// 
-			this.panelGraphic.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.panelGraphic.Location = new System.Drawing.Point(6, 6);
-			this.panelGraphic.Name = "panelGraphic";
-			this.panelGraphic.Size = new System.Drawing.Size(754, 536);
-			this.panelGraphic.TabIndex = 0;
-			this.panelGraphic.Paint += new System.Windows.Forms.PaintEventHandler(this.PanelGraphicPaint);
-			this.panelGraphic.MouseClick += new System.Windows.Forms.MouseEventHandler(this.PanelGraphicMouseClick);
-			// 
 			// tabFinals
 			// 
 			this.tabFinals.Controls.Add(this.teamsList);
@@ -2051,29 +1700,6 @@ namespace Torn.UI
 			this.framePyramidRound1.Size = new System.Drawing.Size(1224, 611);
 			this.framePyramidRound1.TabIndex = 0;
 			// 
-			// labelRefsRings
-			// 
-			this.labelRefsRings.AutoSize = true;
-			this.labelRefsRings.Location = new System.Drawing.Point(6, 191);
-			this.labelRefsRings.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-			this.labelRefsRings.Name = "labelRefsRings";
-			this.labelRefsRings.Size = new System.Drawing.Size(50, 13);
-			this.labelRefsRings.TabIndex = 20;
-			this.labelRefsRings.Text = "Referees";
-			this.labelRefsRings.Visible = false;
-			// 
-			// checkRefsRings
-			// 
-			this.checkRefsRings.AutoSize = true;
-			this.checkRefsRings.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
-			this.checkRefsRings.Location = new System.Drawing.Point(124, 191);
-			this.checkRefsRings.Name = "checkRefsRings";
-			this.checkRefsRings.Size = new System.Drawing.Size(15, 14);
-			this.checkRefsRings.TabIndex = 21;
-			this.checkRefsRings.UseVisualStyleBackColor = true;
-			this.checkRefsRings.Visible = false;
-			this.checkRefsRings.CheckedChanged += new System.EventHandler(this.RefereesValueChanged);
-			// 
 			// FormFixture
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -2085,8 +1711,6 @@ namespace Torn.UI
 			this.Text = "Fixtures";
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormFixtureFormClosing);
 			this.Shown += new System.EventHandler(this.FormFixtureShown);
-			this.ResizeBegin += new System.EventHandler(this.FormFixtureResizeBegin);
-			this.ResizeEnd += new System.EventHandler(this.FormFixtureResizeEnd);
 			this.tabControl1.ResumeLayout(false);
 			this.tabTeams.ResumeLayout(false);
 			this.splitContainerTeams.Panel1.ResumeLayout(false);
@@ -2131,57 +1755,15 @@ namespace Torn.UI
 			((System.ComponentModel.ISupportInitialize)(this.splitContainerRight)).EndInit();
 			this.splitContainerRight.ResumeLayout(false);
 			this.panelRight.ResumeLayout(false);
-			this.tabGamesList.ResumeLayout(false);
-			this.splitContainerGamesList.Panel1.ResumeLayout(false);
-			this.splitContainerGamesList.Panel1.PerformLayout();
-			this.splitContainerGamesList.Panel2.ResumeLayout(false);
-			((System.ComponentModel.ISupportInitialize)(this.splitContainerGamesList)).EndInit();
-			this.splitContainerGamesList.ResumeLayout(false);
-			this.tabGamesGrid.ResumeLayout(false);
-			this.splitContainerGamesGrid.Panel1.ResumeLayout(false);
-			this.splitContainerGamesGrid.Panel1.PerformLayout();
-			this.splitContainerGamesGrid.Panel2.ResumeLayout(false);
-			((System.ComponentModel.ISupportInitialize)(this.splitContainerGamesGrid)).EndInit();
-			this.splitContainerGamesGrid.ResumeLayout(false);
-			((System.ComponentModel.ISupportInitialize)(this.numericMinutes)).EndInit();
-			this.tabGraphic.ResumeLayout(false);
-			((System.ComponentModel.ISupportInitialize)(this.numericSize)).EndInit();
 			this.tabFinals.ResumeLayout(false);
 			this.tabPyramid.ResumeLayout(false);
 			this.tabPyramidRound.ResumeLayout(false);
 			this.ResumeLayout(false);
 
 		}
-		private System.Windows.Forms.Panel panelGraphic;
-		private System.Windows.Forms.NumericUpDown numericSize;
-		private System.Windows.Forms.TabPage tabGraphic;
-		private System.Windows.Forms.Button buttonClearGrid;
-		private System.Windows.Forms.Button buttonClearGames;
-		private System.Windows.Forms.TextBox textBoxGrid;
-		private System.Windows.Forms.Label label4;
-		private System.Windows.Forms.Label label5;
-		private System.Windows.Forms.Label label6;
-		private System.Windows.Forms.DateTimePicker datePicker;
-		private System.Windows.Forms.DateTimePicker timePicker;
-		private System.Windows.Forms.NumericUpDown numericMinutes;
-		private System.Windows.Forms.TabPage tabGamesGrid;
-		private System.Windows.Forms.TabPage tabGamesList;
 		private System.Windows.Forms.TabPage tabTeams;
 		private System.Windows.Forms.TabControl tabControl1;
-		private System.Windows.Forms.Button buttonImportGrid;
-		private System.Windows.Forms.TextBox textBoxSeparator;
-		private System.Windows.Forms.RadioButton radioButtonOther;
-		private System.Windows.Forms.RadioButton radioButtonTab;
-		private System.Windows.Forms.Label label3;
-		private System.Windows.Forms.Label label2;
-		private System.Windows.Forms.Button buttonImportGames;
 		private System.Windows.Forms.Button buttonGenerate;
-		private System.Windows.Forms.TextBox textBoxGames;
-		private Torn5.Controls.DisplayReport displayReportGames;
-		private Torn5.Controls.DisplayReport displayReportGrid;
-		private System.Windows.Forms.SplitContainer splitContainerGamesList;
-		private System.Windows.Forms.SplitContainer splitContainerGamesGrid;
-		private System.Windows.Forms.Button buttonExportGames;
         private Torn5.Controls.DisplayReport reportTeamsList;
         private System.Windows.Forms.NumericUpDown numericGamesPerTeam;
         private System.Windows.Forms.CheckBox checkRed;
@@ -2290,5 +1872,6 @@ namespace Torn.UI
 		private System.Windows.Forms.NumericUpDown numericTeamsPerRing;
 		private System.Windows.Forms.CheckBox checkRefsRings;
 		private System.Windows.Forms.Label labelRefsRings;
+		private System.Windows.Forms.Button buttonEdit;
 	}
 }

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Xml;
 
 namespace Torn
 {
@@ -12,13 +14,30 @@ namespace Torn
 	public class Fixture
 	{
 		public string Title { get; set; }
-		public FixtureTeams Teams { get; set; }
-		public FixtureGames Games { get; set; }
+		public FixtureTeams Teams { get; private set; }
+		public FixtureGames Games { get; private set; }
 
 		public Fixture()
 		{
 			Teams = new FixtureTeams();
 			Games = new FixtureGames();
+		}
+
+		public Fixture Clone()
+		{
+			return new Fixture
+			{
+				Title = Title,
+				Teams = Teams.Clone(),
+				Games = Games.Clone()
+			};
+		}
+
+		public void CopyFrom(Fixture source)
+		{
+			Title = source.Title;
+			Teams = source.Teams.Clone();
+			Games = source.Games.Clone();
 		}
 
 		public FixtureGame BestMatch(Game game, out double score)
@@ -84,6 +103,14 @@ namespace Torn
 
 	public class FixtureTeams : List<LeagueTeam>
 	{
+		/// <summary>Shallow clone: does not make copies of the underlying league teams.</summary>
+		public FixtureTeams Clone()
+		{
+			var clone = new FixtureTeams();
+			clone.AddRange(this);
+			return clone;
+		}
+
 		/// <summary>Ensure all the league's teams are present in the list of fixture teams.</summary>
 		public void Populate(List<LeagueTeam> teams)
 		{
@@ -108,11 +135,19 @@ namespace Torn
 
 	public class FixtureGames : List<FixtureGame>
 	{
-		// A game will be a time or date/time, followed by a separator, followed
-		// by a separated list of numbers, which are the teams in that game. e.g.:
-		// 8:00	1	2	3
-		public void Parse(string s, FixtureTeams teams, char separator = '\t', string colours = "1,2,3,4,5")
+		public FixtureGames Clone()
 		{
+			var clone = new FixtureGames();
+			clone.AddRange(this.Select(fg => fg.Clone()));
+			return clone;
+		}
+
+		/// <summary>Parse string s into FixtureGames.
+		/// A game will be a time or date/time, followed by a separator, followed by a separated list of numbers, which are the teams in that game. e.g.:
+		/// 8:00	1	2	3</summary>
+		public void Parse(string s, FixtureTeams teams, char separator = '\t')
+		{
+			var bestColours = ColourExtensions.BestFirst();
 			string[] lines = s.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
 			foreach (string line in lines)
 			{
@@ -139,9 +174,8 @@ namespace Torn
 
 						if (!fg.Teams.ContainsKey(ft))
 						{
-							string[] colors = colours.Split(',');
-							if (fields.Length <= 5)  // If there are five or less teams per game,
-								fg.Teams.Add(ft, (Colour)Int32.Parse(colors[i - 1]));  // assign colours to teams.
+							if (fields.Length <= 6)  // If there are five or less teams per game,
+								fg.Teams.Add(ft, bestColours[i - 1]);  // assign colours to teams.
 							else
 								fg.Teams.Add(ft, Colour.None);
 						}
@@ -151,7 +185,7 @@ namespace Torn
 			}
 		}
 
-		// Import past games from a league.
+		/// <summary>Import past games from a league.</summary>
 		public void Parse(League league, FixtureTeams teams)
 		{
 			foreach (Game lg in league.Games(false))
@@ -172,8 +206,8 @@ namespace Torn
 			}
 		}
 
-		// This parses a grid. Each game will be a column; each team will be a row. Each character in the grid is a letter
-		// representing that team's colour in that game, or is a non-colour character if that team does not play in that game.
+		/// <summary>Parses a grid. Each game will be a column; each team will be a row. Each character in the grid is a letter
+		/// representing that team's colour in that game, or is a non-colour character if that team does not play in that game.</summary>
 		public string[] Parse(string[] lines, FixtureTeams teams, DateTime? firstGame, TimeSpan? duration)
 		{
 			int minLength = int.MaxValue;
@@ -215,7 +249,9 @@ namespace Torn
 			return lines;
 		}
 
-		// This ToString() is used to persist fixtures to settings. 
+		/// <summary>Creates the format expected by Parse(string, teams, separator), above.</summary>
+		/// Each game will be a date/time, followed by a tab, followed by a tab-separated list of teamId's in that game. e.g.:
+		/// 8:00	1	2	3</summary>
 		public override string ToString()
 		{
 			StringBuilder sb = new StringBuilder();
@@ -224,7 +260,7 @@ namespace Torn
 				sb.Append(fg.Time);
 				sb.Append('\t');
 
-				for (var i = Colour.Red; i <= Colour.White; i++)
+				for (var i = Colour.Red; i <= Colour.Referee; i++)
 				{
 					var ft = fg.Teams.FirstOrDefault(x => x.Value == i).Key;
 					if (ft != null)
@@ -252,6 +288,7 @@ namespace Torn
 			return sb.ToString();
 		}
 
+		/// <summary>Creates the format expected by Parse(string[], teams, firstGame, duration), above. Each game will be a column; each team will be a row.</summary>
 		public string[] ToGrid(FixtureTeams teams)
 		{
 			int teamsCount = Math.Max(teams.Count, this.Count == 0 ? 0 : this.Max(fg => fg.Teams.Count == 0 ? 0 : fg.Teams.Max(ft => ft.Key.TeamId)));
@@ -273,6 +310,25 @@ namespace Torn
 			}
 			return lines;
 		}
+
+		public void ToXml(XmlDocument doc, XmlNode node)
+		{
+			XmlNode fixtureGamesNode = doc.CreateElement("fixturegames");
+			node.AppendChild(fixtureGamesNode);
+
+			foreach (var fixtureGame in this)
+				fixtureGame.ToXml(doc, fixtureGamesNode);
+		}
+
+		public void FromXml(XmlNode node, List<LeagueTeam> teams)
+		{
+			foreach (XmlNode x in node.ChildNodes)
+			{
+				var fixtureGame = new FixtureGame();
+				fixtureGame.FromXml(x, teams);
+				Add(fixtureGame);
+			}
+		}
 	}
 
 	public class FixtureGame : IComparable
@@ -287,7 +343,73 @@ namespace Torn
 
 		int IComparable.CompareTo(object obj)
 		{
-			return DateTime.Compare(this.Time, ((FixtureGame)obj).Time);
+			return DateTime.Compare(Time, ((FixtureGame)obj).Time);
+		}
+
+		public FixtureGame Clone()
+		{
+			return new FixtureGame
+			{
+				Time = Time,
+				Teams = new Dictionary<LeagueTeam, Colour>(Teams)
+			};
+		}
+
+		public void ToXml(XmlDocument doc, XmlNode node)
+		{
+			XmlNode fixtureGameNode = doc.CreateElement("fixturegame");
+			node.AppendChild(fixtureGameNode);
+			doc.AppendNode(fixtureGameNode, "time", Time.ToString("yyyy-MM-dd HH:mm"));
+
+			foreach (var kv in Teams.ToList().OrderBy(kv => kv.Value))
+			{
+				XmlNode teamNode = doc.CreateElement("team");
+				fixtureGameNode.AppendChild(teamNode);
+
+				if (kv.Key.TeamId == -1)
+					doc.AppendNode(teamNode, "teamname", kv.Key.Name);
+				else
+					doc.AppendNode(teamNode, "teamid", kv.Key.TeamId);
+
+				doc.AppendNode(teamNode, "colour", kv.Value.ToString());
+			}
+		}
+
+		public void FromXml(XmlNode node, List<LeagueTeam> teams)
+		{
+			var	time = node.SelectSingleNode("time");
+			Time = DateTime.Parse(time.InnerText, CultureInfo.InvariantCulture);
+
+			int nextTeamId = 1;
+			var	xteams = node.SelectNodes("team");
+
+			foreach (XmlNode xteam in xteams)
+			{
+				var leagueTeam = new LeagueTeam();
+
+				var xTeamId = xteam.SelectSingleNode("teamid");
+				if (xTeamId != null)
+				{
+					var teamId = int.Parse(xTeamId.InnerText, CultureInfo.InvariantCulture);
+					leagueTeam = teams.FirstOrDefault(lt => lt.TeamId == teamId);
+				}
+
+				if (leagueTeam == null)
+				{
+					var xTeamName = xteam.SelectSingleNode("teamname");
+					leagueTeam = xTeamName == null ? new LeagueTeam() { Name = xTeamName.InnerText } : teams.FirstOrDefault(lt => lt.Name == xTeamName.InnerText);
+				}
+
+				if (leagueTeam == null)
+				{
+					while (teams.Exists(lt => lt.TeamId == nextTeamId ))
+						nextTeamId++;
+
+					leagueTeam = new LeagueTeam() { TeamId = nextTeamId, Name = "New Team " + nextTeamId.ToString() };
+				}
+
+				Teams.Add(leagueTeam, ColourExtensions.ToColour(xteam.GetString("colour")));
+			}
 		}
 
 		public override string ToString()
@@ -313,27 +435,6 @@ namespace Torn
 				sb.Append(pair.Key.Name);
 				sb.Append(", ");
 			}
-			//for (var i = Colour.Red; i <= Colour.White; i++)
-			//{
-			//	var ft = Teams.FirstOrDefault(x => x.Value == i).Key;
-			//	if (ft != null)
-			//	{
-			//		if (ft.TeamId == -1)
-			//			sb.Append(ft.Name);
-			//		else
-			//			sb.Append(ft.TeamId);
-			//		sb.Append('\t');
-			//	}
-			//}
-
-			//foreach (var kv in Teams.Where(t => t.Value == Colour.None))
-			//{
-			//	if (kv.Key.TeamId == -1)
-			//		sb.Append(kv.Key.Name);
-			//	else
-			//		sb.Append(kv.Key.TeamId);
-			//	sb.Append('\t');
-			//}
 
 			sb.Length -= 2;
 

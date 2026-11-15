@@ -1598,9 +1598,14 @@ namespace Torn.UI
 
 				holder.Fixture.Teams.Populate(holder.League.Teams());
 
-				var xfixtures = xleague.SelectSingleNode("fixtures");
-				if (xfixtures != null)
-					holder.Fixture.Games.Parse(xfixtures.InnerText, holder.Fixture.Teams, '\t');  // TODO: change to .FromXml(doc, xfixtures);
+				var xFixtureGames = xleague.SelectSingleNode("fixturegames");
+				if (xFixtureGames != null)
+					holder.Fixture.Games.FromXml(xFixtureGames, holder.Fixture.Teams);
+				else {
+					var xfixtures = xleague.SelectSingleNode("fixtures");
+					if (xfixtures != null)
+						holder.Fixture.Games.Parse(xfixtures.InnerText, holder.Fixture.Teams);
+				}
 			}
 		}
 
@@ -1655,7 +1660,7 @@ namespace Torn.UI
 					holder.ReportTemplates.ToXml(doc, holderNode);
 
 				if (holder.Fixture.Games.Count() > 0)
-					doc.AppendNode(holderNode, "fixtures", holder.Fixture.Games.ToString());  // TODO: change to .ToXml(doc, holderNode);
+					holder.Fixture.Games.ToXml(doc, holderNode);
 			}
 
 			string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Torn");

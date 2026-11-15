@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -44,10 +45,9 @@ namespace Torn.Grids
 			{
 				var setupPlayGames = new SetupGames() { Teams = teams, GameCount = games, TeamsPerGame = teamsPerGame };
 				best.PlayGames = ScoreScalers.SameDifficulty >= ScoreScalers.CascadeDifficulty ? setupPlayGames.Setup() : setupPlayGames.SetupCascade();
-
 				best.RefGames = new SetupGames() { Teams = teams, GameCount = games, TeamsPerGame = refereesPerGame }.Setup();
 
-				oneImprover = new Improver(best.PlayGames, ScoreScalers) { RefGames = best.RefGames, ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = 1 };
+				oneImprover = new Improver(best.PlayGames, best.RefGames, ScoreScalers) { ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = 1 };
 			}
 			else  // Append to existing games.
 			{
@@ -83,7 +83,10 @@ namespace Torn.Grids
 				}
 
 				if (changed)
+				{
 					oneImprover.RefGames = best.RefGames;
+					oneImprover.RefGames.ClearCache();
+				}
 			}
 
 			Sessions.Amend(best.PlayGames.Count);
@@ -127,9 +130,7 @@ namespace Torn.Grids
 			}
 
 			best.Score = double.MaxValue;
-			oneImprover = new Improver(best.PlayGames, ScoreScalers) { RefGames = best.RefGames, ExistingPlays = new Plays(0), Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = Rings };
-
-			ToFixtureGames(best, fixture);
+			oneImprover = new Improver(best.PlayGames, best.RefGames, ScoreScalers) { ExistingPlays = new Plays(0), Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = Rings };
 			var result = oneImprover.Scored();
 			Details = result.ScoreString + errors.ToString() + result.Details;
 			RoundRobinness = result.RoundRobinness;
@@ -288,6 +289,7 @@ namespace Torn.Grids
 				}
 			}
 
+			Sessions.Amend(playGames.Count);
 			var time = Sessions.First().Start;
 			int session = 0;
 			for (int g = 0; g < playGames.Count; g++)
@@ -366,6 +368,21 @@ namespace Torn.Grids
 			string s = string.Format(format, arg);
 			Console.WriteLine(s);
 			errors.Append(s);
+		}
+
+		public string PlayCounts(bool rings)
+		{
+			return oneImprover?.PlayCounts(rings);
+		}
+
+		public void DaysAndNights(StringBuilder sb)
+		{
+			oneImprover?.DaysAndNights(sb);
+		}
+
+		public void BackToBacks(StringBuilder sb)
+		{
+			oneImprover?.BackToBacks(sb);
 		}
 	}
 
@@ -671,7 +688,7 @@ namespace Torn.Grids
 		public bool Running = false;
 
 		private readonly Plays plays;
-		private readonly OnSite onSite;
+		private OnSite onSite;
 		private readonly List<double> difficulties = new List<double>();  // [teamIndex]
 		private readonly List<double> targetDifficulties = new List<double>();  // [teamIndex]
 		private readonly List<List<int>> colourCounts = new List<List<int>>();  // [teamIndex][colour]. Number of times each teamIndex plays on each colour.
@@ -688,13 +705,14 @@ namespace Torn.Grids
 
 		public static GamesResult Improve(Bundle b)
 		{
-			var imp = new Improver(b.PlayGames, b.ScoreScalers) { RefGames = b.RefGames.Clone(), ExistingPlays = b.ExistingPlays, Sessions = b.Sessions.Clone(), Colours = b.Colours, ShuffleType = b.ShuffleType, Rings = b.Rings };
+			var imp = new Improver(b.PlayGames, b.RefGames.Clone(), b.ScoreScalers) { ExistingPlays = b.ExistingPlays, Sessions = b.Sessions.Clone(), Colours = b.Colours, ShuffleType = b.ShuffleType, Rings = b.Rings };
 			return imp.Improve();
 		}
 
-		public Improver(IndexGames playGames, ScoreScalers scoreScalers)
+		public Improver(IndexGames playGames, IndexGames refGames, ScoreScalers scoreScalers)
 		{
 			PlayGames = playGames;
+			RefGames = refGames;
 			ScoreScalers = scoreScalers;
 			plays = new Plays(PlayGames.MaxIndex + 1);
 			onSite = new OnSite(PlayGames);
@@ -703,11 +721,9 @@ namespace Torn.Grids
 				swaps.Add(st, 0);
 
 			for (int teamIndex = 0; teamIndex <= PlayGames.MaxIndex; teamIndex++)
-			{
 				colourCounts.Add(Enumerable.Repeat(0, PlayGames.MaxTeamsPerGame).ToList());
 
-				refCount.Add(0);
-			}
+			refCount.AddRange(Enumerable.Repeat(0, RefGames.MaxIndex + 1));
 
 			if (ScoreScalers.SameDifficulty >= ScoreScalers.CascadeDifficulty)
 				for (int i = 0; i <= PlayGames.MaxIndex; i++)  // Set up difficulties for a round robin: all the same.
@@ -733,6 +749,7 @@ namespace Torn.Grids
 		public GamesResult Improve()
 		{
 			var finish = DateTime.Now.AddSeconds(1);
+
 			Score = ScoreGames(PlayGames, RefGames);
 
 			attemptsThisSecond = 0;
@@ -760,6 +777,11 @@ namespace Torn.Grids
 		/// <summary>Return a GamesResult showing the score and details of this set of games, but don't try to make improvements.</summary>
 		public GamesResult Scored()
 		{
+			if (refCount.Count < RefGames.MaxIndex)
+				refCount.AddRange(Enumerable.Repeat(0, RefGames.MaxIndex + 1 - refCount.Count));
+			if (onSite.Count < PlayGames.Count)
+				onSite = new OnSite(PlayGames);
+
 			Score = ScoreGames(PlayGames, RefGames);
 			lastSuccessTime = DateTime.Now;
 			return new GamesResult() { PlayGames = PlayGames.Clone(), RefGames = RefGames.Clone(), Score = Score, ScoreString = ScoreString(), Details = Details(), RoundRobinness = plays.RoundRobinness() };
@@ -881,11 +903,8 @@ namespace Torn.Grids
 		{
 			plays.Calc(playGames, ExistingPlays, Colours, Rings);
 			double orphanScore = onSite.CalcOnSite(playGames, refGames, Sessions) * ScoreScalers.OneGameInSession; // Set up onSite.
-
-			double averagePlays = playGames.AveragePlays(Rings) + ExistingPlays.Average();
-
 			double timesPlayedScore = TimesPlayedScore(playGames.AveragePlays(Rings) + ExistingPlays.Average());
-			int playSelfScore = PlaySelfScore(playGames, refGames);
+			int playSelfScore = PlaySelf(playGames, refGames) * ScoreScalers.PlaySelf;
 			double backToBackScore = BackToBackScore(playGames, refGames);
 			double dayNightLength = DayNightLengthScore(playGames);
 			(double teamsOnSite, int maxOnSite) = onSite.TeamsOnSiteScore(ScoreScalers.TeamsOnSite);
@@ -911,16 +930,16 @@ namespace Torn.Grids
 			return score * ScoreScalers.TimesPlayed;
 		}
 
-		/// <summary>Score teams for how many times they play twice in the same game, or both play and referee a game.</summary>
-		private int PlaySelfScore(IndexGames playGames, IndexGames refGames)
+		/// <summary>Count how many times teams play twice in the same game, or both play and referee a game.</summary>
+		public int PlaySelf(IndexGames playGames, IndexGames refGames)
 		{
 			if (ScoreScalers.PlaySelf == 0)
 				return 0;
 
-			int score = 0;
+			int count = 0;
 			for (int team1 = 0; team1 < plays.Size; team1++)
 				if (plays[team1][team1] > 0)
-					score += plays[team1][team1];
+					count += plays[team1][team1];
 
 			if (refGames != null)
 				for (int game = 0; game < playGames.Count; game++)
@@ -928,14 +947,14 @@ namespace Torn.Grids
 					{
 						for (int t2 = t1 + 1; t2 < refGames[game].Count; t2++)  // for each team ref'ing in this game
 							if (refGames[game][t1] == refGames[game][t2])  // if they are ref'ing twice in this game,
-								score++;  // that's bad.
+								count++;  // that's bad.
 
 						for (int t2 = 0; t2 < playGames[game].Count; t2++)  // for each team playing in this game
 							if (refGames[game][t1] == playGames[game][t2])  // if they are both playing and ref'ing,
-								score++;  // that's bad.
+								count++;  // that's bad.
 					}
 
-			return score * ScoreScalers.PlaySelf;
+			return count;
 		}
 
 		/// <summary>Score teams for playing two consecutive games, or playing and refereeing consecutive games.</summary>
@@ -966,58 +985,64 @@ namespace Torn.Grids
 			return score;
 		}
 
-		/// <summary>Return a human-friendly list of teams that play two consecutive games, or play and referee consecutive games.</summary>
-		private StringBuilder GetBackToBacks(IndexGames playGames, IndexGames refGames)
+		/// <summary>Build a human-friendly list of teams that play two consecutive games, or play and referee consecutive games.</summary>
+		public void BackToBacks(StringBuilder sb)
 		{
-			var sb = new StringBuilder();
-
 			if (ScoreScalers.BackToBack <= 0 && ScoreScalers.PlayThenRef <= 0 && ScoreScalers.RefThenPlay <= 0)
-				return sb;
+				return;
 
+			var sb2 = new StringBuilder();
 			int backToBacks = 0;
 			int playThenRef = 0;
 			int refThenPlay = 0;
 
+			// Count how many times each type happens.
 			if (ScoreScalers.BackToBack > 0 || ScoreScalers.PlayThenRef > 0 || ScoreScalers.RefThenPlay > 0)
-				for (int game = 0; game < playGames.Count - 1; game++)  // For each consecutive pair of games (other than the very last),
+				for (int game = 0; game < PlayGames.Count - 1; game++)  // For each consecutive pair of games (other than the very last),
 					if (!Sessions.Any(s => s.Last == game))  // If this game is the Last in a Session, there is no next game, so don't look.
 					{
 						if (ScoreScalers.BackToBack > 0)
-							backToBacks += playGames[game].Count(teamIndex => playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex)); // same team plays in the next game
+							backToBacks += PlayGames[game].Count(teamIndex => PlayGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex)); // same team plays in the next game
 
 						if (ScoreScalers.PlayThenRef > 0)
-							playThenRef += playGames[game].Count(teamIndex => refGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex));  // same team referees the next game
+							playThenRef += PlayGames[game].Count(teamIndex => RefGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex));  // same team referees the next game
 
 						if (ScoreScalers.RefThenPlay > 0)
-							refThenPlay += refGames[game].Count(teamIndex => playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex));  // ref team plays in the next game
+							refThenPlay += RefGames[game].Count(teamIndex => PlayGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex));  // ref team plays in the next game
 					}
 
-			for (int game = 0; game < playGames.Count - 1; game++)  // For each consecutive pair of games (other than the very last),
+			// If there's only a few of a given type, show details of each one.
+			for (int game = 0; game < PlayGames.Count - 1; game++)  // For each consecutive pair of games (other than the very last),
 				if (!Sessions.Any(s => s.Last == game))  // If this game is the Last in a Session, there is no next game, so don't look.
 				{
-					foreach (int teamIndex in playGames[game])  // for each team playing this game
+					foreach (int teamIndex in PlayGames[game])  // for each team playing this game
 					{
-						if (ScoreScalers.BackToBack > 0 && backToBacks < 10 && playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team plays in the next game
-							sb.AppendFormat("Team ID {0} plays games {1} and {2}. ", teamIndex + 1, game + 1, game + 2);
+						if (ScoreScalers.BackToBack > 0 && backToBacks < 10 && PlayGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team plays in the next game
+							sb2.AppendFormat("Team ID {0} plays games {1} and {2}. ", teamIndex + 1, game + 1, game + 2);
 
-						if (ScoreScalers.PlayThenRef > 0 && playThenRef < 10 && refGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team referees the next game
-							sb.AppendFormat("Team ID {0} plays game {1} then refs. ", teamIndex + 1, game + 1);
+						if (ScoreScalers.PlayThenRef > 0 && playThenRef < 10 && RefGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team referees the next game
+							sb2.AppendFormat("Team ID {0} plays game {1} then refs. ", teamIndex + 1, game + 1);
 					}
 
 					if (ScoreScalers.RefThenPlay > 0 && refThenPlay < 10)
-						foreach (int teamIndex in refGames[game])  // for each team refereeing this game
-							if (playGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team plays in the next game
-								sb.AppendFormat("Team ID {0} refs game {1} then plays. ", teamIndex + 1, game + 1);
+						foreach (int teamIndex in RefGames[game])  // for each team refereeing this game
+							if (PlayGames[game + 1].Any(teamIndex2 => teamIndex2 == teamIndex))  // same team plays in the next game
+								sb2.AppendFormat("Team ID {0} refs game {1} then plays. ", teamIndex + 1, game + 1);
 				}
 
+			// Where there's a lot of a given type, just show a count.
 			if (backToBacks >= 10)
-				sb.AppendFormat("On {0} occasions, a team plays twice in a row. ", playThenRef);
+				sb2.AppendFormat("On {0} occasions, a team plays twice in a row. ", backToBacks);
 			if (playThenRef >= 10)
-				sb.AppendFormat("On {0} occasions, a team plays then refs. ", playThenRef);
+				sb2.AppendFormat("On {0} occasions, a team plays then refs. ", playThenRef);
 			if (refThenPlay >= 10)
-				sb.AppendFormat("On {0} occasions, a team refs then plays. ", refThenPlay);
+				sb2.AppendFormat("On {0} occasions, a team refs then plays. ", refThenPlay);
 
-			return sb;
+			if (sb2.Length > 0)
+			{
+				sb.Append("Back-to-back games: ");
+				sb.Append(backToBacks);
+			}
 		}
 
 		private double DayNightLengthScore(IndexGames playGames)
@@ -1137,11 +1162,11 @@ namespace Torn.Grids
 		{
 			// Clear out ColourCounts.
 			for (int teamIndex = 0; teamIndex < colourCounts.Count; teamIndex++)
-			{
 				for (int c = 0; c < colourCounts[teamIndex].Count; c++)
 					colourCounts[teamIndex][c] = 0;
+
+			for (int teamIndex = 0; teamIndex < refCount.Count; teamIndex++)
 				refCount[teamIndex] = 0;
-			}
 
 			// For all games, for all teams within each game, increment that teamIndex's relevant colour.
 			for (int g = 0; g < playGames.Count; g++)
@@ -1239,7 +1264,7 @@ namespace Torn.Grids
 			double orphanScore = onSite.CalcOnSite(PlayGames, RefGames, Sessions) * ScoreScalers.OneGameInSession; // Set up OnSite.
 
 			double timesPlayedScore = TimesPlayedScore(PlayGames.AveragePlays(Rings) + ExistingPlays.Average());  // Score teams for how many times they play each other.
-			int playSelfScore = PlaySelfScore(PlayGames, RefGames);
+			int playSelfScore = PlaySelf(PlayGames, RefGames) * ScoreScalers.PlaySelf;
 			double backToBackScore = BackToBackScore(PlayGames, RefGames);
 			double dayNightLength = DayNightLengthScore(PlayGames);
 			(double teamsOnSite, int maxOnSite) = onSite.TeamsOnSiteScore(ScoreScalers.TeamsOnSite);
@@ -1313,30 +1338,15 @@ namespace Torn.Grids
 
 			plays.Calc(PlayGames, ExistingPlays, Colours, Rings);
 
-			var backToBacks = GetBackToBacks(PlayGames, RefGames);
-			if (backToBacks.Length > 0)
-			{
-				sb.Append("Back-to-back games: ");
-				sb.Append(backToBacks);
-			}
+			BackToBacks(sb);
 
 			// Header row above main grid.
 			sb.Append("\r\nGames");
 			sb.Append(' ', Math.Max(PlayGames.Count - 8, 0) + Sessions.Count - 1);
 			sb.Append(difficulties.Any() ? "Difficulty   #  " : "      #  ");
 
-			var coloursPlayed = Colours.Where(c => c != Colour.Referee);
-			bool coloursAreDistinct = coloursPlayed.Count() == coloursPlayed.Distinct().Count();
-			if (coloursAreDistinct)
-			{
-				foreach (var colour in coloursPlayed)
-					sb.Append(colour.ToChar());
-
-				if (Colours.Any(c => c == Colour.Referee))
-					sb.Append(Colour.Referee.ToChar());
-
-				sb.Append("  ");
-			}
+			var coloursPlayed = Colours.Where(c => c != Colour.Referee).Distinct();
+			ColoursPlayedHeader(sb, coloursPlayed, Rings > 1);
 
 			sb.Append("Who-plays-who\r\n");
 
@@ -1374,29 +1384,85 @@ namespace Torn.Grids
 
 				sb.AppendFormat("{0,4}  ", teamIndex + 1);
 
-				if (coloursAreDistinct)
-				{
-					for (int c = 0; c < coloursPlayed.Count() && c < colourCounts[teamIndex].Count; c++)
-						sb.Append(Histo(colourCounts[teamIndex][c]));  // Show how many times this team plays each colour.
+				ColoursPlayedRow(sb, coloursPlayed, teamIndex, Rings > 1);
 
-					if (Colours.Any(c => c == Colour.Referee))
-						sb.Append((Histo(refCount[teamIndex])));
-
-					sb.Append("  ");
-				}
-
-				// Who plays who
-				for (int teamIndex2 = 0; teamIndex2 < plays.Count; teamIndex2++)
-					if (teamIndex == teamIndex2)
-						sb.Append('\\');
-					else if (plays[teamIndex][teamIndex2] == 0)
-						sb.Append('.');
-					else
-						sb.Append(Histo(plays[teamIndex][teamIndex2]));
-
-				sb.Append("\r\n");
+				WhoPlaysWhoRow(sb, teamIndex);
 			}
 
+			DaysAndNights(sb);
+
+			// List of games as space-separated for teams in games; semicolon-separated between games.
+			sb.Append("\nGames as a list:\r\n");
+			for (int g = 0; g < PlayGames.Count; g++)
+			{
+				sb.Append(string.Join(" ", PlayGames[g]));
+				sb.Append("; ");
+
+				if (Sessions.Any(s => s.Last == g))
+					sb.Append('\t');
+			}
+			sb.Append("\r\n");
+
+			return sb.ToString();
+		}
+
+		public string PlayCounts(bool rings)
+		{
+			var sb = new StringBuilder();
+			var coloursPlayed = Colours.Where(c => c != Colour.Referee);
+
+			ColoursPlayedHeader(sb, coloursPlayed, rings);
+
+			sb.Append("Who-plays-who\r\n");
+
+			for (int teamIndex = 0; teamIndex <= PlayGames.MaxIndex; teamIndex++)
+			{
+				ColoursPlayedRow(sb, coloursPlayed, teamIndex, rings);
+				WhoPlaysWhoRow(sb, teamIndex);
+			}
+
+			return sb.ToString();
+		}
+
+		private void ColoursPlayedHeader(StringBuilder sb, IEnumerable<Colour> coloursPlayed, bool rings)
+		{
+			if (!rings)
+				foreach (var colour in coloursPlayed)
+					sb.Append(colour.ToChar());
+
+			if (Colours.Any(c => c == Colour.Referee))
+				sb.Append(Colour.Referee.ToChar());
+
+			sb.Append("  ");
+		}
+
+		private void ColoursPlayedRow(StringBuilder sb, IEnumerable<Colour> coloursPlayed, int teamIndex, bool rings)
+		{
+			if (!rings)
+				for (int c = 0; c < coloursPlayed.Count() && c < colourCounts[teamIndex].Count; c++)
+					sb.Append(Histo(colourCounts[teamIndex][c]));  // Show how many times this team plays each colour.
+
+			if (Colours.Any(c => c == Colour.Referee))
+				sb.Append((Histo(refCount[teamIndex])));
+
+			sb.Append("  ");
+		}
+
+		private void WhoPlaysWhoRow(StringBuilder sb, int teamIndex)
+		{
+			for (int teamIndex2 = 0; teamIndex2 < plays.Count; teamIndex2++)
+				if (teamIndex == teamIndex2)
+					sb.Append('\\');
+				else if (plays[teamIndex][teamIndex2] == 0)
+					sb.Append('.');
+				else
+					sb.Append(Histo(plays[teamIndex][teamIndex2]));
+
+			sb.Append("\r\n");
+		}
+
+		public void DaysAndNights(StringBuilder sb)
+		{
 			if (longDays.Any())
 			{
 				sb.Append("Long days:\r\n");
@@ -1416,20 +1482,6 @@ namespace Torn.Grids
 
 				sb.Append("\r\n\r\n");
 			}
-
-			// List of games as space-separated for teams in games; semicolon-separated between games.
-			sb.Append("\nGames as a list:\r\n");
-			for (int g = 0; g < PlayGames.Count; g++)
-			{
-				sb.Append(string.Join(" ", PlayGames[g]));
-				sb.Append("; ");
-
-				if (Sessions.Any(s => s.Last == g))
-					sb.Append('\t');
-			}
-			sb.Append("\r\n");
-
-			return sb.ToString();
 		}
 
 		/// <summary>Convert an int to a char. If 0 to 9, use '0' to '9'. If greater than 9, use lowercase then uppercase letters.</summary>
@@ -1620,8 +1672,8 @@ namespace Torn.Grids
 			CalcInGame(source1);
 
 			if (source2 != null)
-				for (int g = 0; g < source2.Count; g++)
-					for (int teamIndex = 0; teamIndex <= source2.MaxIndex; teamIndex++)
+				for (int g = 0; g < Count && g < source2.Count; g++)
+					for (int teamIndex = 0; teamIndex < this[g].Count && teamIndex <= source2.MaxIndex; teamIndex++)
 						this[g][teamIndex] |= source2[g].HasTeam(teamIndex);  // Note we use |= "or equals" here to add on to existing data, not to clear-and-set.
 
 			int orphans = 0;
@@ -1922,8 +1974,10 @@ namespace Torn.Grids
 		/// <summary>Ensure that the number of games in this set of sessions matches the number of games desired.</summary>
 		public void Amend(int length)
 		{
-			if (this.Any())
-				this.Last().Last = length - 1;
+			if (!this.Any())
+				Add(new Session() { Start = DateTime.Now } );
+
+			this.Last().Last = length - 1;
 
 			while (Count > 1 && this[Count - 2].Last > length - 1)
 			{

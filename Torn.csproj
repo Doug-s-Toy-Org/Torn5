@@ -296,6 +296,12 @@
     <Compile Include="Controls\Grade.Designer.cs">
       <DependentUpon>Grade.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\GridEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\GridEditor.Designer.cs">
+      <DependentUpon>GridEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="Controls\PointPercent.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -338,6 +344,12 @@
     </Compile>
     <Compile Include="Forms\About.Designer.cs">
       <DependentUpon>About.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\FormEditFixture.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormEditFixture.Designer.cs">
+      <DependentUpon>FormEditFixture.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\FormEditTerm.cs">
       <SubType>Form</SubType>
@@ -498,6 +510,9 @@
     <EmbeddedResource Include="Controls\Grade.resx">
       <DependentUpon>Grade.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Controls\GridEditor.resx">
+      <DependentUpon>GridEditor.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Controls\PointPercent.resx">
       <DependentUpon>PointPercent.cs</DependentUpon>
     </EmbeddedResource>
@@ -520,6 +535,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\About.resx">
       <DependentUpon>About.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormEditFixture.resx">
+      <DependentUpon>FormEditFixture.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormEditTerm.resx">
       <DependentUpon>FormEditTerm.cs</DependentUpon>
