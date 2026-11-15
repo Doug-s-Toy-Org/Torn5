@@ -6,7 +6,15 @@ namespace Torn5.Controls
 {
 	public partial class SessionControl : UserControl
 	{
-		public DateTime Start { get => dateTimeStart.Value; set => dateTimeStart.Value = value; }
+		public DateTime Start
+		{
+			get => dateTimeStart.Value;
+			set
+			{
+				if (dateTimeStart.MinDate <= value)
+					dateTimeStart.Value = value;
+			}
+		}
 		public TimeSpan Between { get; set; }
 		public int Games { get => (int)numericGames.Value; set => numericGames.Value = value; }
 		public DateTime End { get => Start.Add(TimeSpan.FromTicks(Between.Ticks * Games)); }

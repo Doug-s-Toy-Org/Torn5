@@ -129,7 +129,7 @@ namespace Torn5.Controls
 			interval = 24 / (24 / interval);  // Make it a number that divides nicely into 24.
 
 			StringFormat sf = new StringFormat();
-			Pen pen = new Pen(Color.LightGray);
+			Pen pen = Pens.LightGray;
 			for (int i = 0; i <= 24 / interval; i++)
 			{
 				int x = r.Left + (int)Scale(new TimeSpan(i * interval, 0, 0), earliestTime, latestTime, r.Width);
@@ -212,7 +212,7 @@ namespace Torn5.Controls
 					sessionControl.Start = fixtureGames[game].Time;
 
 					int gamesThisSession = 0;
-					while (game < fixtureGames.Count - 1 && fixtureGames[game + 1].Time - TimeSpan.FromMinutes(30) < fixtureGames[game].Time)  // while the break between two games is no more than 30 minutes,
+					while (game < fixtureGames.Count - 1 && fixtureGames[game + 1].Time < fixtureGames[game].Time + TimeSpan.FromMinutes(30))  // while the break between two games is no more than 30 minutes,
 					{
 						game++;  // walk forward.
 						gamesThisSession++;
