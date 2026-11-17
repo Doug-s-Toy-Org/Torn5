@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,7 +11,6 @@ namespace Torn.Grids
 	{
 		public readonly List<Colour> Colours = new List<Colour>();
 		public readonly ScoreScalers ScoreScalers = new ScoreScalers();
-		public ShuffleType ShuffleType = ShuffleType.Referees | ShuffleType.Games | ShuffleType.WithinGames;
 		public Sessions Sessions = new Sessions();
 		public int Rings;
 		public bool Changed = false;
@@ -47,13 +45,12 @@ namespace Torn.Grids
 				best.PlayGames = ScoreScalers.SameDifficulty >= ScoreScalers.CascadeDifficulty ? setupPlayGames.Setup() : setupPlayGames.SetupCascade();
 				best.RefGames = new SetupGames() { Teams = teams, GameCount = games, TeamsPerGame = refereesPerGame }.Setup();
 
-				oneImprover = new Improver(best.PlayGames, best.RefGames, ScoreScalers) { ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = 1 };
+				oneImprover = new Improver(best.PlayGames, best.RefGames, ScoreScalers) { ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, Rings = 1 };
 			}
 			else  // Append to existing games.
 			{
 				oneImprover.Sessions = Sessions;
 				oneImprover.Colours = Colours;
-				oneImprover.ShuffleType = ShuffleType;
 
 				if (games > best.PlayGames.Count)
 					new SetupGames() { Games = best.PlayGames, Teams = teams, GameCount = games, TeamsPerGame = teamsPerGame }.Append();
@@ -130,7 +127,7 @@ namespace Torn.Grids
 			}
 
 			best.Score = double.MaxValue;
-			oneImprover = new Improver(best.PlayGames, best.RefGames, ScoreScalers) { ExistingPlays = new Plays(0), Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = Rings };
+			oneImprover = new Improver(best.PlayGames, best.RefGames, ScoreScalers) { ExistingPlays = new Plays(0), Sessions = Sessions, Colours = Colours, Rings = Rings };
 			var result = oneImprover.Scored();
 			Details = result.ScoreString + errors.ToString() + result.Details;
 			RoundRobinness = result.RoundRobinness;
@@ -182,14 +179,14 @@ namespace Torn.Grids
 		/// <summary>Improve a team fixture via hill-climbing.</summary>
 		public void Improve(Fixture fixture)
 		{
-			if (ShuffleType != ShuffleType.None)
+			if (ScoreScalers.ShuffleType != ShuffleType.None)
 				Improved(oneImprover.Improve(), fixture);
 		}
 
 		/// <summary>Improve team fixtures via hill-climbing, in parallel.</summary>
 		public void ImproveParallel(Fixture fixture)
 		{
-			if (ShuffleType == ShuffleType.None)
+			if (ScoreScalers.ShuffleType == ShuffleType.None)
 				return;
 
 			var numTasks = Math.Max(Environment.ProcessorCount - 1, 1);
@@ -205,7 +202,7 @@ namespace Torn.Grids
 
 					return Improver.Improve(bundle);
 				},
-				new Bundle() { PlayGames = best.PlayGames.Clone(), RefGames = best.RefGames.Clone(), ScoreScalers = ScoreScalers, ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, ShuffleType = ShuffleType, Rings = Rings });
+				new Bundle() { PlayGames = best.PlayGames.Clone(), RefGames = best.RefGames.Clone(), ScoreScalers = ScoreScalers, ExistingPlays = existingPlays, Sessions = Sessions, Colours = Colours, Rings = Rings });
 			}
 
 			Task.WaitAll(tasks);
@@ -682,7 +679,6 @@ namespace Torn.Grids
 		public Sessions Sessions;
 		public ScoreScalers ScoreScalers;
 		public List<Colour> Colours;
-		public ShuffleType ShuffleType;
 		public double Score;
 		public int Rings;  // Greater than 1 if this is a Lord of the Ring style game, where all players on each colour are their own sub-game.
 		public bool Running = false;
@@ -705,7 +701,7 @@ namespace Torn.Grids
 
 		public static GamesResult Improve(Bundle b)
 		{
-			var imp = new Improver(b.PlayGames, b.RefGames.Clone(), b.ScoreScalers) { ExistingPlays = b.ExistingPlays, Sessions = b.Sessions.Clone(), Colours = b.Colours, ShuffleType = b.ShuffleType, Rings = b.Rings };
+			var imp = new Improver(b.PlayGames, b.RefGames.Clone(), b.ScoreScalers) { ExistingPlays = b.ExistingPlays, Sessions = b.Sessions.Clone(), Colours = b.Colours, Rings = b.Rings };
 			return imp.Improve();
 		}
 
@@ -758,9 +754,9 @@ namespace Torn.Grids
 
 			do
 			{
-				if (!ShuffleType.HasFlag(ShuffleType.Referees) || ((ShuffleType != ShuffleType.Referees) && random.NextDouble() < playRefRatio))
+				if (!ScoreScalers.ShuffleType.HasFlag(ShuffleType.Referees) || ((ScoreScalers.ShuffleType != ShuffleType.Referees) && random.NextDouble() < playRefRatio))
 				{
-					(IndexGames newPlayGames, SwapRecord swapped) = Shuffle(PlayGames, ShuffleType);
+					(IndexGames newPlayGames, SwapRecord swapped) = Shuffle(PlayGames, ScoreScalers.ShuffleType);
 					changed |= KeepBest(newPlayGames, ref PlayGames, ScoreGames(newPlayGames, RefGames), swapped);
 				}
 				else
@@ -822,9 +818,7 @@ namespace Torn.Grids
 
 		private SwapRecord SwapBetweenGames(IndexGames newGames)
 		{
-			int game1 = random.Next(newGames.Count);
-			int game2 = random.Next(newGames.Count - 1);
-			if (game2 >= game1) game2++;
+			(int game1, int game2) = RandomGameIndexes(newGames.Count);
 
 			if (newGames[game1].Count == 0 || newGames[game2].Count == 0)
 				return new SwapRecord() { ShuffleType = ShuffleType.None, Game1 = game1, Game2 = game2 };
@@ -839,9 +833,7 @@ namespace Torn.Grids
 
 		private SwapRecord SwapWholeGames(IndexGames newGames)
 		{
-			int game1 = random.Next(newGames.Count);
-			int game2 = random.Next(newGames.Count - 1);
-			if (game2 >= game1) game2++;
+			(int game1, int game2) = RandomGameIndexes(newGames.Count);
 
 			for (int t = 0; t < Math.Min(newGames[game1].Count, newGames[game2].Count); t++)
 				(newGames[game1][t], newGames[game2][t]) = (newGames[game2][t], newGames[game1][t]);
@@ -851,23 +843,22 @@ namespace Torn.Grids
 
 		private SwapRecord SwapRings(IndexGames newGames)
 		{
-			int game1 = random.Next(newGames.Count);
-			int game2 = random.Next(newGames.Count - 1);
-			if (game2 >= game1) game2++;
+			(int game1, int game2) = RandomGameIndexes(newGames.Count);
 
-			int team1 = random.Next(newGames[game1].Count / 3) * 3;
-			int team2 = random.Next(newGames[game2].Count / 3) * 3;
+			int teamsPerRing = newGames.Max(ig => ig.Count) / Rings;
 
-			(newGames[game1][team1], newGames[game2][team2]) = (newGames[game2][team2], newGames[game1][team1]);
-			(newGames[game1][team1 + 1], newGames[game2][team2 + 1]) = (newGames[game2][team2 + 1], newGames[game1][team1 + 1]);
-			(newGames[game1][team1 + 2], newGames[game2][team2 + 2]) = (newGames[game2][team2 + 2], newGames[game1][team1 + 2]);
+			int ring1 = random.Next(newGames[game1].Count / teamsPerRing);
+			int ring2 = random.Next(newGames[game2].Count / teamsPerRing);
 
-			return new SwapRecord() { ShuffleType = ShuffleType.Rings, Game1 = game1, Game2 = game2, Team1 = team1 / 3, Team2 = team2 / 3 };
+			for (int i = 0; i < teamsPerRing; i++)
+				(newGames[game1][ring1 * teamsPerRing + i], newGames[game2][ring2 * teamsPerRing + i]) = (newGames[game2][ring2 * teamsPerRing + i], newGames[game1][ring1 * teamsPerRing + i]);
+
+			return new SwapRecord() { ShuffleType = ShuffleType.Rings, Game1 = game1, Game2 = game2, Team1 = ring1, Team2 = ring2 };
 		}
 
 		private SwapRecord SwapWithinGame(IndexGames newGames)
 		{
-			int game = random.Next(newGames.Count);
+			int game = RandomGameIndex(newGames.Count);
 			int team1 = random.Next(newGames[game].Count);
 			int team2 = random.Next(newGames[game].Count - 1);
 			if (team2 >= team1) team2++;
@@ -875,6 +866,33 @@ namespace Torn.Grids
 			(newGames[game][team1], newGames[game][team2]) = (newGames[game][team2], newGames[game][team1]);
 
 			return new SwapRecord() { ShuffleType = ShuffleType.WithinGames, Game1 = game, Game2 = game, Team1 = team1, Team2 = team2 };
+		}
+
+		private int RandomGameIndex(int gameCount)
+		{
+			switch (ScoreScalers.ShuffleLimitType)
+			{
+				case ShuffleLimitType.FirstGames:
+					return random.Next(0, ScoreScalers.ShuffleLimit);
+				case ShuffleLimitType.MiddleGames:
+					return random.Next((gameCount - ScoreScalers.ShuffleLimit) / 2, (gameCount + ScoreScalers.ShuffleLimit) / 2);
+				case ShuffleLimitType.LastGames:
+					return random.Next(gameCount - ScoreScalers.ShuffleLimit, gameCount);
+				default:
+					return random.Next(gameCount);
+			}
+		}
+
+		/// <summary>Two different random offsets into an IndexGames of specified length.</summary>
+		private (int, int) RandomGameIndexes(int gameCount)
+		{
+			int game1 = RandomGameIndex(gameCount);
+			int game2 = RandomGameIndex(gameCount - 1);
+
+			if (game2 >= game1)
+				game2++;
+
+			return (game1, game2);
 		}
 
 		/// <summary>If new is at least as good, keep it. Update metrics accordingly.</summary>
@@ -1041,7 +1059,7 @@ namespace Torn.Grids
 			if (sb2.Length > 0)
 			{
 				sb.Append("Back-to-back games: ");
-				sb.Append(backToBacks);
+				sb.Append(sb2);
 			}
 		}
 
@@ -1895,7 +1913,6 @@ namespace Torn.Grids
 		public Plays ExistingPlays;
 		public Sessions Sessions;
 		public List<Colour> Colours;
-		public ShuffleType ShuffleType;
 		public int Rings;
 	}
 
@@ -1930,6 +1947,10 @@ namespace Torn.Grids
 		public int RefThenPlay = 125;  // Referee a game then play the very next game.
 		public int PlayThenRef = 100;  // Play a game then referee the very next game.
 		public int RefereeClustering = 1;  // Incentivise grouping together a team's refereeing spots into groups of about 4 in a row.
+
+		public ShuffleType ShuffleType = ShuffleType.None;
+		public ShuffleLimitType ShuffleLimitType = ShuffleLimitType.None;
+		public int ShuffleLimit = 0;
 	}
 
 	public enum BreakType { WithinDay, Night };
@@ -2012,6 +2033,9 @@ namespace Torn.Grids
 
 	[Flags]
 	public enum ShuffleType { None = 0, BetweenGames = 1, Games = 2, Rings = 4, WithinGames = 8, Referees = 16, Multiple = 32 };
+
+	/// <summary>If the user has asked us to shuffle only some games, what have they restricted us to?</summary>
+	public enum ShuffleLimitType { None = 0, FirstGames, MiddleGames, LastGames };
 
 	internal class SwapRecord
 	{

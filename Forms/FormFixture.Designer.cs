@@ -37,6 +37,12 @@ namespace Torn.UI
 			this.tabFixtureTeams = new System.Windows.Forms.TabPage();
 			this.fixtureTeamsList = new System.Windows.Forms.Panel();
 			this.tabFixtureSettings = new System.Windows.Forms.TabPage();
+			this.groupBoxShuffleLimit = new System.Windows.Forms.GroupBox();
+			this.numericShuffleLimit = new System.Windows.Forms.NumericUpDown();
+			this.labelShuffleSuffix = new System.Windows.Forms.Label();
+			this.labelShufflePrefix = new System.Windows.Forms.Label();
+			this.label2 = new System.Windows.Forms.Label();
+			this.comboShuffleLimit = new System.Windows.Forms.ComboBox();
 			this.checkRefsRings = new System.Windows.Forms.CheckBox();
 			this.labelRefsRings = new System.Windows.Forms.Label();
 			this.label7 = new System.Windows.Forms.Label();
@@ -68,7 +74,6 @@ namespace Torn.UI
 			this.checkCyan = new System.Windows.Forms.CheckBox();
 			this.checkPurple = new System.Windows.Forms.CheckBox();
 			this.checkPink = new System.Windows.Forms.CheckBox();
-			this.buttonEdit = new System.Windows.Forms.Button();
 			this.tabFixtureTuning = new System.Windows.Forms.TabPage();
 			this.label37 = new System.Windows.Forms.Label();
 			this.numericClusterRefereeing = new System.Windows.Forms.NumericUpDown();
@@ -127,6 +132,7 @@ namespace Torn.UI
 			this.radioDefaults = new System.Windows.Forms.RadioButton();
 			this.buttonStop = new System.Windows.Forms.Button();
 			this.buttonClear = new System.Windows.Forms.Button();
+			this.buttonEdit = new System.Windows.Forms.Button();
 			this.splitContainerRight = new System.Windows.Forms.SplitContainer();
 			this.reportTeamsList = new Torn5.Controls.DisplayReport();
 			this.textBoxScore = new System.Windows.Forms.TextBox();
@@ -150,6 +156,8 @@ namespace Torn.UI
 			this.tabControlFixtures.SuspendLayout();
 			this.tabFixtureTeams.SuspendLayout();
 			this.tabFixtureSettings.SuspendLayout();
+			this.groupBoxShuffleLimit.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericShuffleLimit)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeamsPerRing)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericRings)).BeginInit();
 			this.groupBoxWhatToShuffle.SuspendLayout();
@@ -265,7 +273,7 @@ namespace Torn.UI
 			this.tabFixtureTeams.Location = new System.Drawing.Point(4, 4);
 			this.tabFixtureTeams.Name = "tabFixtureTeams";
 			this.tabFixtureTeams.Padding = new System.Windows.Forms.Padding(3);
-			this.tabFixtureTeams.Size = new System.Drawing.Size(332, 451);
+			this.tabFixtureTeams.Size = new System.Drawing.Size(332, 421);
 			this.tabFixtureTeams.TabIndex = 0;
 			this.tabFixtureTeams.Text = "Teams";
 			this.tabFixtureTeams.UseVisualStyleBackColor = true;
@@ -278,11 +286,12 @@ namespace Torn.UI
 			this.fixtureTeamsList.Location = new System.Drawing.Point(3, 3);
 			this.fixtureTeamsList.Name = "fixtureTeamsList";
 			this.fixtureTeamsList.Padding = new System.Windows.Forms.Padding(9, 4, 0, 0);
-			this.fixtureTeamsList.Size = new System.Drawing.Size(326, 445);
+			this.fixtureTeamsList.Size = new System.Drawing.Size(326, 415);
 			this.fixtureTeamsList.TabIndex = 33;
 			// 
 			// tabFixtureSettings
 			// 
+			this.tabFixtureSettings.Controls.Add(this.groupBoxShuffleLimit);
 			this.tabFixtureSettings.Controls.Add(this.checkRefsRings);
 			this.tabFixtureSettings.Controls.Add(this.labelRefsRings);
 			this.tabFixtureSettings.Controls.Add(this.label7);
@@ -317,6 +326,82 @@ namespace Torn.UI
 			this.tabFixtureSettings.TabIndex = 1;
 			this.tabFixtureSettings.Text = "Settings";
 			this.tabFixtureSettings.UseVisualStyleBackColor = true;
+			// 
+			// groupBoxShuffleLimit
+			// 
+			this.groupBoxShuffleLimit.Controls.Add(this.numericShuffleLimit);
+			this.groupBoxShuffleLimit.Controls.Add(this.labelShuffleSuffix);
+			this.groupBoxShuffleLimit.Controls.Add(this.labelShufflePrefix);
+			this.groupBoxShuffleLimit.Controls.Add(this.label2);
+			this.groupBoxShuffleLimit.Controls.Add(this.comboShuffleLimit);
+			this.groupBoxShuffleLimit.Location = new System.Drawing.Point(9, 343);
+			this.groupBoxShuffleLimit.Name = "groupBoxShuffleLimit";
+			this.groupBoxShuffleLimit.Size = new System.Drawing.Size(220, 75);
+			this.groupBoxShuffleLimit.TabIndex = 23;
+			this.groupBoxShuffleLimit.TabStop = false;
+			this.groupBoxShuffleLimit.Text = "Shuffle Limits";
+			// 
+			// numericShuffleLimit
+			// 
+			this.numericShuffleLimit.Location = new System.Drawing.Point(115, 46);
+			this.numericShuffleLimit.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
+			this.numericShuffleLimit.Minimum = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+			this.numericShuffleLimit.Name = "numericShuffleLimit";
+			this.numericShuffleLimit.Size = new System.Drawing.Size(53, 20);
+			this.numericShuffleLimit.TabIndex = 3;
+			this.numericShuffleLimit.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+			// 
+			// labelShuffleSuffix
+			// 
+			this.labelShuffleSuffix.Location = new System.Drawing.Point(174, 48);
+			this.labelShuffleSuffix.Name = "labelShuffleSuffix";
+			this.labelShuffleSuffix.Size = new System.Drawing.Size(40, 18);
+			this.labelShuffleSuffix.TabIndex = 4;
+			this.labelShuffleSuffix.Text = "games";
+			// 
+			// labelShufflePrefix
+			// 
+			this.labelShufflePrefix.Location = new System.Drawing.Point(6, 48);
+			this.labelShufflePrefix.Name = "labelShufflePrefix";
+			this.labelShufflePrefix.Size = new System.Drawing.Size(103, 18);
+			this.labelShufflePrefix.TabIndex = 2;
+			this.labelShufflePrefix.TextAlign = System.Drawing.ContentAlignment.TopRight;
+			// 
+			// label2
+			// 
+			this.label2.AutoSize = true;
+			this.label2.Location = new System.Drawing.Point(6, 22);
+			this.label2.Name = "label2";
+			this.label2.Size = new System.Drawing.Size(79, 13);
+			this.label2.TabIndex = 0;
+			this.label2.Text = "What to shuffle";
+			// 
+			// comboShuffleLimit
+			// 
+			this.comboShuffleLimit.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.comboShuffleLimit.FormattingEnabled = true;
+			this.comboShuffleLimit.Items.AddRange(new object[] {
+            "all",
+            "first games",
+            "middle games",
+            "last games"});
+			this.comboShuffleLimit.Location = new System.Drawing.Point(116, 19);
+			this.comboShuffleLimit.Name = "comboShuffleLimit";
+			this.comboShuffleLimit.Size = new System.Drawing.Size(99, 21);
+			this.comboShuffleLimit.TabIndex = 1;
+			this.comboShuffleLimit.SelectedIndexChanged += new System.EventHandler(this.ComboShuffleLimitSelectedIndexChanged);
 			// 
 			// checkRefsRings
 			// 
@@ -442,6 +527,7 @@ namespace Torn.UI
 			this.checkShuffleReferees.TabIndex = 3;
 			this.checkShuffleReferees.Text = "Referees";
 			this.checkShuffleReferees.UseVisualStyleBackColor = true;
+			this.checkShuffleReferees.CheckedChanged += new System.EventHandler(this.CheckShuffleChanged);
 			// 
 			// checkShuffleGames
 			// 
@@ -707,16 +793,6 @@ namespace Torn.UI
 			this.checkPink.UseVisualStyleBackColor = true;
 			this.checkPink.CheckedChanged += new System.EventHandler(this.ColourCheckedChanged);
 			// 
-			// buttonEdit
-			// 
-			this.buttonEdit.Location = new System.Drawing.Point(84, 102);
-			this.buttonEdit.Name = "buttonEdit";
-			this.buttonEdit.Size = new System.Drawing.Size(75, 23);
-			this.buttonEdit.TabIndex = 2;
-			this.buttonEdit.Text = "Edit";
-			this.buttonEdit.UseVisualStyleBackColor = true;
-			this.buttonEdit.Click += new System.EventHandler(this.ButtonEditClick);
-			// 
 			// tabFixtureTuning
 			// 
 			this.tabFixtureTuning.Controls.Add(this.label37);
@@ -766,7 +842,7 @@ namespace Torn.UI
 			this.tabFixtureTuning.Location = new System.Drawing.Point(4, 4);
 			this.tabFixtureTuning.Name = "tabFixtureTuning";
 			this.tabFixtureTuning.Padding = new System.Windows.Forms.Padding(3);
-			this.tabFixtureTuning.Size = new System.Drawing.Size(332, 451);
+			this.tabFixtureTuning.Size = new System.Drawing.Size(332, 421);
 			this.tabFixtureTuning.TabIndex = 2;
 			this.tabFixtureTuning.Text = "Tuning";
 			this.tabFixtureTuning.UseVisualStyleBackColor = true;
@@ -1384,7 +1460,7 @@ namespace Torn.UI
 			this.tabFixtureSessions.Location = new System.Drawing.Point(4, 4);
 			this.tabFixtureSessions.Name = "tabFixtureSessions";
 			this.tabFixtureSessions.Padding = new System.Windows.Forms.Padding(3);
-			this.tabFixtureSessions.Size = new System.Drawing.Size(332, 351);
+			this.tabFixtureSessions.Size = new System.Drawing.Size(332, 421);
 			this.tabFixtureSessions.TabIndex = 3;
 			this.tabFixtureSessions.Text = "Sessions";
 			this.tabFixtureSessions.UseVisualStyleBackColor = true;
@@ -1396,7 +1472,7 @@ namespace Torn.UI
 			this.fixtureSessions.Games = 8;
 			this.fixtureSessions.Location = new System.Drawing.Point(3, 3);
 			this.fixtureSessions.Name = "fixtureSessions";
-			this.fixtureSessions.Size = new System.Drawing.Size(326, 345);
+			this.fixtureSessions.Size = new System.Drawing.Size(326, 415);
 			this.fixtureSessions.TabIndex = 0;
 			// 
 			// panelBottomLeft
@@ -1529,6 +1605,16 @@ namespace Torn.UI
 			this.buttonClear.Text = "&Clear";
 			this.buttonClear.UseVisualStyleBackColor = true;
 			this.buttonClear.Click += new System.EventHandler(this.ButtonClearClick);
+			// 
+			// buttonEdit
+			// 
+			this.buttonEdit.Location = new System.Drawing.Point(84, 102);
+			this.buttonEdit.Name = "buttonEdit";
+			this.buttonEdit.Size = new System.Drawing.Size(75, 23);
+			this.buttonEdit.TabIndex = 2;
+			this.buttonEdit.Text = "Edit";
+			this.buttonEdit.UseVisualStyleBackColor = true;
+			this.buttonEdit.Click += new System.EventHandler(this.ButtonEditClick);
 			// 
 			// splitContainerRight
 			// 
@@ -1721,6 +1807,9 @@ namespace Torn.UI
 			this.tabFixtureTeams.ResumeLayout(false);
 			this.tabFixtureSettings.ResumeLayout(false);
 			this.tabFixtureSettings.PerformLayout();
+			this.groupBoxShuffleLimit.ResumeLayout(false);
+			this.groupBoxShuffleLimit.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericShuffleLimit)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericTeamsPerRing)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericRings)).EndInit();
 			this.groupBoxWhatToShuffle.ResumeLayout(false);
@@ -1873,5 +1962,11 @@ namespace Torn.UI
 		private System.Windows.Forms.CheckBox checkRefsRings;
 		private System.Windows.Forms.Label labelRefsRings;
 		private System.Windows.Forms.Button buttonEdit;
+		private System.Windows.Forms.GroupBox groupBoxShuffleLimit;
+		private System.Windows.Forms.NumericUpDown numericShuffleLimit;
+		private System.Windows.Forms.Label labelShuffleSuffix;
+		private System.Windows.Forms.Label labelShufflePrefix;
+		private System.Windows.Forms.Label label2;
+		private System.Windows.Forms.ComboBox comboShuffleLimit;
 	}
 }

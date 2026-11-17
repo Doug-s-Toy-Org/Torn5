@@ -89,6 +89,8 @@ namespace Torn.UI
 			// The InitializeComponent() call is required for Windows Forms designer support.
 			//
 			InitializeComponent();
+
+			comboShuffleLimit.SelectedIndex = 0;
 		}
 
 		private void ButtonClearClick(object sender, EventArgs e)
@@ -123,7 +125,6 @@ namespace Torn.UI
 
 				PopulateColours();
 				PopulateScoreScalers();
-				gridFinder.ShuffleType = GetShuffleType();
 				fixtureSessions.PopulateIntoSessions(gridFinder.Sessions);
 				gridFinder.Rings = checkRings.Checked ? (int)numericRings.Value : 1;
 
@@ -178,7 +179,7 @@ namespace Torn.UI
 		private bool Improve(bool singleThread)
 		{
 
-			while (run && gridFinder.ShuffleType != ShuffleType.None)
+			while (run && gridFinder.ScoreScalers.ShuffleType != ShuffleType.None)
 			{
 				if (singleThread)
 					gridFinder.Improve(Holder.Fixture);  // During generation, hold down at least two of Shift, Ctrl, Alt to Improve single-threaded for easier debugging.
@@ -250,6 +251,10 @@ namespace Torn.UI
 			ss.RefThenPlay = (int)numericRefThenPlay.Value;
 			ss.PlayThenRef = (int)numericPlayThenRef.Value;
 			ss.RefereeClustering = (int)numericClusterRefereeing.Value;
+
+			ss.ShuffleType = GetShuffleType();
+			ss.ShuffleLimitType = (ShuffleLimitType)comboShuffleLimit.SelectedIndex;
+			ss.ShuffleLimit = (int)numericShuffleLimit.Value;
 		}
 
 		private ShuffleType GetShuffleType()
@@ -568,6 +573,7 @@ namespace Torn.UI
 
 			labelGameCount.Text = gamesCount.ToString("0.##");
 			fixtureSessions.Games = (int)Math.Ceiling(gamesCount);
+			ComboShuffleLimitSelectedIndexChanged(sender, e);
 		}
 
 		private void ColourCheckedChanged(object sender, EventArgs e)
@@ -621,6 +627,8 @@ namespace Torn.UI
 
 		private void CheckShuffleChanged(object sender, EventArgs e)
 		{
+			groupBoxShuffleLimit.Enabled = checkShuffleTeams.Checked || checkShuffleGames.Checked || checkShuffleColours.Checked || checkShuffleReferees.Checked;
+
 			if (!((CheckBox)sender).Checked)
 				return;
 
@@ -631,6 +639,16 @@ namespace Torn.UI
 			}
 			else if (sender == checkShuffleGames || sender == checkShuffleColours)
 				checkShuffleTeams.Checked = false;
+		}
+
+		private void ComboShuffleLimitSelectedIndexChanged(object sender, EventArgs e)
+		{
+			bool limit = comboShuffleLimit.SelectedIndex > 0;
+
+			labelShufflePrefix.Text = limit ? "Shuffle " + comboShuffleLimit.Text.FirstWord() : "";
+			labelShuffleSuffix.Visible = limit;
+			numericShuffleLimit.Visible = limit;
+			numericShuffleLimit.Maximum = limit ? gamesCount : 1000;
 		}
 
 		private void PrintReportSaveHtmlTable(object sender, EventArgs e)
