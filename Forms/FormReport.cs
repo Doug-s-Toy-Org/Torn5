@@ -416,7 +416,7 @@ namespace Torn.UI
 			interval = 24 / (24 / interval);  // Make it a number that divides nicely into 24.
 
 			StringFormat sf = new StringFormat();
-			Pen pen = new Pen(Color.LightGray);
+			Pen pen = Pens.LightGray;
 			for (TimeSpan hour = TimeSpan.FromHours((int)Math.Ceiling(earliestTime.TotalHours / interval) * interval); hour <= latestTime; hour = hour.Add(TimeSpan.FromHours(interval)))
 			{
 				int x = r.Left + (int)Scale(hour, earliestTime, latestTime, r.Width);
