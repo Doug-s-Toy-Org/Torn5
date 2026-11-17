@@ -2571,7 +2571,6 @@ namespace Zoom
 		/// <summary>If .multiColumns == 1, this is the same as Width. If not, it is the right edge of the group of columns we're currently drawing.</summary>
 		internal int Right;
 
-
 		/// This writes an <svg> tag -- it does not include <head> or <body> tags etc.
 		public override void ToSvg(StringBuilder sb, double? aspectRatio, bool pure = false)
 		{
@@ -2785,14 +2784,14 @@ namespace Zoom
 
 			sb.Append("  <style type=\"text/css\">\n");
 			sb.Append("\tbody { background: #eef; color: black; }\n");
-			sb.Append("\t.ld { background: white; fill: black; }\n");  // Light/dark mode inside SVG: black text for light mode; white text for dark mode.
+			sb.Append("\t.ld { fill: black; }\n");  // Light/dark mode inside SVG: black text for light mode; white text for dark mode.
 			sb.Append("\t.bar { fill-opacity:0.375; fill: #ff5702; }\n");  // SVG bar of unspecified color: display as orange.
 			sb.Append("\ta:link { fill: navy; }\n");
 			sb.Append("\ta:visited { fill: purple; }\n");
 
 			sb.Append("\t@media (prefers-color-scheme: dark) {\n");
 			sb.Append("\t  body { background: #100; color: white; }\n");
-			sb.Append("\t  .ld { background: black; fill: white; }\n");
+			sb.Append("\t  .ld { fill: white; }\n");
 			sb.Append("\t  .bar { fill-opacity:0.625; fill: #ff6600; }\n");
 			sb.Append("\t  a:link { color: #8cf; fill: #8cf; }\n");
 			sb.Append("\t  a:visited { color: #c8f; fill: #c8f; }\n");
