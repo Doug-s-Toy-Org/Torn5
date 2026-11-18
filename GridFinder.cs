@@ -1460,8 +1460,8 @@ namespace Torn.Grids
 				for (int c = 0; c < coloursPlayed.Count() && c < colourCounts[teamIndex].Count; c++)
 					sb.Append(Histo(colourCounts[teamIndex][c]));  // Show how many times this team plays each colour.
 
-			if (Colours.Any(c => c == Colour.Referee))
-				sb.Append((Histo(refCount[teamIndex])));
+			if (Colours.Any(c => c == Colour.Referee) && refCount.Valid(teamIndex))
+				sb.Append(Histo(refCount[teamIndex]));
 
 			sb.Append("  ");
 		}
