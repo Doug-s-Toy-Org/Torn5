@@ -57,7 +57,8 @@ namespace Torn5.Forms
 			splitContainerTop.SplitterDistance = gridEditor.UsefulWidth(splitContainerTop.SplitterDistance) + 1;
 			gridEditor.ResizeEnd();
 
-			textPlayCounts.Font = new System.Drawing.Font("Lucida Console", gridEditor.CellSize() / 2F);
+			float scale = DeviceDpi / 96F;
+			textPlayCounts.Font = new System.Drawing.Font("Lucida Console", gridEditor.CellSize() * 0.75F / scale);
 		}
 
 		private void SplitterMoved(object sender, SplitterEventArgs e)
