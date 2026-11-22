@@ -62,7 +62,6 @@ namespace Torn.Grids
 
 				foreach (var blockSize in blockSizes.Where(b => !rawBlocks.ContainsKey(b)))
 					GenerateBlock(blockSize, teamsPerRing, gamesPerTeam, numRings);
-				//return Error(string.Format("Could not generate fixture for {0} teams, {1} rings, {2} games each.", teams.Count, numRings, gamesPerTeam));
 
 				if (blockSizes.Sum() != teams.Count)
 					return Error(string.Format("Could not generate fixture for {0} teams, {1} rings, {2} games each. Blocks summed to {3}.", teams.Count, numRings, gamesPerTeam, blockSizes.Sum()));

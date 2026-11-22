@@ -64,6 +64,9 @@ namespace Torn5.Forms
 		private void SplitterMoved(object sender, SplitterEventArgs e)
 		{
 			gridEditor.Invalidate();
+
+			float scale = DeviceDpi / 96F;
+			textPlayCounts.Font = new System.Drawing.Font("Lucida Console", gridEditor.CellSize() * 0.75F / scale);
 		}
 
 		private void ButtonPasteClick(object sender, EventArgs e)

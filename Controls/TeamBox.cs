@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
@@ -59,15 +58,7 @@ namespace Torn.UI
 		}
 
 		Handicap handicap;
-		public Handicap Handicap
-		{
-			get
-			{
-				return LeagueTeam == null ? handicap : LeagueTeam.Handicap;
-			}
-
-			private set { }
-		}
+		public Handicap Handicap => LeagueTeam == null ? handicap : LeagueTeam.Handicap;
 
 		public GameTeam GameTeam { get; set; }
 
@@ -101,11 +92,12 @@ namespace Torn.UI
 			ListView.Columns[3].Text = "Grade";
 		}
 
-		LeagueTeam GetLeagueTeamFromFile()
+		private bool EnsureTeam()
 		{
-			League.Load();
+			if (LeagueTeam == null)
+				LeagueTeam = League.GuessTeam(Players());
 
-			return League.GuessTeam(Players());
+			return LeagueTeam != null;
 		}
 
 		protected override void Recalculate(bool guessTeam = true)
@@ -126,27 +118,19 @@ namespace Torn.UI
 			tempTeam.Players.Clear();
 			tempTeam.Players.AddRange(Players());
 
-			if (guessTeam && League != null)
-			{
-				LeagueTeam = League.GuessTeam(Players());
-				if (LeagueTeam != null)
-					tempTeam.TeamId = LeagueTeam.TeamId;
-			}
-
 			if (League != null)
 			{
+				if (guessTeam)
+					LeagueTeam = League.GuessTeam(Players());
+
+				if (LeagueTeam != null)
+					tempTeam.TeamId = LeagueTeam.TeamId;
+
 				if (League.IsAutoHandicap)
-				{
 					ListView.Columns[3].Text = League.CalulateTeamCap(tempTeam).ToString() + "%";
-				}
-				else
-				{
-					LeagueTeam leagueTeam = GetLeagueTeamFromFile();
-					if (leagueTeam?.Handicap != null)
-					{
-						ListView.Columns[3].Text = leagueTeam.Handicap.ToString();
-					}
-				}
+				else if (leagueTeam?.Handicap != null)
+					ListView.Columns[3].Text = leagueTeam.Handicap.ToString();
+
 				score = League.CalculateScore(tempTeam);
 			}
 			else
@@ -168,25 +152,26 @@ namespace Torn.UI
 			return (ToolStripMenuItem)menuIdentifyTeam.DropDownItems[menuIdentifyTeam.DropDownItems.Count - 1];  // "Other"
 		}
 
-		void ContextMenuStrip1Opening(object sender, CancelEventArgs e)
+		private void ContextMenuStrip1Opening(object sender, CancelEventArgs e)
 		{
-			menuSortTeams.Enabled = ListView.SelectedItems.Count == 0;
-			menuHandicapTeam.Enabled = League != null && !League.IsAutoHandicap && ListView.SelectedItems.Count == 0;
-			menuRememberTeam.Enabled = League != null && ListView.SelectedItems.Count == 0;
-			menuUpdateTeam.Enabled = LeagueTeam != null && ListView.SelectedItems.Count == 0;
-			menuNameTeam.Enabled = LeagueTeam != null && ListView.SelectedItems.Count == 0;
-			menuIdentifyTeam.Enabled = League != null && ListView.SelectedItems.Count == 0;
-			menuIdentifyPlayer.Enabled = ListView.SelectedItems.Count == 1;
-			menuHandicapPlayer.Enabled = false;// ListView.SelectedItems.Count == 1;
-			manageTermsToolStripMenuItem.Enabled = League != null && ListView.SelectedItems.Count == 1;
+			int count = ListView.SelectedItems.Count;
+
+			menuSortTeams.Enabled = count == 0;
+			menuHandicapTeam.Enabled = League != null && !League.IsAutoHandicap && count == 0;
+			menuRememberTeam.Enabled = League != null && count == 0;
+			menuUpdateTeam.Enabled = LeagueTeam != null && count == 0;
+			menuNameTeam.Enabled = LeagueTeam != null && count == 0;
+			menuIdentifyTeam.Enabled = League != null && count == 0;
+			menuIdentifyPlayer.Enabled = count == 1;
+			manageTermsToolStripMenuItem.Enabled = League != null && count == 1;
 			menuAdjustPlayerScore.Enabled = false; // TODO REMOVE ONCE TERM MANAGEMENT TESTED ON OZONE :: ListView.SelectedItems.Count == 1
-			menuMergePlayer.Enabled = League != null && ListView.SelectedItems.Count == 2;
-			changeAliasToolStripMenuItem.Enabled = League != null && ListView.SelectedItems.Count == 1;
-			menuGradePlayer.Enabled = ListView.SelectedItems.Count == 1 && League != null && League.IsAutoHandicap && LeagueTeam != null;
-			manageTeamTerms.Enabled = League != null && ListView.SelectedItems.Count == 0;
+			menuMergePlayer.Enabled = League != null && count == 2;
+			changeAliasToolStripMenuItem.Enabled = League != null && count == 1;
+			menuGradePlayer.Enabled = count == 1 && League != null && League.IsAutoHandicap && LeagueTeam != null;
+			manageTeamTerms.Enabled = League != null && count == 0;
 			menuAdjustTeamScore.Enabled = false;
-			eliminatePlayerToolStripMenuItem.Enabled = League != null && ListView.SelectedItems.Count == 1;
-			menuAdjustVictoryPoints.Enabled = League != null && ListView.SelectedItems.Count == 0;
+			eliminatePlayerToolStripMenuItem.Enabled = League != null && count == 1;
+			menuAdjustVictoryPoints.Enabled = League != null && count == 0;
 
 			menuIdentifyTeam.DropDownItems.Clear();
 			menuGradePlayer.DropDownItems.Clear();
@@ -244,16 +229,12 @@ namespace Torn.UI
 				var item = ListView.SelectedItems[0];
 				var subIndex = item.SubItems.Count == 0 || string.IsNullOrEmpty(item.SubItems[1].Text) ? 0 : 1;
 				menuIdentifyPlayer.Text = "Identify " + item.SubItems[subIndex].Text.Trim() + "...";
-				menuHandicapPlayer.Text = "Handicap " + item.SubItems[subIndex].Text.Trim() + "...";
 			}
 			else
-			{
 				menuIdentifyPlayer.Text = "Identify player";
-				menuHandicapPlayer.Text = "Handicap player";
-			}
 		}
 
-		void MenuAdjustTeamScoreClick(object sender, EventArgs e)
+		private void MenuAdjustTeamScoreClick(object sender, EventArgs e)
 		{
 			double a = GameTeam.Adjustment == 0 ? -1000 : GameTeam.Adjustment;
 			if (InputDialog.GetDouble("Adjustment", "Set team score adjustment", ref a))
@@ -261,48 +242,51 @@ namespace Torn.UI
 			Recalculate(false);
 		}
 
-		void MenuAdjustVictoryPointsClick(object sender, EventArgs e)
+		private void MenuAdjustVictoryPointsClick(object sender, EventArgs e)
 		{
 			GameTeam.PointsAdjustment = (double)InputDialog.GetDouble("Victory Points Adjustment", "Set team victory points adjustment", GameTeam.PointsAdjustment);
-			Recalculate(false);
+			ListView.Columns[1].Text = (League.IsPoints() ? "(...) " : "") + leagueTeam?.Name;  // Victory points currently only get recalculated in League.CommitGame().
+			//Recalculate(false);
 		}
 
-		void MenuHandicapTeamClick(object sender, EventArgs e)
+		private void MenuHandicapTeamClick(object sender, EventArgs e)
 		{
-			LeagueTeam leagueTeam = GetLeagueTeamFromFile();
-
-			if (leagueTeam != null)
+			if (EnsureTeam())
 			{
-				Handicap.Value = InputDialog.GetDouble("Handicap", "Set team handicap (" + League.HandicapStyle.ToString() + ")", Handicap.Value ?? 100);
+				var h = InputDialog.GetDouble("Handicap", "Set team handicap (" + League.HandicapStyle.ToString() + ")", Handicap.Value ?? 100);
 
-				leagueTeam.Handicap = new Handicap(Handicap.Value, League.HandicapStyle);
+				LeagueTeam.Handicap = new Handicap(h, League.HandicapStyle);
 
 				League.Save();
 				Recalculate(false);
 			}
 			else
 			{
-				MessageBox.Show("Please Identify Team before adding Handicap", "Cannot Apply Handicap", MessageBoxButtons.OK);
+				MessageBox.Show("Please Identify Team before adding Handicap.", "Cannot Apply Handicap", MessageBoxButtons.OK);
 			}
 		}
 
 		private void MenuIdentifyTeamClick(object sender, EventArgs e)
 		{
+			var oldHandicap = Handicap;
+
 			LeagueTeam = (LeagueTeam)((ToolStripMenuItem)sender).Tag;
 			ListView.Columns[1].Text = LeagueTeam == null ? "Players" : LeagueTeam.Name;
+
+			if (oldHandicap?.Style != LeagueTeam.Handicap?.Style || oldHandicap?.Value != LeagueTeam.Handicap?.Value)
+				Recalculate();
 		}
 
 		private void MenuGradePlayerClick(object sender, EventArgs e)
 		{
-			LeagueTeam leagueTeam = GetLeagueTeamFromFile();
-			if (leagueTeam != null)
+			if (EnsureTeam())
 			{
 				ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
 
 				var leaguePlayer = League.LeaguePlayer(player.PlayerId);
 				if (leaguePlayer != null)
 				{
-					MessageBox.Show("Please Commit Team with new player before grading player", "Cannot Apply Grade", MessageBoxButtons.OK);
+					MessageBox.Show("Please Commit Team with new player before grading player.", "Cannot Apply Grade", MessageBoxButtons.OK);
 					return;
 				}
 				Grade grade = (Grade)((ToolStripMenuItem)sender).Tag;
@@ -329,7 +313,7 @@ namespace Torn.UI
 
 		}
 
-		void MenuNameTeamClick(object sender, EventArgs e)
+		private void MenuNameTeamClick(object sender, EventArgs e)
 		{
 			var leagueTeam = League.LeagueTeam(LeagueTeam.Name);
 			LeagueTeam.Name = InputDialog.GetInput("Name: ", "Set a team name", LeagueTeam.Name);
@@ -341,7 +325,7 @@ namespace Torn.UI
 			League.Load();
 		}
 
-		void MenuRememberTeamClick(object sender, EventArgs e)
+		private void MenuRememberTeamClick(object sender, EventArgs e)
 		{
 			if (LeagueTeam == null || MessageBox.Show("This box already has a team (" + LeagueTeam.Name + "). Create a new team anyway?",
 													  "Create new team", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -368,12 +352,12 @@ namespace Torn.UI
 			League.AddTeam(LeagueTeam);
 		}
 
-		void MenuSortTeamsClick(object sender, EventArgs e)
+		private void MenuSortTeamsClick(object sender, EventArgs e)
 		{
 			SortTeamsByRank?.Invoke();
 		}
 
-		void MenuUpdateTeamClick(object sender, EventArgs e)
+		private void MenuUpdateTeamClick(object sender, EventArgs e)
 		{
 			foreach (var serverPlayer in Players())
 			{
@@ -392,7 +376,7 @@ namespace Torn.UI
 			}
 		}
 
-		void MenuIdentifyPlayerClick(object sender, EventArgs e)
+		private void MenuIdentifyPlayerClick(object sender, EventArgs e)
 		{
 			var player = (ServerPlayer)ListView.SelectedItems[0].Tag;
 			FormPlayer.PlayerId = player.PlayerId;
@@ -405,12 +389,7 @@ namespace Torn.UI
 			}
 		}
 
-		void MenuHandicapPlayerClick(object sender, EventArgs e)
-		{
-			// TODO: Implement.
-		}
-
-		void MenuMergePlayerClick(object sender, EventArgs e)
+		private void MenuMergePlayerClick(object sender, EventArgs e)
 		{
 			var player1 = (ServerPlayer)ListView.SelectedItems[0].Tag;
 			var player2 = (ServerPlayer)ListView.SelectedItems[1].Tag;
