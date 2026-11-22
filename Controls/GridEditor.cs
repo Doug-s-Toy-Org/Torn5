@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using Torn;
 using Torn.Grids;
@@ -52,6 +51,11 @@ namespace Torn5.Controls
 			new MouseButtonColour { Name = "\u2190", MouseButton = MouseButtons.XButton1 },
 			new MouseButtonColour { Name = "\u2192", MouseButton = MouseButtons.XButton2 },
 		};
+
+		private MouseButtons mouseButton;
+
+		private enum SetOrClear { Neither, Setting, Clearing };
+		private SetOrClear setOrClear = SetOrClear.Neither;
 
 		private List<Colour> coloursUsed = new List<Colour>();
 		public List<Colour> ColoursUsed => coloursUsed;
@@ -247,55 +251,11 @@ namespace Torn5.Controls
 			}
 		}
 
-		private void PanelGraphicMouseClick(object sender, MouseEventArgs e)
-		{
-			point = PointToClient(Cursor.Position);
-			point = new Point((point.X - gridLeft) / cellSize, point.Y / cellSize - 1);
-			int rows = Fixture.Teams.Count;
-
-			if (Fixture.Games.Valid(point.X) && Fixture.Teams.Valid(point.Y))  // User has clicked within grid.
-			{
-				graphics = CreateGraphics();
-
-				if (Fixture.Games[point.X].Teams.ContainsKey(Fixture.Teams[point.Y]))
-				{
-					Fixture.Games[point.X].Teams.Remove(Fixture.Teams[point.Y]);
-					FillCell(point.Y, point.X, cellSize, Brushes.White);
-				}
-				else
-				{
-					Colour c = buttons.Find(b => b.MouseButton == e.Button).Colour;
-					Fixture.Games[point.X].Teams.Add(Fixture.Teams[point.Y], c);
-					FillCell(point.Y, point.X, cellSize, c);
-				}
-
-				PaintColumnTotal(point.X, cellSize, rows);
-				PaintDifficulties(cellSize, rows);
-
-				Changed?.Invoke(this, new EventArgs());
-			}
-			else
-			{
-				if (point.Y == rows + 3 && Enum.IsDefined(typeof(Colour), point.X) &&  // User has clicked palette.
-					(coloursUsed.Contains((Colour)point.X) || 
-					 ModifierKeys.HasFlag(Keys.Control) || ModifierKeys.HasFlag(Keys.Shift) || ModifierKeys.HasFlag(Keys.Alt)))
-				{
-					var c = (Colour)point.X;
-					EnsureColour(c);
-
-					var button = buttons.Find(b => b.MouseButton == e.Button);
-					if (button != default)
-						button.Colour = c;
-
-					Invalidate(new Rectangle(gridLeft, (rows + 4) * cellSize + 1, cellSize * 19, cellSize));
-				}
-
-				point = new Point(-1, -1);
-			}
-		}
-
 		public int CellSize()
 		{
+			if (Fixture?.Games == null)
+				return 10;
+
 			int sizeByWidth = Fixture.Games.Count == 0 ? int.MaxValue : Width / (Fixture.Games.Count + 10);  // + 5 for team names; + 5 for difficulty scores.
 			int sizeByHeight = Height / (Fixture.Teams.Count + 6);  // + 1 for top margin / header; + 2 for footer totals; + 3 for palette and spacing.
 
@@ -395,6 +355,90 @@ namespace Torn5.Controls
 		{
 			resizing = false;
 			Invalidate();
+		}
+
+		private void GridEditorMouseDown(object sender, MouseEventArgs e)
+		{
+			mouseButton = e.Button;  // If multiple mouse buttons pressed, just remember the most recent.
+			point = GridPosition();
+			setOrClear = InGrid(point) ? (Fixture.Games[point.X].Teams.ContainsKey(Fixture.Teams[point.Y]) ? SetOrClear.Clearing : SetOrClear.Setting) : SetOrClear.Neither;
+			Toggle();
+		}
+
+		private void GridEditorMouseMove(object sender, MouseEventArgs e)
+		{
+			var newPoint = GridPosition();
+			if (newPoint != point && InGrid(newPoint))
+			{
+				point = newPoint;
+				Toggle();
+			}
+		}
+
+		private void GridEditorMouseUp(object sender, MouseEventArgs e)
+		{
+			var upPoint = GridPosition();
+
+			if (point == upPoint && point.Y == Fixture.Teams.Count + 3 && Enum.IsDefined(typeof(Colour), point.X) &&  // User has clicked palette.
+				(coloursUsed.Contains((Colour)point.X) || 
+					ModifierKeys.HasFlag(Keys.Control) || ModifierKeys.HasFlag(Keys.Shift) || ModifierKeys.HasFlag(Keys.Alt)))
+			{
+				var c = (Colour)point.X;
+				EnsureColour(c);
+
+				var button = buttons.Find(b => b.MouseButton == e.Button);
+				if (button != default)
+					button.Colour = c;
+
+				Invalidate(new Rectangle(gridLeft, (Fixture.Teams.Count + 4) * cellSize + 1, cellSize * 19, cellSize));
+			}
+
+			mouseButton = MouseButtons.None;
+			setOrClear = SetOrClear.Neither;
+		}
+
+		private void GridEditorMouseLeave(object sender, EventArgs e)
+		{
+			mouseButton = MouseButtons.None;
+			setOrClear = SetOrClear.Neither;
+		}
+
+		private Point GridPosition()
+		{
+			var newPoint = PointToClient(Cursor.Position);
+			return new Point((newPoint.X - gridLeft) / cellSize, newPoint.Y / cellSize - 1);
+		}
+
+		private bool InGrid(Point point)
+		{
+			return Fixture.Games.Valid(point.X) && Fixture.Teams.Valid(point.Y);  // User has clicked within grid.
+		}
+
+		private void Toggle()
+		{
+			if (setOrClear == SetOrClear.Neither)
+				return;
+
+			graphics = CreateGraphics();
+			var fixtureGameTeams = Fixture.Games[point.X].Teams;
+			var team = Fixture.Teams[point.Y];
+
+			switch (setOrClear)
+			{
+				case SetOrClear.Setting:
+					Colour c = buttons.Find(b => (b.MouseButton & mouseButton) != 0).Colour;
+					fixtureGameTeams[team] = c;
+					FillCell(point.Y, point.X, cellSize, c);
+					break;
+				case SetOrClear.Clearing:
+					if (fixtureGameTeams.Remove(team))
+						FillCell(point.Y, point.X, cellSize, Brushes.White);
+					break;
+			}
+
+			PaintColumnTotal(point.X, cellSize, Fixture.Teams.Count);
+			PaintDifficulties(cellSize, Fixture.Teams.Count);
+			Changed?.Invoke(this, new EventArgs());
 		}
 	}
 }

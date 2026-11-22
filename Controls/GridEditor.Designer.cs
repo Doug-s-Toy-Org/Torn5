@@ -34,11 +34,13 @@
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.Margin = new System.Windows.Forms.Padding(2);
 			this.Name = "GridEditor";
 			this.Size = new System.Drawing.Size(100, 98);
 			this.Paint += new System.Windows.Forms.PaintEventHandler(this.ThisPaint);
-			this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.PanelGraphicMouseClick);
+			this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.GridEditorMouseDown);
+			this.MouseLeave += new System.EventHandler(this.GridEditorMouseLeave);
+			this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.GridEditorMouseMove);
+			this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.GridEditorMouseUp);
 			this.ResumeLayout(false);
 
 		}
